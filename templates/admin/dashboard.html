@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard — Meleven Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-page-header">
+        <h1>Compounds</h1>
+        <a href="{{ url_for('admin_compound_new') }}" class="btn-primary">+ Add Compound</a>
+    </div>
+
+    {% if compounds %}
+    <table class="admin-table">
+        <thead>
+            <tr><th>Name</th><th>Area</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for c in compounds %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.area or '-' }}</td>
+                <td>{{ c.price_range_display() }}</td>
+                <td>{{ "Yes" if c.is_featured else "-" }}</td>
+                <td>{{ "Yes" if c.is_published else "No" }}</td>
+                <td class="admin-actions">
+                    <a href="{{ url_for('admin_compound_edit', compound_id=c.id) }}">Edit</a>
+                    <a href="{{ url_for('admin_units', compound_id=c.id) }}">Units ({{ c.units|length }})</a>
+                    <form method="post" action="{{ url_for('admin_compound_delete', compound_id=c.id) }}" onsubmit="return confirm('Delete this compound and all its units? This cannot be undone.');">
+                        <button type="submit" class="admin-delete-btn">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No compounds yet. Click "Add Compound" to create your first one.</p>
+    {% endif %}
+</div>
+{% endblock %}

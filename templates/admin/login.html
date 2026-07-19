@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% block title %}Admin Login — Meleven{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+    <div class="login-box">
+        <img src="{{ url_for('static', filename='img/icon-square.png') }}" alt="Meleven" class="login-logo">
+        <h1>Admin Login</h1>
+        <form method="post" class="login-form">
+            <input type="password" name="password" placeholder="Password" required autofocus>
+            <button type="submit" class="btn-primary btn-block">Log In</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
