@@ -128,6 +128,21 @@ def create_app():
         all_compounds = Compound.query.order_by(Compound.created_at.desc()).all()
         return render_template("admin/dashboard.html", compounds=all_compounds)
 
+    @app.route("/admin/leads")
+    @login_required
+    def admin_leads():
+        all_leads = Lead.query.order_by(Lead.created_at.desc()).all()
+        return render_template("admin/leads.html", leads=all_leads)
+
+    @app.route("/admin/leads/<int:lead_id>/delete", methods=["POST"])
+    @login_required
+    def admin_lead_delete(lead_id):
+        l = Lead.query.get_or_404(lead_id)
+        db.session.delete(l)
+        db.session.commit()
+        flash("Lead deleted.", "success")
+        return redirect(url_for("admin_leads"))
+
     @app.route("/admin/compounds/new", methods=["GET", "POST"])
     @login_required
     def admin_compound_new():
