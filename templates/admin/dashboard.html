@@ -5,7 +5,10 @@
 <div class="admin-container">
     <div class="admin-page-header">
         <h1>Compounds</h1>
-        <a href="{{ url_for('admin_compound_new') }}" class="btn-primary">+ Add Compound</a>
+        <div style="display:flex; gap:12px;">
+            <a href="{{ url_for('admin_leads') }}" class="admin-cancel-link" style="align-self:center;">View Leads →</a>
+            <a href="{{ url_for('admin_compound_new') }}" class="btn-primary">+ Add Compound</a>
+        </div>
     </div>
 
     {% if compounds %}
