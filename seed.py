@@ -33,6 +33,8 @@ with app.app_context():
             land_area_acres=506,
             delivery_year=2028,
             cover_image_url="",
+            contact_phone="+201000000000",
+            contact_whatsapp="201000000000",
             is_featured=True,
             is_published=True,
         )
@@ -40,11 +42,11 @@ with app.app_context():
         db.session.commit()
 
         db.session.add_all([
-            Unit(compound_id=compound.id, unit_type="Chalet", bedrooms=2, area_sqm=110,
+            Unit(compound_id=compound.id, unit_type="Chalet", bedrooms=2, bathrooms=2, area_sqm=110,
                  price=6500000, payment_plan="10% down, 8-year installments"),
-            Unit(compound_id=compound.id, unit_type="Twin House", bedrooms=4, area_sqm=240,
+            Unit(compound_id=compound.id, unit_type="Twin House", bedrooms=4, bathrooms=3, area_sqm=240,
                  price=14500000, payment_plan="15% down, 7-year installments"),
-            Unit(compound_id=compound.id, unit_type="Standalone Villa", bedrooms=5, area_sqm=380,
+            Unit(compound_id=compound.id, unit_type="Standalone Villa", bedrooms=5, bathrooms=4, area_sqm=380,
                  price=24000000, payment_plan="20% down, 6-year installments"),
         ])
         db.session.commit()
