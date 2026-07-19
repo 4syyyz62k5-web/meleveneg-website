@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Admin — Meleven{% endblock %}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon-square.png') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body class="admin-body">
+
+{% if session.get('admin_logged_in') %}
+<header class="admin-header">
+    <div class="admin-header-inner">
+        <a href="{{ url_for('admin_dashboard') }}" class="admin-brand">MELEVEN ADMIN</a>
+        <nav class="admin-nav">
+            <a href="{{ url_for('admin_dashboard') }}">Compounds</a>
+            <a href="{{ url_for('admin_leads') }}">Leads</a>
+            <a href="{{ url_for('home') }}" target="_blank">View Site ↗</a>
+            <a href="{{ url_for('admin_logout') }}">Logout</a>
+        </nav>
+    </div>
+</header>
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="admin-container flash-wrap">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main class="admin-main">
+{% block content %}{% endblock %}
+</main>
+
+</body>
+</html>
