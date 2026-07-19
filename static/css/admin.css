@@ -116,6 +116,12 @@
 }
 .admin-delete-btn:hover { text-decoration: underline; }
 
+.lead-message-cell {
+  max-width: 260px;
+  white-space: normal;
+  word-break: break-word;
+}
+
 /* ---------- Admin form ---------- */
 .admin-form {
   background: var(--color-white);
