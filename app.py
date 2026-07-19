@@ -10,13 +10,26 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    @app.context_processor
+    def inject_footer_areas():
+        rows = db.session.query(Compound.area, db.func.count(Compound.id)).filter(
+            Compound.is_published == True, Compound.area.isnot(None)
+        ).group_by(Compound.area).order_by(Compound.area.asc()).all()
+        return {"footer_areas": [{"name": r[0], "count": r[1]} for r in rows]}
+
     # ---------- Public pages ----------
 
     @app.route("/")
     def home():
         featured = Compound.query.filter_by(is_featured=True, is_published=True).limit(6).all()
         latest = Compound.query.filter_by(is_published=True).order_by(Compound.created_at.desc()).limit(8).all()
-        return render_template("index.html", featured=featured, latest=latest)
+
+        area_rows = db.session.query(
+            Compound.area, db.func.count(Compound.id)
+        ).filter(Compound.is_published == True, Compound.area.isnot(None)).group_by(Compound.area).all()
+        top_areas = [{"name": r[0], "count": r[1]} for r in area_rows]
+
+        return render_template("index.html", featured=featured, latest=latest, top_areas=top_areas)
 
     @app.route("/compounds")
     def compounds():
