@@ -1,0 +1,38 @@
+{% extends "admin/base.html" %}
+{% block title %}Leads — Meleven Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-page-header">
+        <h1>Leads ({{ leads|length }})</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+    </div>
+
+    {% if leads %}
+    <table class="admin-table">
+        <thead>
+            <tr><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>Compound</th><th>Received</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for l in leads %}
+            <tr>
+                <td>{{ l.name }}</td>
+                <td><a href="tel:{{ l.phone }}">{{ l.phone }}</a></td>
+                <td>{{ l.email or '-' }}</td>
+                <td class="lead-message-cell">{{ l.message or '-' }}</td>
+                <td>{{ l.compound.name if l.compound else '-' }}</td>
+                <td>{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('admin_lead_delete', lead_id=l.id) }}" onsubmit="return confirm('Delete this lead?');">
+                        <button type="submit" class="admin-delete-btn">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No messages received yet. They'll show up here as soon as someone submits the Contact form or an "Interested" form on a compound page.</p>
+    {% endif %}
+</div>
+{% endblock %}
