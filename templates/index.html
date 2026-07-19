@@ -27,13 +27,23 @@
         <h2 class="section-title">Featured Compounds</h2>
         <div class="card-grid">
             {% for c in featured %}
-            <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="compound-card">
-                <div class="card-image" style="background-image: url('{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
-                <div class="card-body">
-                    <h3>{{ c.name }}</h3>
-                    <p class="card-location">{{ c.area }}</p>
-                    <p class="card-price">{{ c.price_range_display() }}</p>
-                </div>
+                {% include "_compound_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if top_areas %}
+<section class="section area-section">
+    <div class="container">
+        <h2 class="section-title">Top Areas</h2>
+        <div class="area-grid">
+            {% for area in top_areas %}
+            <a href="{{ url_for('compounds', area=area.name) }}" class="area-card">
+                <div class="area-circle" style="background-image: url('{{ url_for('static', filename='img/placeholder.jpg') }}');"></div>
+                <h4>{{ area.name }}</h4>
+                <p>{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
             </a>
             {% endfor %}
         </div>
@@ -47,14 +57,7 @@
         {% if latest %}
         <div class="card-grid">
             {% for c in latest %}
-            <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="compound-card">
-                <div class="card-image" style="background-image: url('{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
-                <div class="card-body">
-                    <h3>{{ c.name }}</h3>
-                    <p class="card-location">{{ c.area }}</p>
-                    <p class="card-price">{{ c.price_range_display() }}</p>
-                </div>
-            </a>
+                {% include "_compound_card.html" %}
             {% endfor %}
         </div>
         {% else %}
