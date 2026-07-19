@@ -1,6 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+import re
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from config import Config
 from models import db, Compound, Unit, Lead
+
+
+def slugify(text):
+    text = (text or "").lower().strip()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-") or "compound"
 
 def create_app():
     app = Flask(__name__)
@@ -85,6 +93,148 @@ def create_app():
         db.session.commit()
         flash("تم استلام طلبك بخصوص المشروع! هيتواصل معاك فريق Meleven قريب.", "success")
         return redirect(url_for("compound_detail", slug=slug))
+
+    # ---------- Admin auth ----------
+
+    def login_required(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if not session.get("admin_logged_in"):
+                return redirect(url_for("admin_login", next=request.path))
+            return f(*args, **kwargs)
+        return wrapper
+
+    @app.route("/admin/login", methods=["GET", "POST"])
+    def admin_login():
+        if request.method == "POST":
+            password = request.form.get("password", "")
+            if password == app.config["ADMIN_PASSWORD"]:
+                session["admin_logged_in"] = True
+                next_url = request.args.get("next") or url_for("admin_dashboard")
+                return redirect(next_url)
+            flash("Incorrect password.", "error")
+        return render_template("admin/login.html")
+
+    @app.route("/admin/logout")
+    def admin_logout():
+        session.pop("admin_logged_in", None)
+        return redirect(url_for("admin_login"))
+
+    # ---------- Admin: compounds ----------
+
+    @app.route("/admin")
+    @login_required
+    def admin_dashboard():
+        all_compounds = Compound.query.order_by(Compound.created_at.desc()).all()
+        return render_template("admin/dashboard.html", compounds=all_compounds)
+
+    @app.route("/admin/compounds/new", methods=["GET", "POST"])
+    @login_required
+    def admin_compound_new():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            slug = request.form.get("slug", "").strip() or slugify(name)
+
+            # ensure slug uniqueness
+            base_slug, n = slug, 1
+            while Compound.query.filter_by(slug=slug).first():
+                n += 1
+                slug = f"{base_slug}-{n}"
+
+            c = Compound(
+                name=name,
+                slug=slug,
+                developer=request.form.get("developer", "").strip(),
+                area=request.form.get("area", "").strip(),
+                location_detail=request.form.get("location_detail", "").strip(),
+                short_description=request.form.get("short_description", "").strip(),
+                full_description=request.form.get("full_description", "").strip(),
+                min_price=request.form.get("min_price") or None,
+                max_price=request.form.get("max_price") or None,
+                land_area_acres=request.form.get("land_area_acres") or None,
+                delivery_year=request.form.get("delivery_year") or None,
+                cover_image_url=request.form.get("cover_image_url", "").strip(),
+                contact_phone=request.form.get("contact_phone", "").strip(),
+                contact_whatsapp=request.form.get("contact_whatsapp", "").strip(),
+                is_featured=bool(request.form.get("is_featured")),
+                is_published=bool(request.form.get("is_published")),
+            )
+            db.session.add(c)
+            db.session.commit()
+            flash("Compound created.", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        return render_template("admin/compound_form.html", compound=None)
+
+    @app.route("/admin/compounds/<int:compound_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_compound_edit(compound_id):
+        c = Compound.query.get_or_404(compound_id)
+        if request.method == "POST":
+            c.name = request.form.get("name", "").strip()
+            c.developer = request.form.get("developer", "").strip()
+            c.area = request.form.get("area", "").strip()
+            c.location_detail = request.form.get("location_detail", "").strip()
+            c.short_description = request.form.get("short_description", "").strip()
+            c.full_description = request.form.get("full_description", "").strip()
+            c.min_price = request.form.get("min_price") or None
+            c.max_price = request.form.get("max_price") or None
+            c.land_area_acres = request.form.get("land_area_acres") or None
+            c.delivery_year = request.form.get("delivery_year") or None
+            c.cover_image_url = request.form.get("cover_image_url", "").strip()
+            c.contact_phone = request.form.get("contact_phone", "").strip()
+            c.contact_whatsapp = request.form.get("contact_whatsapp", "").strip()
+            c.is_featured = bool(request.form.get("is_featured"))
+            c.is_published = bool(request.form.get("is_published"))
+            db.session.commit()
+            flash("Compound updated.", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        return render_template("admin/compound_form.html", compound=c)
+
+    @app.route("/admin/compounds/<int:compound_id>/delete", methods=["POST"])
+    @login_required
+    def admin_compound_delete(compound_id):
+        c = Compound.query.get_or_404(compound_id)
+        db.session.delete(c)
+        db.session.commit()
+        flash("Compound deleted.", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    # ---------- Admin: units ----------
+
+    @app.route("/admin/compounds/<int:compound_id>/units", methods=["GET", "POST"])
+    @login_required
+    def admin_units(compound_id):
+        c = Compound.query.get_or_404(compound_id)
+        if request.method == "POST":
+            u = Unit(
+                compound_id=c.id,
+                unit_type=request.form.get("unit_type", "").strip(),
+                bedrooms=request.form.get("bedrooms") or None,
+                bathrooms=request.form.get("bathrooms") or None,
+                area_sqm=request.form.get("area_sqm") or None,
+                price=request.form.get("price") or None,
+                payment_plan=request.form.get("payment_plan", "").strip(),
+                image_url=request.form.get("image_url", "").strip(),
+                is_available=bool(request.form.get("is_available")),
+            )
+            db.session.add(u)
+            db.session.commit()
+            flash("Unit added.", "success")
+            return redirect(url_for("admin_units", compound_id=c.id))
+
+        return render_template("admin/units.html", compound=c)
+
+    @app.route("/admin/units/<int:unit_id>/delete", methods=["POST"])
+    @login_required
+    def admin_unit_delete(unit_id):
+        u = Unit.query.get_or_404(unit_id)
+        compound_id = u.compound_id
+        db.session.delete(u)
+        db.session.commit()
+        flash("Unit deleted.", "success")
+        return redirect(url_for("admin_units", compound_id=compound_id))
 
     return app
 
