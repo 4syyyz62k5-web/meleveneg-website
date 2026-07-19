@@ -73,7 +73,7 @@ def create_app():
             )
             db.session.add(lead)
             db.session.commit()
-            flash("تم استلام طلبك! هيتواصل معاك فريق Meleven قريب.", "success")
+            flash("Thanks for reaching out! Our team at Meleven will contact you shortly.", "success")
             return redirect(url_for("contact"))
 
         return render_template("contact.html")
@@ -91,7 +91,7 @@ def create_app():
         )
         db.session.add(lead)
         db.session.commit()
-        flash("تم استلام طلبك بخصوص المشروع! هيتواصل معاك فريق Meleven قريب.", "success")
+        flash("Thanks for your interest! Our team at Meleven will contact you shortly about this project.", "success")
         return redirect(url_for("compound_detail", slug=slug))
 
     # ---------- Admin auth ----------
