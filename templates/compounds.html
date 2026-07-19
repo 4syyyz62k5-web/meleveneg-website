@@ -18,14 +18,7 @@
         {% if compounds %}
         <div class="card-grid">
             {% for c in compounds %}
-            <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="compound-card">
-                <div class="card-image" style="background-image: url('{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
-                <div class="card-body">
-                    <h3>{{ c.name }}</h3>
-                    <p class="card-location">{{ c.area }}{% if c.developer %} · {{ c.developer }}{% endif %}</p>
-                    <p class="card-price">{{ c.price_range_display() }}</p>
-                </div>
-            </a>
+                {% include "_compound_card.html" %}
             {% endfor %}
         </div>
         {% else %}
