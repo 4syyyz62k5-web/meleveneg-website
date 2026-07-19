@@ -14,5 +14,9 @@ class Config:
 
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-in-render-environment-variables")
 
+    # Password to access /admin — set this as an environment variable on Render!
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme123")
+
     # Placeholder — fill in once Circles integration is ready
     CIRCLES_APP_URL = os.environ.get("CIRCLES_APP_URL", "https://your-circles-app.onrender.com")
+    
