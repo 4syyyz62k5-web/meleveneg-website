@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Properties — Meleven Consultancy{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="page-title">Browse Properties</h1>
+
+        <form action="{{ url_for('compounds') }}" method="get" class="filter-bar">
+            <select name="area" onchange="this.form.submit()">
+                <option value="">All Areas</option>
+                {% for area in areas %}
+                <option value="{{ area }}" {% if area == selected_area %}selected{% endif %}>{{ area }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        {% if compounds %}
+        <div class="card-grid">
+            {% for c in compounds %}
+            <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="compound-card">
+                <div class="card-image" style="background-image: url('{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+                <div class="card-body">
+                    <h3>{{ c.name }}</h3>
+                    <p class="card-location">{{ c.area }}{% if c.developer %} · {{ c.developer }}{% endif %}</p>
+                    <p class="card-price">{{ c.price_range_display() }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No properties found. Try a different area, or add compounds to the database.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

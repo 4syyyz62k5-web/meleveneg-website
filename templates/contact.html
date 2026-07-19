@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Contact Us — Meleven Consultancy{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container narrow">
+        <h1 class="page-title">Get in Touch</h1>
+        <p class="lead-text">Tell us what you're looking for, and our team will reach out.</p>
+
+        <form action="{{ url_for('contact') }}" method="post" class="contact-form">
+            <input type="text" name="name" placeholder="Full Name" required>
+            <input type="tel" name="phone" placeholder="Phone Number" required>
+            <input type="email" name="email" placeholder="Email (optional)">
+            <textarea name="message" placeholder="Tell us what you're looking for" rows="5"></textarea>
+            <button type="submit" class="btn-primary">Send Message</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

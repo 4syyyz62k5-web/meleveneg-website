@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}About Us — Meleven Consultancy{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container narrow">
+        <h1 class="page-title">About Meleven</h1>
+        <p class="lead-text">
+            Meleven Consultancy is a real estate consultancy firm with 12 years of experience in
+            property development and consultation across the Egyptian market.
+        </p>
+        <p>
+            We work closely with our clients to navigate Egypt's real estate landscape — from
+            first-time buyers to seasoned investors — offering guidance grounded in deep market
+            knowledge and a track record built over more than a decade.
+        </p>
+
+        <h2>What We Do</h2>
+        <ul class="fact-list">
+            <li>Property consultation and investment advisory</li>
+            <li>Access to a curated portfolio of top developments across Egypt</li>
+            <li>End-to-end support from search to closing</li>
+        </ul>
+
+        <div class="cta-inline">
+            <a href="{{ url_for('contact') }}" class="btn-primary">Speak With Our Team</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ compound.name }} — Meleven Consultancy{% endblock %}
+
+{% block content %}
+
+<section class="compound-hero" style="background-image: url('{{ compound.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+    <div class="compound-hero-overlay">
+        <div class="container">
+            <h1>{{ compound.name }}</h1>
+            <p>{{ compound.developer }} · {{ compound.area }}</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container detail-grid">
+
+        <div class="detail-main">
+            <h2>Overview</h2>
+            <p class="lead-text">{{ compound.short_description }}</p>
+            <div class="prose">
+                {{ compound.full_description | default("", true) | replace("\n", "<br>") | safe }}
+            </div>
+
+            <h2>Key Facts</h2>
+            <ul class="fact-list">
+                <li><strong>Location:</strong> {{ compound.location_detail or compound.area }}</li>
+                {% if compound.land_area_acres %}<li><strong>Land Area:</strong> {{ compound.land_area_acres }} acres</li>{% endif %}
+                {% if compound.delivery_year %}<li><strong>Delivery:</strong> {{ compound.delivery_year }}</li>{% endif %}
+                <li><strong>Price Range:</strong> {{ compound.price_range_display() }}</li>
+            </ul>
+
+            {% if compound.units %}
+            <h2>Available Units</h2>
+            <table class="units-table">
+                <thead>
+                    <tr><th>Type</th><th>Bedrooms</th><th>Area (sqm)</th><th>Price</th><th>Payment Plan</th></tr>
+                </thead>
+                <tbody>
+                    {% for u in compound.units %}
+                    <tr>
+                        <td>{{ u.unit_type }}</td>
+                        <td>{{ u.bedrooms }}</td>
+                        <td>{{ u.area_sqm }}</td>
+                        <td>{{ "{:,.0f}".format(u.price) if u.price else "On request" }} {{ u.currency }}</td>
+                        <td>{{ u.payment_plan or "-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+
+        <aside class="detail-sidebar">
+            <div class="inquiry-card">
+                <h3>Interested in {{ compound.name }}?</h3>
+                <p>Leave your details and our team will contact you.</p>
+                <form action="{{ url_for('compound_interested', slug=compound.slug) }}" method="post" class="inquiry-form">
+                    <input type="text" name="name" placeholder="Full Name" required>
+                    <input type="tel" name="phone" placeholder="Phone Number" required>
+                    <input type="email" name="email" placeholder="Email (optional)">
+                    <textarea name="message" placeholder="Any specific questions?" rows="3"></textarea>
+                    <button type="submit" class="btn-primary btn-block">Request a Callback</button>
+                </form>
+            </div>
+
+            <!-- Placeholder: once Circles is connected, a "Refer & Earn" block goes here -->
+        </aside>
+
+    </div>
+</section>
+
+{% endblock %}

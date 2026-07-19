@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <div class="container hero-inner">
+        <h1>Your Trusted Partner in Egyptian Real Estate</h1>
+        <p>12 years of experience helping clients find, evaluate, and invest in the right property.</p>
+        <div class="hero-search">
+            <form action="{{ url_for('compounds') }}" method="get" class="search-form">
+                <select name="area">
+                    <option value="">All Areas</option>
+                    {% for area in ["North Coast", "New Cairo", "Sheikh Zayed", "New Capital"] %}
+                    <option value="{{ area }}">{{ area }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Search Properties</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+{% if featured %}
+<section class="section">
+    <div class="container">
+        <h2 class="section-title">Featured Compounds</h2>
+        <div class="card-grid">
+            {% for c in featured %}
+            <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="compound-card">
+                <div class="card-image" style="background-image: url('{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+                <div class="card-body">
+                    <h3>{{ c.name }}</h3>
+                    <p class="card-location">{{ c.area }}</p>
+                    <p class="card-price">{{ c.price_range_display() }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section class="section">
+    <div class="container">
+        <h2 class="section-title">Latest Listings</h2>
+        {% if latest %}
+        <div class="card-grid">
+            {% for c in latest %}
+            <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="compound-card">
+                <div class="card-image" style="background-image: url('{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+                <div class="card-body">
+                    <h3>{{ c.name }}</h3>
+                    <p class="card-location">{{ c.area }}</p>
+                    <p class="card-price">{{ c.price_range_display() }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="section cta-section">
+    <div class="container cta-inner">
+        <h2>Looking for the right property?</h2>
+        <p>Talk to our consultancy team — we'll guide you through every step.</p>
+        <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
+    </div>
+</section>
+
+{% endblock %}
