@@ -43,7 +43,7 @@ h1, h2, h3 {
 /* ---------- Header ---------- */
 .site-header {
   background: var(--color-navy);
-  padding: 18px 0;
+  padding: 14px 0;
 }
 .header-inner {
   display: flex;
@@ -55,11 +55,11 @@ h1, h2, h3 {
   align-items: center;
 }
 .brand img {
-  height: 40px;
+  height: 62px;
   width: auto;
   display: block;
 }
-.brand-footer img { height: 34px; }
+.brand-footer img { height: 50px; }
 .main-nav a {
   color: var(--color-white);
   text-decoration: none;
