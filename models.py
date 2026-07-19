@@ -25,6 +25,8 @@ class Compound(db.Model):
     delivery_year = db.Column(db.Integer)
 
     cover_image_url = db.Column(db.String(500))
+    contact_phone = db.Column(db.String(50))       # for the "Call" button
+    contact_whatsapp = db.Column(db.String(50))     # for the "WhatsApp" button (digits only, e.g. 201234567890)
     is_featured = db.Column(db.Boolean, default=False)
     is_published = db.Column(db.Boolean, default=True)
 
@@ -39,6 +41,21 @@ class Compound(db.Model):
             return f"Starting {int(self.min_price):,} {self.currency}"
         return "Price on request"
 
+    def bedrooms_range(self):
+        """Returns e.g. '2 - 5 Beds' based on available units, or None if no unit data."""
+        beds = [u.bedrooms for u in self.units if u.bedrooms]
+        if not beds:
+            return None
+        lo, hi = min(beds), max(beds)
+        return f"{lo} Bed" if lo == hi else f"{lo} - {hi} Beds"
+
+    def bathrooms_range(self):
+        baths = [u.bathrooms for u in self.units if u.bathrooms]
+        if not baths:
+            return None
+        lo, hi = min(baths), max(baths)
+        return f"{lo} Bath" if lo == hi else f"{lo} - {hi} Baths"
+
 
 class Unit(db.Model):
     __tablename__ = "units"
@@ -48,10 +65,12 @@ class Unit(db.Model):
 
     unit_type = db.Column(db.String(100))  # Chalet, Villa, Townhouse, Apartment...
     bedrooms = db.Column(db.Integer)
+    bathrooms = db.Column(db.Integer)
     area_sqm = db.Column(db.Numeric(10, 2))
     price = db.Column(db.Numeric(14, 2))
     currency = db.Column(db.String(10), default="EGP")
     payment_plan = db.Column(db.String(255))  # e.g. "10% DP, 8 years installments"
+    image_url = db.Column(db.String(500))  # falls back to the compound's cover image if empty
 
     is_available = db.Column(db.Boolean, default=True)
 
