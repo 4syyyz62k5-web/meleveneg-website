@@ -36,7 +36,7 @@
     <p class="empty-state">No units added yet for this compound.</p>
     {% endif %}
     <h2 class="admin-subheading">Add a Unit</h2>
-    <form method="post" class="admin-form">
+    <form method="post" class="admin-form" enctype="multipart/form-data">
         <label>Unit Type *</label>
         <input type="text" name="unit_type" placeholder="e.g. Chalet, Villa, Twin House" required>
         <label>Phase / Neighborhood (optional)</label>
@@ -71,8 +71,12 @@
                 <input type="text" name="payment_plan" placeholder="e.g. 10% down, 8-year installments">
             </div>
         </div>
-        <label>Unit Image URL (optional — falls back to the compound's cover image)</label>
+
+        <label>Unit Photo</label>
+        <input type="file" name="image_file" accept="image/*">
+        <label>Or Unit Image URL (used only if you don't upload a photo above — falls back to the compound's cover image if both are empty)</label>
         <input type="text" name="image_url" placeholder="https://...">
+
         <label class="checkbox-label">
             <input type="checkbox" name="is_available" checked>
             Available
