@@ -6,7 +6,7 @@
         <h1>Edit Unit — {{ unit.compound.name }}</h1>
         <a href="{{ url_for('admin_units', compound_id=unit.compound_id) }}" class="admin-cancel-link">← Back to Units</a>
     </div>
-    <form method="post" class="admin-form">
+    <form method="post" class="admin-form" enctype="multipart/form-data">
         <label>Unit Type *</label>
         <input type="text" name="unit_type" value="{{ unit.unit_type or '' }}" placeholder="e.g. Chalet, Villa, Twin House" required>
         <label>Phase / Neighborhood (optional)</label>
@@ -41,8 +41,15 @@
                 <input type="text" name="payment_plan" value="{{ unit.payment_plan or '' }}" placeholder="e.g. 10% down, 8-year installments">
             </div>
         </div>
-        <label>Unit Image URL (optional — falls back to the compound's cover image)</label>
+
+        <label>Unit Photo</label>
+        {% if unit.image_url %}
+        <p class="unit-payment-plan">Current photo: <a href="{{ unit.image_url }}" target="_blank">view</a></p>
+        {% endif %}
+        <input type="file" name="image_file" accept="image/*">
+        <label>Or Unit Image URL (used only if you don't upload a photo above — falls back to the compound's cover image if both are empty)</label>
         <input type="text" name="image_url" value="{{ unit.image_url or '' }}" placeholder="https://...">
+
         <label class="checkbox-label">
             <input type="checkbox" name="is_available" {% if unit.is_available %}checked{% endif %}>
             Available
