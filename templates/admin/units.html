@@ -9,7 +9,7 @@
     {% if compound.units %}
     <table class="admin-table">
         <thead>
-            <tr><th>Type</th><th>Phase</th><th>Delivery</th><th>Beds</th><th>Baths</th><th>Area (sqm)</th><th>Price</th><th>Available</th><th></th></tr>
+            <tr><th>Type</th><th>Phase</th><th>Delivery</th><th>Beds</th><th>Baths</th><th>Area (sqm)</th><th>Price</th><th>Available</th><th></th><th></th></tr>
         </thead>
         <tbody>
             {% for u in compound.units %}
@@ -22,6 +22,7 @@
                 <td>{{ u.area_sqm or '-' }}</td>
                 <td>{{ "{:,.0f}".format(u.price) if u.price else '-' }}</td>
                 <td>{{ "Yes" if u.is_available else "No" }}</td>
+                <td><a href="{{ url_for('admin_unit_edit', unit_id=u.id) }}">Edit</a></td>
                 <td>
                     <form method="post" action="{{ url_for('admin_unit_delete', unit_id=u.id) }}" onsubmit="return confirm('Delete this unit?');">
                         <button type="submit" class="admin-delete-btn">Delete</button>
