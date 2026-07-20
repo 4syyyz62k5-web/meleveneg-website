@@ -1,22 +1,22 @@
 {% extends "admin/base.html" %}
 {% block title %}Units — {{ compound.name }} — Meleven Admin{% endblock %}
-
 {% block content %}
 <div class="admin-container">
     <div class="admin-page-header">
         <h1>Units — {{ compound.name }}</h1>
         <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
     </div>
-
     {% if compound.units %}
     <table class="admin-table">
         <thead>
-            <tr><th>Type</th><th>Beds</th><th>Baths</th><th>Area (sqm)</th><th>Price</th><th>Available</th><th></th></tr>
+            <tr><th>Type</th><th>Phase</th><th>Delivery</th><th>Beds</th><th>Baths</th><th>Area (sqm)</th><th>Price</th><th>Available</th><th></th></tr>
         </thead>
         <tbody>
             {% for u in compound.units %}
             <tr>
                 <td>{{ u.unit_type }}</td>
+                <td>{{ u.phase or '-' }}</td>
+                <td>{{ u.delivery_year or '-' }}</td>
                 <td>{{ u.bedrooms or '-' }}</td>
                 <td>{{ u.bathrooms or '-' }}</td>
                 <td>{{ u.area_sqm or '-' }}</td>
@@ -34,12 +34,12 @@
     {% else %}
     <p class="empty-state">No units added yet for this compound.</p>
     {% endif %}
-
     <h2 class="admin-subheading">Add a Unit</h2>
     <form method="post" class="admin-form">
         <label>Unit Type *</label>
         <input type="text" name="unit_type" placeholder="e.g. Chalet, Villa, Twin House" required>
-
+        <label>Phase / Neighborhood (optional)</label>
+        <input type="text" name="phase" placeholder="e.g. Shore Residence, Town Island, Lagoon Town">
         <div class="admin-form-row">
             <div>
                 <label>Bedrooms</label>
@@ -50,7 +50,6 @@
                 <input type="number" name="bathrooms">
             </div>
         </div>
-
         <div class="admin-form-row">
             <div>
                 <label>Area (sqm)</label>
@@ -61,18 +60,22 @@
                 <input type="number" name="price">
             </div>
         </div>
-
-        <label>Payment Plan</label>
-        <input type="text" name="payment_plan" placeholder="e.g. 10% down, 8-year installments">
-
+        <div class="admin-form-row">
+            <div>
+                <label>Delivery Year</label>
+                <input type="number" name="delivery_year" placeholder="e.g. 2030">
+            </div>
+            <div>
+                <label>Payment Plan</label>
+                <input type="text" name="payment_plan" placeholder="e.g. 10% down, 8-year installments">
+            </div>
+        </div>
         <label>Unit Image URL (optional — falls back to the compound's cover image)</label>
         <input type="text" name="image_url" placeholder="https://...">
-
         <label class="checkbox-label">
             <input type="checkbox" name="is_available" checked>
             Available
         </label>
-
         <button type="submit" class="btn-primary">Add Unit</button>
     </form>
 </div>
