@@ -163,6 +163,12 @@ h1, h2, h3 {
   letter-spacing: 0.4px;
 }
 .card-badge-available { background: #2f9e5b; color: var(--color-white); }
+.card-badge-delivery {
+  left: auto;
+  right: 10px;
+  background: var(--color-navy);
+  color: var(--color-white);
+}
 .card-body { padding: 16px 18px; }
 .card-title-link { display: block; text-decoration: none; color: inherit; }
 .card-body h3 { font-size: 18px; margin-bottom: 4px; }
