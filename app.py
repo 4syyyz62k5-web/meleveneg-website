@@ -1,16 +1,39 @@
 import re
 import csv
 import io
+import os
+import uuid
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
+from werkzeug.utils import secure_filename
 from config import Config
 from models import db, Compound, Unit, Lead
+
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
 
 def slugify(text):
     text = (text or "").lower().strip()
     text = re.sub(r"[^a-z0-9]+", "-", text)
     return text.strip("-") or "compound"
+
+
+def allowed_image(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+def save_uploaded_image(file_storage, upload_folder):
+    """Saves an uploaded image with a unique filename. Returns the filename, or None if no valid file was given."""
+    if not file_storage or file_storage.filename == "":
+        return None
+    if not allowed_image(file_storage.filename):
+        return None
+    os.makedirs(upload_folder, exist_ok=True)
+    ext = secure_filename(file_storage.filename).rsplit(".", 1)[1].lower()
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    file_storage.save(os.path.join(upload_folder, unique_name))
+    return unique_name
+
 
 def create_app():
     app = Flask(__name__)
@@ -26,6 +49,12 @@ def create_app():
             Compound.is_published == True, Compound.area.isnot(None)
         ).group_by(Compound.area).order_by(Compound.area.asc()).all()
         return {"footer_areas": [{"name": r[0], "count": r[1]} for r in rows]}
+
+    # ---------- Uploaded file serving ----------
+
+    @app.route("/uploads/<path:filename>")
+    def uploaded_file(filename):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     # ---------- Public pages ----------
 
@@ -158,6 +187,11 @@ def create_app():
                 n += 1
                 slug = f"{base_slug}-{n}"
 
+            cover_image_url = request.form.get("cover_image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                cover_image_url = url_for("uploaded_file", filename=uploaded_name)
+
             c = Compound(
                 name=name,
                 slug=slug,
@@ -170,7 +204,7 @@ def create_app():
                 max_price=request.form.get("max_price") or None,
                 land_area_acres=request.form.get("land_area_acres") or None,
                 delivery_year=request.form.get("delivery_year") or None,
-                cover_image_url=request.form.get("cover_image_url", "").strip(),
+                cover_image_url=cover_image_url,
                 contact_phone=request.form.get("contact_phone", "").strip(),
                 contact_whatsapp=request.form.get("contact_whatsapp", "").strip(),
                 is_featured=bool(request.form.get("is_featured")),
@@ -198,7 +232,13 @@ def create_app():
             c.max_price = request.form.get("max_price") or None
             c.land_area_acres = request.form.get("land_area_acres") or None
             c.delivery_year = request.form.get("delivery_year") or None
-            c.cover_image_url = request.form.get("cover_image_url", "").strip()
+
+            cover_image_url = request.form.get("cover_image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                cover_image_url = url_for("uploaded_file", filename=uploaded_name)
+            c.cover_image_url = cover_image_url
+
             c.contact_phone = request.form.get("contact_phone", "").strip()
             c.contact_whatsapp = request.form.get("contact_whatsapp", "").strip()
             c.is_featured = bool(request.form.get("is_featured"))
@@ -225,6 +265,11 @@ def create_app():
     def admin_units(compound_id):
         c = Compound.query.get_or_404(compound_id)
         if request.method == "POST":
+            image_url = request.form.get("image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                image_url = url_for("uploaded_file", filename=uploaded_name)
+
             u = Unit(
                 compound_id=c.id,
                 unit_type=request.form.get("unit_type", "").strip(),
@@ -235,7 +280,7 @@ def create_app():
                 area_sqm=request.form.get("area_sqm") or None,
                 price=request.form.get("price") or None,
                 payment_plan=request.form.get("payment_plan", "").strip(),
-                image_url=request.form.get("image_url", "").strip(),
+                image_url=image_url,
                 is_available=bool(request.form.get("is_available")),
             )
             db.session.add(u)
@@ -258,7 +303,13 @@ def create_app():
             u.area_sqm = request.form.get("area_sqm") or None
             u.price = request.form.get("price") or None
             u.payment_plan = request.form.get("payment_plan", "").strip()
-            u.image_url = request.form.get("image_url", "").strip()
+
+            image_url = request.form.get("image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                image_url = url_for("uploaded_file", filename=uploaded_name)
+            u.image_url = image_url
+
             u.is_available = bool(request.form.get("is_available"))
             db.session.commit()
             flash("Unit updated.", "success")
