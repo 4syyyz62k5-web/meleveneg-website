@@ -245,6 +245,27 @@ def create_app():
 
         return render_template("admin/units.html", compound=c)
 
+    @app.route("/admin/units/<int:unit_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_unit_edit(unit_id):
+        u = Unit.query.get_or_404(unit_id)
+        if request.method == "POST":
+            u.unit_type = request.form.get("unit_type", "").strip()
+            u.phase = request.form.get("phase", "").strip()
+            u.delivery_year = request.form.get("delivery_year") or None
+            u.bedrooms = request.form.get("bedrooms") or None
+            u.bathrooms = request.form.get("bathrooms") or None
+            u.area_sqm = request.form.get("area_sqm") or None
+            u.price = request.form.get("price") or None
+            u.payment_plan = request.form.get("payment_plan", "").strip()
+            u.image_url = request.form.get("image_url", "").strip()
+            u.is_available = bool(request.form.get("is_available"))
+            db.session.commit()
+            flash("Unit updated.", "success")
+            return redirect(url_for("admin_units", compound_id=u.compound_id))
+
+        return render_template("admin/unit_form.html", unit=u)
+
     @app.route("/admin/units/<int:unit_id>/delete", methods=["POST"])
     @login_required
     def admin_unit_delete(unit_id):
