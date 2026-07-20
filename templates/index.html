@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
-
 {% block content %}
-
-<section class="hero">
+<section class="hero" style="background-image: linear-gradient(135deg, rgba(10,33,68,0.85), rgba(16,68,128,0.7)), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
     <div class="container hero-inner">
         <h1>Your Trusted Partner in Egyptian Real Estate</h1>
         <p>12 years of experience helping clients find, evaluate, and invest in the right property.</p>
@@ -20,7 +18,6 @@
         </div>
     </div>
 </section>
-
 {% if featured %}
 <section class="section">
     <div class="container">
@@ -33,7 +30,6 @@
     </div>
 </section>
 {% endif %}
-
 {% if top_areas %}
 <section class="section area-section">
     <div class="container">
@@ -50,7 +46,6 @@
     </div>
 </section>
 {% endif %}
-
 <section class="section">
     <div class="container">
         <h2 class="section-title">Latest Listings</h2>
@@ -65,7 +60,6 @@
         {% endif %}
     </div>
 </section>
-
 <section class="section cta-section">
     <div class="container cta-inner">
         <h2>Looking for the right property?</h2>
@@ -73,5 +67,4 @@
         <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
     </div>
 </section>
-
 {% endblock %}
