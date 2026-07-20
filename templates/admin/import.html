@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+{% block title %}Bulk Import — Meleven Admin{% endblock %}
+{% block content %}
+<div class="admin-container">
+    <div class="admin-page-header">
+        <h1>Bulk Import</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+    </div>
+
+    <h2 class="admin-subheading">Step 1 — Import Compounds</h2>
+    <p class="empty-state">
+        Upload a CSV file with columns: <code>name, slug, developer, area, location_detail, short_description, full_description, min_price, max_price, land_area_acres, delivery_year, cover_image_url, contact_phone, contact_whatsapp, is_featured, is_published</code>.
+        Only <code>name</code> is required. <code>slug</code> is auto-generated if left empty. Use <code>true</code>/<code>false</code> for <code>is_featured</code> and <code>is_published</code>.
+    </p>
+    <form method="post" action="{{ url_for('admin_compounds_import') }}" enctype="multipart/form-data" class="admin-form">
+        <label>CSV File *</label>
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button type="submit" class="btn-primary">Import Compounds</button>
+    </form>
+
+    <h2 class="admin-subheading">Step 2 — Import Units</h2>
+    <p class="empty-state">
+        Upload a CSV file with columns: <code>compound_slug, unit_type, bedrooms, bathrooms, area_sqm, price, payment_plan, image_url, is_available</code>.
+        <code>compound_slug</code> must match a compound's slug that already exists (import compounds first). Use <code>true</code>/<code>false</code> for <code>is_available</code>.
+    </p>
+    <form method="post" action="{{ url_for('admin_units_import') }}" enctype="multipart/form-data" class="admin-form">
+        <label>CSV File *</label>
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button type="submit" class="btn-primary">Import Units</button>
+    </form>
+</div>
+{% endblock %}
