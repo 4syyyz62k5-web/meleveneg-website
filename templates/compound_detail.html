@@ -37,9 +37,10 @@
                 <div class="unit-card">
                     <div class="unit-card-image" style="background-image: url('{{ u.image_url or compound.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
                         {% if u.is_available %}<span class="card-badge card-badge-available">Available</span>{% endif %}
+                        {% if u.delivery_year %}<span class="card-badge card-badge-delivery">Delivery {{ u.delivery_year }}</span>{% endif %}
                     </div>
                     <div class="unit-card-body">
-                        <p class="card-location">{{ compound.area }}</p>
+                        <p class="card-location">{{ compound.area }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
                         <h3>{{ u.unit_type }}</h3>
                         <div class="card-facts">
                             {% if u.bedrooms %}<span class="fact"><svg viewBox="0 0 24 24" class="fact-icon"><path d="M3 10V7a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3M13 10V9a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1M1 20v-6a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2v6M1 20h22M1 16h22" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ u.bedrooms }} Bed</span>{% endif %}
