@@ -1,33 +1,25 @@
 {% extends "admin/base.html" %}
 {% block title %}{{ "Edit" if compound else "New" }} Compound — Meleven Admin{% endblock %}
-
 {% block content %}
 <div class="admin-container narrow-admin">
     <h1>{{ "Edit Compound" if compound else "New Compound" }}</h1>
-    <form method="post" class="admin-form">
+    <form method="post" class="admin-form" enctype="multipart/form-data">
         <label>Name *</label>
         <input type="text" name="name" value="{{ compound.name if compound else '' }}" required>
-
         {% if not compound %}
         <label>URL Slug (leave blank to auto-generate from the name)</label>
         <input type="text" name="slug" placeholder="e.g. silversands">
         {% endif %}
-
         <label>Developer</label>
         <input type="text" name="developer" value="{{ compound.developer if compound else '' }}">
-
         <label>Area</label>
         <input type="text" name="area" value="{{ compound.area if compound else '' }}" placeholder="e.g. North Coast">
-
         <label>Location Detail</label>
         <input type="text" name="location_detail" value="{{ compound.location_detail if compound else '' }}" placeholder="e.g. Kilo 247, International Coastal Road">
-
         <label>Short Description</label>
         <textarea name="short_description" rows="2">{{ compound.short_description if compound else '' }}</textarea>
-
         <label>Full Description</label>
         <textarea name="full_description" rows="5">{{ compound.full_description if compound else '' }}</textarea>
-
         <div class="admin-form-row">
             <div>
                 <label>Min Price (EGP)</label>
@@ -38,7 +30,6 @@
                 <input type="number" name="max_price" value="{{ compound.max_price if compound else '' }}">
             </div>
         </div>
-
         <div class="admin-form-row">
             <div>
                 <label>Land Area (acres)</label>
@@ -50,7 +41,12 @@
             </div>
         </div>
 
-        <label>Cover Image URL</label>
+        <label>Cover Photo</label>
+        {% if compound and compound.cover_image_url %}
+        <p class="unit-payment-plan">Current photo: <a href="{{ compound.cover_image_url }}" target="_blank">view</a></p>
+        {% endif %}
+        <input type="file" name="cover_image_file" accept="image/*">
+        <label>Or Cover Image URL (used only if you don't upload a photo above)</label>
         <input type="text" name="cover_image_url" value="{{ compound.cover_image_url if compound else '' }}" placeholder="https://...">
 
         <div class="admin-form-row">
@@ -63,7 +59,6 @@
                 <input type="text" name="contact_whatsapp" value="{{ compound.contact_whatsapp if compound else '' }}" placeholder="201000000000">
             </div>
         </div>
-
         <label class="checkbox-label">
             <input type="checkbox" name="is_featured" {% if compound and compound.is_featured %}checked{% endif %}>
             Featured (shows in the homepage "Featured Compounds" row)
@@ -72,7 +67,6 @@
             <input type="checkbox" name="is_published" {% if not compound or compound.is_published %}checked{% endif %}>
             Published (visible on the live site)
         </label>
-
         <div class="admin-form-actions">
             <button type="submit" class="btn-primary">{{ "Save Changes" if compound else "Create Compound" }}</button>
             <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">Cancel</a>
