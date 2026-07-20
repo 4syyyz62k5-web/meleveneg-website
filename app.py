@@ -228,6 +228,8 @@ def create_app():
             u = Unit(
                 compound_id=c.id,
                 unit_type=request.form.get("unit_type", "").strip(),
+                phase=request.form.get("phase", "").strip(),
+                delivery_year=request.form.get("delivery_year") or None,
                 bedrooms=request.form.get("bedrooms") or None,
                 bathrooms=request.form.get("bathrooms") or None,
                 area_sqm=request.form.get("area_sqm") or None,
@@ -334,6 +336,8 @@ def create_app():
             u = Unit(
                 compound_id=compound.id,
                 unit_type=(row.get("unit_type") or "").strip(),
+                phase=(row.get("phase") or "").strip(),
+                delivery_year=row.get("delivery_year") or None,
                 bedrooms=row.get("bedrooms") or None,
                 bathrooms=row.get("bathrooms") or None,
                 area_sqm=row.get("area_sqm") or None,
