@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit Unit — {{ unit.compound.name }} — Meleven Admin{% endblock %}
+{% block content %}
+<div class="admin-container">
+    <div class="admin-page-header">
+        <h1>Edit Unit — {{ unit.compound.name }}</h1>
+        <a href="{{ url_for('admin_units', compound_id=unit.compound_id) }}" class="admin-cancel-link">← Back to Units</a>
+    </div>
+    <form method="post" class="admin-form">
+        <label>Unit Type *</label>
+        <input type="text" name="unit_type" value="{{ unit.unit_type or '' }}" placeholder="e.g. Chalet, Villa, Twin House" required>
+        <label>Phase / Neighborhood (optional)</label>
+        <input type="text" name="phase" value="{{ unit.phase or '' }}" placeholder="e.g. Shore Residence, Town Island, Lagoon Town">
+        <div class="admin-form-row">
+            <div>
+                <label>Bedrooms</label>
+                <input type="number" name="bedrooms" value="{{ unit.bedrooms or '' }}">
+            </div>
+            <div>
+                <label>Bathrooms</label>
+                <input type="number" name="bathrooms" value="{{ unit.bathrooms or '' }}">
+            </div>
+        </div>
+        <div class="admin-form-row">
+            <div>
+                <label>Area (sqm)</label>
+                <input type="number" step="0.01" name="area_sqm" value="{{ unit.area_sqm or '' }}">
+            </div>
+            <div>
+                <label>Price (EGP)</label>
+                <input type="number" name="price" value="{{ unit.price or '' }}">
+            </div>
+        </div>
+        <div class="admin-form-row">
+            <div>
+                <label>Delivery Year</label>
+                <input type="number" name="delivery_year" value="{{ unit.delivery_year or '' }}" placeholder="e.g. 2030">
+            </div>
+            <div>
+                <label>Payment Plan</label>
+                <input type="text" name="payment_plan" value="{{ unit.payment_plan or '' }}" placeholder="e.g. 10% down, 8-year installments">
+            </div>
+        </div>
+        <label>Unit Image URL (optional — falls back to the compound's cover image)</label>
+        <input type="text" name="image_url" value="{{ unit.image_url or '' }}" placeholder="https://...">
+        <label class="checkbox-label">
+            <input type="checkbox" name="is_available" {% if unit.is_available %}checked{% endif %}>
+            Available
+        </label>
+        <button type="submit" class="btn-primary">Save Changes</button>
+    </form>
+</div>
+{% endblock %}
