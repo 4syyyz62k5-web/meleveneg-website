@@ -20,8 +20,8 @@
 
     <h2 class="admin-subheading">Step 2 — Import Units</h2>
     <p class="empty-state">
-        Upload a CSV file with columns: <code>compound_slug, unit_type, bedrooms, bathrooms, area_sqm, price, payment_plan, image_url, is_available</code>.
-        <code>compound_slug</code> must match a compound's slug that already exists (import compounds first). Use <code>true</code>/<code>false</code> for <code>is_available</code>.
+        Upload a CSV file with columns: <code>compound_slug, unit_type, phase, delivery_year, bedrooms, bathrooms, area_sqm, price, payment_plan, image_url, is_available</code>.
+        <code>compound_slug</code> must match a compound's slug that already exists (import compounds first). <code>phase</code> is the neighborhood/sub-community name (e.g. Shore Residence, Town Island, Lagoon Town). <code>delivery_year</code> is a 4-digit year (e.g. 2030). Use <code>true</code>/<code>false</code> for <code>is_available</code>.
     </p>
     <form method="post" action="{{ url_for('admin_units_import') }}" enctype="multipart/form-data" class="admin-form">
         <label>CSV File *</label>
