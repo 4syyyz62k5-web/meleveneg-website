@@ -1,4 +1,6 @@
 import re
+import csv
+import io
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from config import Config
@@ -250,6 +252,102 @@ def create_app():
         db.session.commit()
         flash("Unit deleted.", "success")
         return redirect(url_for("admin_units", compound_id=compound_id))
+
+    # ---------- Admin: bulk import ----------
+
+    def parse_bool(value):
+        return str(value).strip().lower() in ("1", "true", "yes", "y")
+
+    @app.route("/admin/import", methods=["GET"])
+    @login_required
+    def admin_import():
+        return render_template("admin/import.html")
+
+    @app.route("/admin/compounds/import", methods=["POST"])
+    @login_required
+    def admin_compounds_import():
+        file = request.files.get("csv_file")
+        if not file or file.filename == "":
+            flash("Please choose a CSV file.", "error")
+            return redirect(url_for("admin_import"))
+
+        stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
+        reader = csv.DictReader(stream)
+
+        created, skipped = 0, 0
+        for row in reader:
+            name = (row.get("name") or "").strip()
+            if not name:
+                skipped += 1
+                continue
+
+            slug = (row.get("slug") or "").strip() or slugify(name)
+            base_slug, n = slug, 1
+            while Compound.query.filter_by(slug=slug).first():
+                n += 1
+                slug = f"{base_slug}-{n}"
+
+            c = Compound(
+                name=name,
+                slug=slug,
+                developer=(row.get("developer") or "").strip(),
+                area=(row.get("area") or "").strip(),
+                location_detail=(row.get("location_detail") or "").strip(),
+                short_description=(row.get("short_description") or "").strip(),
+                full_description=(row.get("full_description") or "").strip(),
+                min_price=row.get("min_price") or None,
+                max_price=row.get("max_price") or None,
+                land_area_acres=row.get("land_area_acres") or None,
+                delivery_year=row.get("delivery_year") or None,
+                cover_image_url=(row.get("cover_image_url") or "").strip(),
+                contact_phone=(row.get("contact_phone") or "").strip(),
+                contact_whatsapp=(row.get("contact_whatsapp") or "").strip(),
+                is_featured=parse_bool(row.get("is_featured")),
+                is_published=parse_bool(row.get("is_published", "true")),
+            )
+            db.session.add(c)
+            created += 1
+
+        db.session.commit()
+        flash(f"Imported {created} compound(s). Skipped {skipped} row(s) without a name.", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/units/import", methods=["POST"])
+    @login_required
+    def admin_units_import():
+        file = request.files.get("csv_file")
+        if not file or file.filename == "":
+            flash("Please choose a CSV file.", "error")
+            return redirect(url_for("admin_import"))
+
+        stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
+        reader = csv.DictReader(stream)
+
+        created, skipped = 0, 0
+        for row in reader:
+            compound_slug = (row.get("compound_slug") or "").strip()
+            compound = Compound.query.filter_by(slug=compound_slug).first()
+            if not compound:
+                skipped += 1
+                continue
+
+            u = Unit(
+                compound_id=compound.id,
+                unit_type=(row.get("unit_type") or "").strip(),
+                bedrooms=row.get("bedrooms") or None,
+                bathrooms=row.get("bathrooms") or None,
+                area_sqm=row.get("area_sqm") or None,
+                price=row.get("price") or None,
+                payment_plan=(row.get("payment_plan") or "").strip(),
+                image_url=(row.get("image_url") or "").strip(),
+                is_available=parse_bool(row.get("is_available", "true")),
+            )
+            db.session.add(u)
+            created += 1
+
+        db.session.commit()
+        flash(f"Imported {created} unit(s). Skipped {skipped} row(s) with unknown compound_slug.", "success")
+        return redirect(url_for("admin_dashboard"))
 
     return app
 
