@@ -72,16 +72,57 @@ def create_app():
 
     @app.route("/compounds")
     def compounds():
-        area = request.args.get("area")
+        # Filters can be multi-select (areas) or single-value (developer, delivery_year, price range)
+        selected_areas = request.args.getlist("area")
+        selected_developer = request.args.get("developer", "").strip()
+        min_price = request.args.get("min_price", "").strip()
+        max_price = request.args.get("max_price", "").strip()
+        delivery_year = request.args.get("delivery_year", "").strip()
+
         query = Compound.query.filter_by(is_published=True)
-        if area:
-            query = query.filter_by(area=area)
+
+        if selected_areas:
+            query = query.filter(Compound.area.in_(selected_areas))
+
+        if selected_developer:
+            query = query.filter(Compound.developer == selected_developer)
+
+        if delivery_year:
+            query = query.filter(Compound.delivery_year == delivery_year)
+
+        if min_price:
+            try:
+                query = query.filter(Compound.max_price >= int(min_price))
+            except ValueError:
+                pass
+
+        if max_price:
+            try:
+                query = query.filter(Compound.min_price <= int(max_price))
+            except ValueError:
+                pass
+
         all_compounds = query.order_by(Compound.name.asc()).all()
 
-        # Distinct areas for the filter dropdown
-        areas = [row[0] for row in db.session.query(Compound.area).distinct() if row[0]]
+        # Options for the filter sidebar
+        areas = sorted({row[0] for row in db.session.query(Compound.area).distinct() if row[0]})
+        developers = sorted({row[0] for row in db.session.query(Compound.developer).distinct() if row[0]})
+        delivery_years = sorted(
+            {row[0] for row in db.session.query(Compound.delivery_year).distinct() if row[0]}
+        )
 
-        return render_template("compounds.html", compounds=all_compounds, areas=areas, selected_area=area)
+        return render_template(
+            "compounds.html",
+            compounds=all_compounds,
+            areas=areas,
+            developers=developers,
+            delivery_years=delivery_years,
+            selected_areas=selected_areas,
+            selected_developer=selected_developer,
+            min_price=min_price,
+            max_price=max_price,
+            selected_delivery_year=delivery_year,
+        )
 
     @app.route("/compound/<slug>")
     def compound_detail(slug):
