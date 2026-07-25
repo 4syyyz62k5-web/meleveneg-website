@@ -236,8 +236,27 @@ def create_app():
     @app.route("/admin/leads")
     @login_required
     def admin_leads():
-        all_leads = Lead.query.order_by(Lead.created_at.desc()).all()
-        return render_template("admin/leads.html", leads=all_leads)
+        source_filter = request.args.get("source", "all")
+
+        query = Lead.query
+        if source_filter == "sell":
+            query = query.filter(Lead.source_page == "sell_property")
+        elif source_filter == "other":
+            query = query.filter(Lead.source_page != "sell_property")
+        # "all" -> no filter
+
+        all_leads = query.order_by(Lead.created_at.desc()).all()
+
+        sell_count = Lead.query.filter(Lead.source_page == "sell_property").count()
+        other_count = Lead.query.filter(Lead.source_page != "sell_property").count()
+
+        return render_template(
+            "admin/leads.html",
+            leads=all_leads,
+            source_filter=source_filter,
+            sell_count=sell_count,
+            other_count=other_count,
+        )
 
     @app.route("/admin/leads/<int:lead_id>/delete", methods=["POST"])
     @login_required
