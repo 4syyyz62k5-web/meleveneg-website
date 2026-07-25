@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-
 <header class="site-header">
     <div class="container header-inner">
         <a href="{{ url_for('home') }}" class="brand">
@@ -19,12 +18,12 @@
         <nav class="main-nav">
             <a href="{{ url_for('home') }}">Home</a>
             <a href="{{ url_for('compounds') }}">Properties</a>
+            <a href="{{ url_for('sell_property') }}">Sell</a>
             <a href="{{ url_for('about') }}">About</a>
             <a href="{{ url_for('contact') }}" class="nav-cta">Contact Us</a>
         </nav>
     </div>
 </header>
-
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     <div class="container flash-wrap">
@@ -34,11 +33,9 @@
     </div>
   {% endif %}
 {% endwith %}
-
 <main>
 {% block content %}{% endblock %}
 </main>
-
 <footer class="site-footer">
     <div class="container footer-columns">
         <div class="footer-col footer-brand-col">
@@ -47,7 +44,6 @@
             </div>
             <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
         </div>
-
         {% if footer_areas %}
         <div class="footer-col">
             <h4>Areas</h4>
@@ -56,15 +52,14 @@
             {% endfor %}
         </div>
         {% endif %}
-
         <div class="footer-col">
             <h4>Quick Links</h4>
             <a href="{{ url_for('home') }}">Home</a>
             <a href="{{ url_for('compounds') }}">Properties</a>
+            <a href="{{ url_for('sell_property') }}">Sell</a>
             <a href="{{ url_for('about') }}">About Us</a>
             <a href="{{ url_for('contact') }}">Contact</a>
         </div>
-
         <div class="footer-col">
             <h4>Get In Touch</h4>
             <p class="footer-contact-line">Cairo, Egypt</p>
@@ -75,6 +70,5 @@
         &copy; {{ 2026 }} Meleven Consultancy. All rights reserved.
     </div>
 </footer>
-
 </body>
 </html>
