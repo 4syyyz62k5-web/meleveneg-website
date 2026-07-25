@@ -403,6 +403,28 @@ h1, h2, h3 {
   .hero h1 { font-size: 30px; }
   .footer-columns { grid-template-columns: 1fr 1fr; }
 }
+@media (max-width: 640px) {
+  .header-inner {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+  .brand img {
+    height: 44px;
+  }
+  .main-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    width: 100%;
+  }
+  .main-nav a {
+    margin-left: 0;
+  }
+  .nav-cta {
+    margin-left: 0;
+  }
+}
 @media (max-width: 520px) {
   .footer-columns { grid-template-columns: 1fr; }
 }
