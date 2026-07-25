@@ -1,29 +1,173 @@
 {% extends "base.html" %}
 {% block title %}Properties — Meleven Consultancy{% endblock %}
-
 {% block content %}
+<style>
+    .browse-layout {
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+    }
+    .filter-sidebar {
+        width: 260px;
+        flex-shrink: 0;
+        background: #fff;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 20px;
+        position: sticky;
+        top: 20px;
+    }
+    .filter-sidebar h3 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #104480;
+        margin: 0 0 12px;
+    }
+    .filter-group {
+        margin-bottom: 24px;
+    }
+    .filter-group:last-child {
+        margin-bottom: 0;
+    }
+    .filter-checkbox-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .filter-checkbox-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .filter-price-row {
+        display: flex;
+        gap: 8px;
+    }
+    .filter-price-row input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .filter-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .filter-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .filter-actions button,
+    .filter-actions a {
+        text-align: center;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .filter-apply-btn {
+        background: #104480;
+        color: #fff;
+        border: none;
+    }
+    .filter-reset-link {
+        background: transparent;
+        color: #104480;
+        border: 1px solid #104480;
+    }
+    .browse-content {
+        flex: 1;
+        min-width: 0;
+    }
+    @media (max-width: 900px) {
+        .browse-layout {
+            flex-direction: column;
+        }
+        .filter-sidebar {
+            width: 100%;
+            position: static;
+        }
+    }
+</style>
+
 <section class="section">
     <div class="container">
         <h1 class="page-title">Browse Properties</h1>
 
-        <form action="{{ url_for('compounds') }}" method="get" class="filter-bar">
-            <select name="area" onchange="this.form.submit()">
-                <option value="">All Areas</option>
-                {% for area in areas %}
-                <option value="{{ area }}" {% if area == selected_area %}selected{% endif %}>{{ area }}</option>
-                {% endfor %}
-            </select>
-        </form>
+        <div class="browse-layout">
+            <aside class="filter-sidebar">
+                <form action="{{ url_for('compounds') }}" method="get">
 
-        {% if compounds %}
-        <div class="card-grid">
-            {% for c in compounds %}
-                {% include "_compound_card.html" %}
-            {% endfor %}
+                    <div class="filter-group">
+                        <h3>Area</h3>
+                        <div class="filter-checkbox-list">
+                            {% for area in areas %}
+                            <label>
+                                <input type="checkbox" name="area" value="{{ area }}"
+                                    {% if area in selected_areas %}checked{% endif %}>
+                                {{ area }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Developer</h3>
+                        <select name="developer" class="filter-select">
+                            <option value="">All Developers</option>
+                            {% for dev in developers %}
+                            <option value="{{ dev }}" {% if dev == selected_developer %}selected{% endif %}>{{ dev }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Price Range (EGP)</h3>
+                        <div class="filter-price-row">
+                            <input type="number" name="min_price" placeholder="Min" value="{{ min_price }}">
+                            <input type="number" name="max_price" placeholder="Max" value="{{ max_price }}">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Delivery Year</h3>
+                        <select name="delivery_year" class="filter-select">
+                            <option value="">Any</option>
+                            {% for year in delivery_years %}
+                            <option value="{{ year }}" {% if year|string == selected_delivery_year|string %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="filter-apply-btn">Apply Filters</button>
+                        <a href="{{ url_for('compounds') }}" class="filter-reset-link">Reset All</a>
+                    </div>
+                </form>
+            </aside>
+
+            <div class="browse-content">
+                {% if compounds %}
+                <div class="card-grid">
+                    {% for c in compounds %}
+                        {% include "_compound_card.html" %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No properties found. Try adjusting your filters.</p>
+                {% endif %}
+            </div>
         </div>
-        {% else %}
-        <p class="empty-state">No properties found. Try a different area, or add compounds to the database.</p>
-        {% endif %}
     </div>
 </section>
 {% endblock %}
