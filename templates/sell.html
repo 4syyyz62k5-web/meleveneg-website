@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Sell Your Property — Meleven Consultancy{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="container narrow">
+        <h1>Sell Your Property With Meleven</h1>
+        <p>List your property with Egypt's trusted real estate consultancy and reach serious buyers, fast.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">How It Works</h2>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>List Your Property Details</h3>
+                <p>Add all the information related to your property using the form below.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>One Of Our Agents Will Call You</h3>
+                <p>Our team will get in touch to understand your property and help find the best buyer.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Meet With Serious Buyers</h3>
+                <p>We connect you with pre-qualified, serious buyers to close the deal.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section area-section">
+    <div class="container narrow">
+        <h2 class="section-title" style="text-align:center;">Complete The Form</h2>
+        <p class="lead-text" style="text-align:center;">Your privacy is important to us. We won't publish or share your information with anyone.</p>
+
+        <form method="POST" action="{{ url_for('sell_property') }}" class="contact-form">
+            <input type="text" name="name" placeholder="Your Name" required>
+            <input type="text" name="phone" placeholder="Phone Number" required>
+            <input type="email" name="email" placeholder="Email (optional)">
+            <input type="text" name="location" placeholder="Location (e.g. New Cairo, 6th Settlement)">
+            <input type="text" name="compound_name" placeholder="Compound Name">
+            <select name="property_type" required>
+                <option value="">Property Type</option>
+                <option value="Apartment">Apartment</option>
+                <option value="Duplex">Duplex</option>
+                <option value="Penthouse">Penthouse</option>
+                <option value="Villa">Villa</option>
+                <option value="Twin House">Twin House</option>
+                <option value="Townhouse">Townhouse</option>
+                <option value="Chalet">Chalet</option>
+                <option value="Other">Other</option>
+            </select>
+            <button type="submit" class="btn-primary btn-block">Submit</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
