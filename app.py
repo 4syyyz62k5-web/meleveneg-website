@@ -133,6 +133,39 @@ def create_app():
     def about():
         return render_template("about.html")
 
+    @app.route("/sell", methods=["GET", "POST"])
+    def sell_property():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            phone = request.form.get("phone", "").strip()
+            email = request.form.get("email", "").strip()
+            location = request.form.get("location", "").strip()
+            compound_name = request.form.get("compound_name", "").strip()
+            property_type = request.form.get("property_type", "").strip()
+
+            message_parts = []
+            if property_type:
+                message_parts.append(f"Property Type: {property_type}")
+            if location:
+                message_parts.append(f"Location: {location}")
+            if compound_name:
+                message_parts.append(f"Compound: {compound_name}")
+            message = " | ".join(message_parts)
+
+            lead = Lead(
+                name=name,
+                phone=phone,
+                email=email,
+                message=message,
+                source_page="sell_property",
+            )
+            db.session.add(lead)
+            db.session.commit()
+            flash("Thanks! One of our agents will call you shortly to help sell your property.", "success")
+            return redirect(url_for("sell_property"))
+
+        return render_template("sell.html")
+
     @app.route("/contact", methods=["GET", "POST"])
     def contact():
         if request.method == "POST":
