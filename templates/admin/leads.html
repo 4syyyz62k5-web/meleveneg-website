@@ -1,6 +1,5 @@
 {% extends "admin/base.html" %}
 {% block title %}Leads — Meleven Admin{% endblock %}
-
 {% block content %}
 <div class="admin-container">
     <div class="admin-page-header">
@@ -8,10 +7,25 @@
         <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
     </div>
 
+    <div class="admin-lead-tabs">
+        <a href="{{ url_for('admin_leads', source='all') }}"
+           class="admin-lead-tab {% if source_filter == 'all' %}active{% endif %}">
+            All ({{ sell_count + other_count }})
+        </a>
+        <a href="{{ url_for('admin_leads', source='other') }}"
+           class="admin-lead-tab {% if source_filter == 'other' %}active{% endif %}">
+            Contact &amp; Properties ({{ other_count }})
+        </a>
+        <a href="{{ url_for('admin_leads', source='sell') }}"
+           class="admin-lead-tab {% if source_filter == 'sell' %}active{% endif %}">
+            Sell Requests ({{ sell_count }})
+        </a>
+    </div>
+
     {% if leads %}
     <table class="admin-table">
         <thead>
-            <tr><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>Compound</th><th>Received</th><th></th></tr>
+            <tr><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>Compound</th><th>Source</th><th>Received</th><th></th></tr>
         </thead>
         <tbody>
             {% for l in leads %}
@@ -21,6 +35,13 @@
                 <td>{{ l.email or '-' }}</td>
                 <td class="lead-message-cell">{{ l.message or '-' }}</td>
                 <td>{{ l.compound.name if l.compound else '-' }}</td>
+                <td>
+                    {% if l.source_page == 'sell_property' %}
+                        <span class="admin-badge admin-badge-sell">Sell</span>
+                    {% else %}
+                        <span class="admin-badge">{{ l.source_page or '-' }}</span>
+                    {% endif %}
+                </td>
                 <td>{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
                     <form method="post" action="{{ url_for('admin_lead_delete', lead_id=l.id) }}" onsubmit="return confirm('Delete this lead?');">
@@ -32,7 +53,7 @@
         </tbody>
     </table>
     {% else %}
-    <p class="empty-state">No messages received yet. They'll show up here as soon as someone submits the Contact form or an "Interested" form on a compound page.</p>
+    <p class="empty-state">No messages received yet. They'll show up here as soon as someone submits the Contact form, the Sell Property form, or an "Interested" form on a compound page.</p>
     {% endif %}
 </div>
 {% endblock %}
