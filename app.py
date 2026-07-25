@@ -66,7 +66,26 @@ def create_app():
         area_rows = db.session.query(
             Compound.area, db.func.count(Compound.id)
         ).filter(Compound.is_published == True, Compound.area.isnot(None)).group_by(Compound.area).all()
-        top_areas = [{"name": r[0], "count": r[1]} for r in area_rows]
+
+        top_areas = []
+        for area_name, count in area_rows:
+            # Grab one compound in this area that has a cover image, to represent it visually
+            sample = (
+                Compound.query
+                .filter(
+                    Compound.area == area_name,
+                    Compound.is_published == True,
+                    Compound.cover_image_url.isnot(None),
+                    Compound.cover_image_url != "",
+                )
+                .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                .first()
+            )
+            top_areas.append({
+                "name": area_name,
+                "count": count,
+                "cover_image_url": sample.cover_image_url if sample else None,
+            })
 
         return render_template("index.html", featured=featured, latest=latest, top_areas=top_areas)
 
