@@ -8,6 +8,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  /* Collapsible "Areas" list in the footer — shows the first few areas,
+     the rest sit behind a native <details> toggle so the footer doesn't
+     turn into one long column of links when there are many areas. */
+  .footer-areas-more{ margin-top: 4px; }
+  .footer-areas-more summary{
+    cursor: pointer;
+    list-style: none;
+    font-family: 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,.7);
+    padding: 2px 0;
+  }
+  .footer-areas-more summary::-webkit-details-marker{ display: none; }
+  .footer-areas-more summary:hover{ color: #ffffff; }
+  .footer-areas-more summary::after{ content: " ▾"; }
+  .footer-areas-more[open] summary::after{ content: " ▴"; }
+  .footer-areas-more[open] summary::before{ content: none; }
+  .footer-areas-more .footer-areas-more-list{
+    display: flex;
+    flex-direction: column;
+  }
+</style>
 </head>
 <body>
 <header class="site-header">
@@ -47,9 +71,19 @@
         {% if footer_areas %}
         <div class="footer-col">
             <h4>Areas</h4>
-            {% for area in footer_areas %}
+            {% for area in footer_areas[:6] %}
             <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
             {% endfor %}
+            {% if footer_areas|length > 6 %}
+            <details class="footer-areas-more">
+                <summary>Show more areas</summary>
+                <div class="footer-areas-more-list">
+                    {% for area in footer_areas[6:] %}
+                    <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
         </div>
         {% endif %}
         <div class="footer-col">
