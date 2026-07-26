@@ -97,11 +97,12 @@ def create_app():
         )
 
         # "Recommended Units" — most recently added available units across published compounds
+        # (Unit has no created_at column, so we use id as a proxy for insertion order)
         recommended_units = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
             .filter(Unit.is_available == True, Compound.is_published == True)
-            .order_by(Unit.created_at.desc())
+            .order_by(Unit.id.desc())
             .limit(10)
             .all()
         )
