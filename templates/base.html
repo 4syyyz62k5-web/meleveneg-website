@@ -9,27 +9,54 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <style>
-  /* Collapsible "Areas" list in the footer — shows the first few areas,
-     the rest sit behind a native <details> toggle so the footer doesn't
-     turn into one long column of links when there are many areas. */
-  .footer-areas-more{ margin-top: 4px; }
-  .footer-areas-more summary{
+  /* ---------------------------------------------------------------
+     Footer accordion — every footer column is a <details> element,
+     so its heading is the toggle. Any new column added later (just
+     wrap it the same way) automatically gets the same behavior with
+     zero extra CSS/JS.
+     --------------------------------------------------------------- */
+  .footer-col{
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+  .footer-col:last-child{ border-bottom: none; }
+  .footer-col > summary{
     cursor: pointer;
     list-style: none;
-    font-family: 'Jost', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255,255,255,.7);
-    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
   }
-  .footer-areas-more summary::-webkit-details-marker{ display: none; }
-  .footer-areas-more summary:hover{ color: #ffffff; }
-  .footer-areas-more summary::after{ content: " ▾"; }
-  .footer-areas-more[open] summary::after{ content: " ▴"; }
-  .footer-areas-more[open] summary::before{ content: none; }
-  .footer-areas-more .footer-areas-more-list{
+  .footer-col > summary::-webkit-details-marker{ display: none; }
+  .footer-col > summary::after{
+    content: "+";
+    font-family: 'Jost', sans-serif;
+    font-size: 18px;
+    line-height: 1;
+    color: rgba(255,255,255,.6);
+    margin-left: 12px;
+  }
+  .footer-col[open] > summary::after{ content: "–"; }
+  .footer-col h4{ margin: 0; }
+  .footer-col-links{
     display: flex;
     flex-direction: column;
+    padding-bottom: 16px;
+  }
+
+  /* The brand column isn't a toggle — it's plain intro copy, always visible. */
+  .footer-brand-col{
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    padding-bottom: 16px;
+  }
+
+  /* On wider screens, keep every column expanded and drop the toggle
+     affordance — the accordion behavior is a mobile/long-list fix,
+     not something desktop visitors need to click through. */
+  @media (min-width: 900px){
+    .footer-col > summary::after{ display: none; }
+    .footer-col > summary{ cursor: default; }
+    .footer-col-links{ display: flex !important; }
   }
 </style>
 </head>
@@ -68,37 +95,51 @@
             </div>
             <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
         </div>
+
         {% if footer_areas %}
-        <div class="footer-col">
-            <h4>Areas</h4>
-            {% for area in footer_areas[:6] %}
-            <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
-            {% endfor %}
-            {% if footer_areas|length > 6 %}
-            <details class="footer-areas-more">
-                <summary>Show more areas</summary>
-                <div class="footer-areas-more-list">
-                    {% for area in footer_areas[6:] %}
-                    <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
-                    {% endfor %}
-                </div>
-            </details>
-            {% endif %}
-        </div>
+        <details class="footer-col" open>
+            <summary><h4>Areas</h4></summary>
+            <div class="footer-col-links">
+                {% for area in footer_areas %}
+                <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
+                {% endfor %}
+            </div>
+        </details>
         {% endif %}
-        <div class="footer-col">
-            <h4>Quick Links</h4>
-            <a href="{{ url_for('home') }}">Home</a>
-            <a href="{{ url_for('compounds') }}">Properties</a>
-            <a href="{{ url_for('sell_property') }}">Sell</a>
-            <a href="{{ url_for('about') }}">About Us</a>
-            <a href="{{ url_for('contact') }}">Contact</a>
-        </div>
-        <div class="footer-col">
-            <h4>Get In Touch</h4>
-            <p class="footer-contact-line">Cairo, Egypt</p>
-            <a href="{{ url_for('contact') }}" class="footer-cta-link">Speak with our team →</a>
-        </div>
+
+        <details class="footer-col" open>
+            <summary><h4>Quick Links</h4></summary>
+            <div class="footer-col-links">
+                <a href="{{ url_for('home') }}">Home</a>
+                <a href="{{ url_for('compounds') }}">Properties</a>
+                <a href="{{ url_for('sell_property') }}">Sell</a>
+                <a href="{{ url_for('about') }}">About Us</a>
+                <a href="{{ url_for('contact') }}">Contact</a>
+            </div>
+        </details>
+
+        <details class="footer-col" open>
+            <summary><h4>Get In Touch</h4></summary>
+            <div class="footer-col-links">
+                <p class="footer-contact-line">Cairo, Egypt</p>
+                <a href="{{ url_for('contact') }}" class="footer-cta-link">Speak with our team →</a>
+            </div>
+        </details>
+
+        <!--
+          To add a new footer column later, just copy this block:
+
+          <details class="footer-col">
+              <summary><h4>Your Title</h4></summary>
+              <div class="footer-col-links">
+                  <a href="#">Link one</a>
+                  <a href="#">Link two</a>
+              </div>
+          </details>
+
+          It will automatically collapse on mobile and stay expanded
+          on desktop, matching the columns above.
+        -->
     </div>
     <div class="container footer-copy">
         &copy; {{ 2026 }} Meleven Consultancy. All rights reserved.
