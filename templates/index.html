@@ -21,8 +21,8 @@
 
 <!--
   =====================================================================
-  NEW LAUNCHES — dark navy film-strip of the soonest-delivery compounds
-  Populated by new_launches (see app.py home()).
+  Shared styles for New Launches / Recommended Units / horizontal-scroll
+  card rows / collapsible Top Areas.
   =====================================================================
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,10 +39,10 @@
     --mv-rule: #E4DFD3;
   }
 
-  .mv-section{ padding: 64px 24px; background: var(--mv-ivory); }
+  .mv-section{ padding: 56px 24px; background: var(--mv-ivory); }
   .mv-section--dark{ background: var(--mv-navy); }
   .mv-section__head{
-    max-width: 1160px; margin: 0 auto 28px auto;
+    max-width: 1160px; margin: 0 auto 24px auto;
     display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
   }
   .mv-eyebrow{
@@ -50,7 +50,7 @@
     letter-spacing: .14em; text-transform: uppercase; color: var(--mv-gold); margin: 0 0 6px 0;
   }
   .mv-title{
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(24px, 3vw, 34px);
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(22px, 3vw, 32px);
     color: var(--mv-navy); margin: 0; line-height: 1.15;
   }
   .mv-section--dark .mv-title{ color: var(--mv-ivory); }
@@ -61,13 +61,32 @@
   .mv-section--dark .mv-viewall{ color: var(--mv-ivory); border-color: rgba(246,243,236,.25); }
   .mv-viewall:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
 
-  /* ---------- New Launches: horizontal film-strip ---------- */
+  /* ---------- Generic horizontal-scroll row (used by New Launches,
+     Featured Compounds, Latest Listings) ---------- */
+  .mv-hscroll{ max-width: 1160px; margin: 0 auto; position: relative; }
+  .mv-hscroll .card-grid,
   .mv-launches{
-    max-width: 1160px; margin: 0 auto; display: flex; gap: 20px; overflow-x: auto;
-    scroll-snap-type: x mandatory; padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 20px;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
   }
-  .mv-launches::-webkit-scrollbar{ height: 4px; }
-  .mv-launches::-webkit-scrollbar-thumb{ background: rgba(246,243,236,.25); border-radius: 4px; }
+  .mv-hscroll .card-grid::-webkit-scrollbar,
+  .mv-launches::-webkit-scrollbar,
+  .mv-unit-scroll::-webkit-scrollbar{ height: 4px; }
+  .mv-hscroll .card-grid::-webkit-scrollbar-thumb,
+  .mv-launches::-webkit-scrollbar-thumb,
+  .mv-unit-scroll::-webkit-scrollbar-thumb{ background: var(--mv-rule); border-radius: 4px; }
+  .mv-hscroll .card-grid > *{
+    flex: 0 0 auto !important;
+    width: min(78vw, 270px);
+    scroll-snap-align: start;
+  }
+
+  /* ---------- New Launches: dark film-strip cards ---------- */
   .mv-launch-card{
     scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(78vw, 340px);
     aspect-ratio: 4 / 5; border-radius: 2px; overflow: hidden; background: var(--mv-navy-soft);
@@ -97,32 +116,50 @@
   }
   .mv-launch-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
 
-  /* ---------- Recommended Units: ledger-style list ---------- */
-  .mv-ledger{ max-width: 1160px; margin: 0 auto; border-top: 1px solid var(--mv-rule); }
-  .mv-ledger-row{
-    display: grid; grid-template-columns: 96px 1fr auto; gap: 18px; align-items: center;
-    padding: 16px 4px; border-bottom: 1px solid var(--mv-rule); text-decoration: none; transition: background .2s ease;
+  /* ---------- Recommended Units: horizontal-scroll cards (not rows) ---------- */
+  .mv-unit-scroll{
+    max-width: 1160px; margin: 0 auto; display: flex; flex-wrap: nowrap; gap: 18px;
+    overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
   }
-  .mv-ledger-row:hover{ background: #FBFAF6; }
-  .mv-ledger-row__thumb{ width: 96px; height: 72px; object-fit: cover; border-radius: 2px; background: var(--mv-rule); }
-  .mv-ledger-row__main{ min-width: 0; }
-  .mv-ledger-row__compound{
-    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: .04em;
-    text-transform: uppercase; color: var(--mv-gold); margin: 0 0 3px 0;
+  .mv-unit-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: min(72vw, 250px);
+    background: #fff; border: 1px solid var(--mv-rule); border-radius: 2px;
+    overflow: hidden; text-decoration: none; display: block; transition: border-color .2s ease;
   }
-  .mv-ledger-row__type{ font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; color: var(--mv-navy); margin: 0 0 4px 0; }
-  .mv-ledger-row__facts{ font-family: 'Inter', sans-serif; font-size: 13px; color: var(--mv-slate); margin: 0; }
-  .mv-ledger-row__facts span:not(:last-child)::after{ content: "·"; margin: 0 6px; color: var(--mv-rule); }
-  .mv-ledger-row__price{
-    font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 700;
-    color: var(--mv-navy); text-align: right; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  .mv-unit-card:hover{ border-color: var(--mv-gold); }
+  .mv-unit-card__thumb{ width: 100%; height: 140px; object-fit: cover; background: var(--mv-rule); display: block; }
+  .mv-unit-card__body{ padding: 14px 16px 18px 16px; }
+  .mv-unit-card__compound{
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--mv-gold); margin: 0 0 4px 0;
   }
-  .mv-ledger-row__price::before{ content: ""; width: 3px; height: 16px; background: var(--mv-gold); display: inline-block; }
+  .mv-unit-card__type{ font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; color: var(--mv-navy); margin: 0 0 6px 0; }
+  .mv-unit-card__facts{ font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--mv-slate); margin: 0 0 10px 0; }
+  .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: var(--mv-rule); }
+  .mv-unit-card__rule{ height: 1px; background: var(--mv-rule); margin-bottom: 10px; }
+  .mv-unit-card__price{
+    font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 14.5px;
+    font-weight: 700; color: var(--mv-navy); display: flex; align-items: center; gap: 7px;
+  }
+  .mv-unit-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
 
-  @media (max-width: 640px){
-    .mv-ledger-row{ grid-template-columns: 72px 1fr; }
-    .mv-ledger-row__price{ grid-column: 1 / -1; justify-content: flex-start; padding-left: 84px; font-size: 15px; }
+  /* ---------- Top Areas: collapsible grid ---------- */
+  .mv-areas-grid{
+    max-width: 1160px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px;
   }
+  .mv-area-extra{ display: none; }
+  .mv-areas-wrap.is-expanded .mv-area-extra{ display: block; }
+  .mv-areas-toggle{
+    display: block; margin: 28px auto 0 auto; max-width: 1160px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--mv-navy); background: transparent; border: 1px solid var(--mv-rule);
+    padding: 10px 22px; border-radius: 2px; cursor: pointer; transition: border-color .2s ease, color .2s ease;
+  }
+  .mv-areas-toggle:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
+  .mv-areas-wrap.is-expanded .mv-areas-toggle-label--more{ display: none; }
+  .mv-areas-wrap:not(.is-expanded) .mv-areas-toggle-label--less{ display: none; }
 </style>
 
 {% if new_launches %}
@@ -135,26 +172,28 @@
     <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
   </div>
 
-  <div class="mv-launches">
-    {% for c in new_launches %}
-    <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
-      {% if c.cover_image_url %}
-        <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
-      {% endif %}
-      <div class="mv-launch-card__scrim"></div>
-      <div class="mv-launch-card__body">
-        <span class="mv-launch-card__tag">New Launch</span>
-        <p class="mv-launch-card__name">{{ c.name }}</p>
-        <p class="mv-launch-card__meta">{{ c.area }}{% if c.delivery_year %} · Delivery {{ c.delivery_year }}{% endif %}</p>
-        <div class="mv-launch-card__rule"></div>
-        {% if c.min_price %}
-        <p class="mv-launch-card__price">Starting {{ "{:,.0f}".format(c.min_price) }} EGP</p>
-        {% else %}
-        <p class="mv-launch-card__price">Price on request</p>
+  <div class="mv-hscroll">
+    <div class="mv-launches">
+      {% for c in new_launches %}
+      <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+        {% if c.cover_image_url %}
+          <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
         {% endif %}
-      </div>
-    </a>
-    {% endfor %}
+        <div class="mv-launch-card__scrim"></div>
+        <div class="mv-launch-card__body">
+          <span class="mv-launch-card__tag">New Launch</span>
+          <p class="mv-launch-card__name">{{ c.name }}</p>
+          <p class="mv-launch-card__meta">{{ c.area }}{% if c.delivery_year %} · Delivery {{ c.delivery_year }}{% endif %}</p>
+          <div class="mv-launch-card__rule"></div>
+          {% if c.min_price %}
+          <p class="mv-launch-card__price">Starting {{ "{:,.0f}".format(c.min_price) }} EGP</p>
+          {% else %}
+          <p class="mv-launch-card__price">Price on request</p>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </div>
 </section>
 {% endif %}
@@ -163,38 +202,52 @@
 <section class="section">
     <div class="container">
         <h2 class="section-title">Featured Compounds</h2>
-        <div class="card-grid">
-            {% for c in featured %}
-                {% include "_compound_card.html" %}
-            {% endfor %}
+        <div class="mv-hscroll">
+            <div class="card-grid">
+                {% for c in featured %}
+                    {% include "_compound_card.html" %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>
 {% endif %}
+
 {% if top_areas %}
 <section class="section area-section">
     <div class="container">
         <h2 class="section-title">Top Areas</h2>
-        <div class="area-grid">
-            {% for area in top_areas %}
-            <a href="{{ url_for('compounds', area=area.name) }}" class="area-card">
-                <div class="area-circle" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
-                <h4>{{ area.name }}</h4>
-                <p>{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
-            </a>
-            {% endfor %}
+        <div class="mv-areas-wrap" id="mv-areas-wrap">
+            <div class="mv-areas-grid">
+                {% for area in top_areas %}
+                <a href="{{ url_for('compounds', area=area.name) }}" class="area-card{{ ' mv-area-extra' if loop.index > 6 else '' }}">
+                    <div class="area-circle" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+                    <h4>{{ area.name }}</h4>
+                    <p>{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% if top_areas|length > 6 %}
+            <button type="button" class="mv-areas-toggle" onclick="document.getElementById('mv-areas-wrap').classList.toggle('is-expanded'); this.setAttribute('aria-expanded', document.getElementById('mv-areas-wrap').classList.contains('is-expanded'));" aria-expanded="false">
+                <span class="mv-areas-toggle-label--more">Show all areas ({{ top_areas|length }})</span>
+                <span class="mv-areas-toggle-label--less">Show less</span>
+            </button>
+            {% endif %}
         </div>
     </div>
 </section>
 {% endif %}
+
 <section class="section">
     <div class="container">
         <h2 class="section-title">Latest Listings</h2>
         {% if latest %}
-        <div class="card-grid">
-            {% for c in latest %}
-                {% include "_compound_card.html" %}
-            {% endfor %}
+        <div class="mv-hscroll">
+            <div class="card-grid">
+                {% for c in latest %}
+                    {% include "_compound_card.html" %}
+                {% endfor %}
+            </div>
         </div>
         {% else %}
         <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
@@ -204,7 +257,7 @@
 
 <!--
   =====================================================================
-  RECOMMENDED UNITS — ledger-style list of the most recently added units
+  RECOMMENDED UNITS — horizontal-scroll cards (3-4 visible, scroll for more)
   Populated by recommended_units (see app.py home()).
   =====================================================================
 -->
@@ -218,24 +271,25 @@
     <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
   </div>
 
-  <div class="mv-ledger">
+  <div class="mv-unit-scroll">
     {% for u in recommended_units %}
-    <a class="mv-ledger-row" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
-      <img class="mv-ledger-row__thumb"
+    <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
+      <img class="mv-unit-card__thumb"
            src="{{ u.image_url or u.compound.cover_image_url or '' }}"
            alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
-      <div class="mv-ledger-row__main">
-        <p class="mv-ledger-row__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
-        <p class="mv-ledger-row__type">{{ u.unit_type }}</p>
-        <p class="mv-ledger-row__facts">
+      <div class="mv-unit-card__body">
+        <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
+        <p class="mv-unit-card__type">{{ u.unit_type }}</p>
+        <p class="mv-unit-card__facts">
           {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
           {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
           {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
         </p>
+        <div class="mv-unit-card__rule"></div>
+        <p class="mv-unit-card__price">
+          {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
+        </p>
       </div>
-      <p class="mv-ledger-row__price">
-        {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
-      </p>
     </a>
     {% endfor %}
   </div>
