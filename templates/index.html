@@ -18,6 +18,147 @@
         </div>
     </div>
 </section>
+
+<!--
+  =====================================================================
+  NEW LAUNCHES — dark navy film-strip of the soonest-delivery compounds
+  Populated by new_launches (see app.py home()).
+  =====================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --mv-navy: #101B34;
+    --mv-navy-soft: #1B2A4D;
+    --mv-gold: #C6A15B;
+    --mv-ivory: #F6F3EC;
+    --mv-slate: #303A4D;
+    --mv-rule: #E4DFD3;
+  }
+
+  .mv-section{ padding: 64px 24px; background: var(--mv-ivory); }
+  .mv-section--dark{ background: var(--mv-navy); }
+  .mv-section__head{
+    max-width: 1160px; margin: 0 auto 28px auto;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  }
+  .mv-eyebrow{
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--mv-gold); margin: 0 0 6px 0;
+  }
+  .mv-title{
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(24px, 3vw, 34px);
+    color: var(--mv-navy); margin: 0; line-height: 1.15;
+  }
+  .mv-section--dark .mv-title{ color: var(--mv-ivory); }
+  .mv-viewall{
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: var(--mv-slate);
+    text-decoration: none; white-space: nowrap; border-bottom: 1px solid var(--mv-rule); padding-bottom: 2px;
+  }
+  .mv-section--dark .mv-viewall{ color: var(--mv-ivory); border-color: rgba(246,243,236,.25); }
+  .mv-viewall:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
+
+  /* ---------- New Launches: horizontal film-strip ---------- */
+  .mv-launches{
+    max-width: 1160px; margin: 0 auto; display: flex; gap: 20px; overflow-x: auto;
+    scroll-snap-type: x mandatory; padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-launches::-webkit-scrollbar{ height: 4px; }
+  .mv-launches::-webkit-scrollbar-thumb{ background: rgba(246,243,236,.25); border-radius: 4px; }
+  .mv-launch-card{
+    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(78vw, 340px);
+    aspect-ratio: 4 / 5; border-radius: 2px; overflow: hidden; background: var(--mv-navy-soft);
+    color: var(--mv-ivory); text-decoration: none; display: block;
+  }
+  .mv-launch-card__img{
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scale(1.02); transition: transform .6s ease;
+  }
+  .mv-launch-card:hover .mv-launch-card__img{ transform: scale(1.08); }
+  .mv-launch-card__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(16,27,52,0) 40%, rgba(16,27,52,.92) 100%);
+  }
+  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 20px; }
+  .mv-launch-card__tag{
+    display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--mv-navy); background: var(--mv-gold);
+    padding: 4px 9px; margin-bottom: 10px;
+  }
+  .mv-launch-card__name{ font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; margin: 0 0 4px 0; }
+  .mv-launch-card__meta{ font-family: 'Inter', sans-serif; font-size: 13px; color: rgba(246,243,236,.8); margin: 0 0 12px 0; }
+  .mv-launch-card__rule{ height: 1px; background: rgba(198,161,91,.4); margin-bottom: 10px; }
+  .mv-launch-card__price{
+    font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 15px;
+    font-weight: 600; display: flex; align-items: center; gap: 8px;
+  }
+  .mv-launch-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
+
+  /* ---------- Recommended Units: ledger-style list ---------- */
+  .mv-ledger{ max-width: 1160px; margin: 0 auto; border-top: 1px solid var(--mv-rule); }
+  .mv-ledger-row{
+    display: grid; grid-template-columns: 96px 1fr auto; gap: 18px; align-items: center;
+    padding: 16px 4px; border-bottom: 1px solid var(--mv-rule); text-decoration: none; transition: background .2s ease;
+  }
+  .mv-ledger-row:hover{ background: #FBFAF6; }
+  .mv-ledger-row__thumb{ width: 96px; height: 72px; object-fit: cover; border-radius: 2px; background: var(--mv-rule); }
+  .mv-ledger-row__main{ min-width: 0; }
+  .mv-ledger-row__compound{
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--mv-gold); margin: 0 0 3px 0;
+  }
+  .mv-ledger-row__type{ font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; color: var(--mv-navy); margin: 0 0 4px 0; }
+  .mv-ledger-row__facts{ font-family: 'Inter', sans-serif; font-size: 13px; color: var(--mv-slate); margin: 0; }
+  .mv-ledger-row__facts span:not(:last-child)::after{ content: "·"; margin: 0 6px; color: var(--mv-rule); }
+  .mv-ledger-row__price{
+    font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 700;
+    color: var(--mv-navy); text-align: right; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  }
+  .mv-ledger-row__price::before{ content: ""; width: 3px; height: 16px; background: var(--mv-gold); display: inline-block; }
+
+  @media (max-width: 640px){
+    .mv-ledger-row{ grid-template-columns: 72px 1fr; }
+    .mv-ledger-row__price{ grid-column: 1 / -1; justify-content: flex-start; padding-left: 84px; font-size: 15px; }
+  }
+</style>
+
+{% if new_launches %}
+<section class="mv-section mv-section--dark">
+  <div class="mv-section__head">
+    <div>
+      <p class="mv-eyebrow">Just Announced</p>
+      <h2 class="mv-title">New Launches</h2>
+    </div>
+    <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
+  </div>
+
+  <div class="mv-launches">
+    {% for c in new_launches %}
+    <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+      {% if c.cover_image_url %}
+        <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
+      {% endif %}
+      <div class="mv-launch-card__scrim"></div>
+      <div class="mv-launch-card__body">
+        <span class="mv-launch-card__tag">New Launch</span>
+        <p class="mv-launch-card__name">{{ c.name }}</p>
+        <p class="mv-launch-card__meta">{{ c.area }}{% if c.delivery_year %} · Delivery {{ c.delivery_year }}{% endif %}</p>
+        <div class="mv-launch-card__rule"></div>
+        {% if c.min_price %}
+        <p class="mv-launch-card__price">Starting {{ "{:,.0f}".format(c.min_price) }} EGP</p>
+        {% else %}
+        <p class="mv-launch-card__price">Price on request</p>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% if featured %}
 <section class="section">
     <div class="container">
@@ -60,6 +201,47 @@
         {% endif %}
     </div>
 </section>
+
+<!--
+  =====================================================================
+  RECOMMENDED UNITS — ledger-style list of the most recently added units
+  Populated by recommended_units (see app.py home()).
+  =====================================================================
+-->
+{% if recommended_units %}
+<section class="mv-section">
+  <div class="mv-section__head">
+    <div>
+      <p class="mv-eyebrow">Handpicked for you</p>
+      <h2 class="mv-title">Recommended Units</h2>
+    </div>
+    <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
+  </div>
+
+  <div class="mv-ledger">
+    {% for u in recommended_units %}
+    <a class="mv-ledger-row" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
+      <img class="mv-ledger-row__thumb"
+           src="{{ u.image_url or u.compound.cover_image_url or '' }}"
+           alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
+      <div class="mv-ledger-row__main">
+        <p class="mv-ledger-row__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
+        <p class="mv-ledger-row__type">{{ u.unit_type }}</p>
+        <p class="mv-ledger-row__facts">
+          {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
+          {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
+          {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
+        </p>
+      </div>
+      <p class="mv-ledger-row__price">
+        {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
+      </p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="section cta-section">
     <div class="container cta-inner">
         <h2>Looking for the right property?</h2>
