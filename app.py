@@ -87,7 +87,33 @@ def create_app():
                 "cover_image_url": sample.cover_image_url if sample else None,
             })
 
-        return render_template("index.html", featured=featured, latest=latest, top_areas=top_areas)
+        # "New Launches" — soonest delivery first, most recently added as tiebreaker
+        new_launches = (
+            Compound.query
+            .filter(Compound.is_published == True)
+            .order_by(Compound.delivery_year.asc().nullslast(), Compound.created_at.desc())
+            .limit(8)
+            .all()
+        )
+
+        # "Recommended Units" — most recently added available units across published compounds
+        recommended_units = (
+            Unit.query
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Unit.is_available == True, Compound.is_published == True)
+            .order_by(Unit.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
+        return render_template(
+            "index.html",
+            featured=featured,
+            latest=latest,
+            top_areas=top_areas,
+            new_launches=new_launches,
+            recommended_units=recommended_units,
+        )
 
     @app.route("/compounds")
     def compounds():
@@ -335,6 +361,18 @@ def create_app():
         c = Compound.query.get_or_404(compound_id)
         if request.method == "POST":
             c.name = request.form.get("name", "").strip()
+
+            # Keep slug in sync when it's explicitly provided; otherwise leave the
+            # existing slug untouched so published links never break silently.
+            new_slug = request.form.get("slug", "").strip()
+            if new_slug and new_slug != c.slug:
+                base_slug, n = new_slug, 1
+                candidate = new_slug
+                while Compound.query.filter(Compound.slug == candidate, Compound.id != c.id).first():
+                    n += 1
+                    candidate = f"{base_slug}-{n}"
+                c.slug = candidate
+
             c.developer = request.form.get("developer", "").strip()
             c.area = request.form.get("area", "").strip()
             c.location_detail = request.form.get("location_detail", "").strip()
@@ -492,6 +530,11 @@ def create_app():
                 is_published=parse_bool(row.get("is_published", "true")),
             )
             db.session.add(c)
+
+            # Print the resolved slug back to the admin so bulk-imported
+            # compounds are easy to match up with a units CSV afterwards.
+            print(f"[compounds import] '{name}' -> slug='{slug}'")
+
             created += 1
 
         db.session.commit()
@@ -509,12 +552,14 @@ def create_app():
         stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
         reader = csv.DictReader(stream)
 
-        created, skipped = 0, 0
+        created, skipped, unknown_slugs = 0, 0, []
         for row in reader:
             compound_slug = (row.get("compound_slug") or "").strip()
             compound = Compound.query.filter_by(slug=compound_slug).first()
             if not compound:
                 skipped += 1
+                if compound_slug not in unknown_slugs:
+                    unknown_slugs.append(compound_slug)
                 continue
 
             u = Unit(
@@ -534,7 +579,14 @@ def create_app():
             created += 1
 
         db.session.commit()
-        flash(f"Imported {created} unit(s). Skipped {skipped} row(s) with unknown compound_slug.", "success")
+
+        message = f"Imported {created} unit(s). Skipped {skipped} row(s) with unknown compound_slug."
+        if unknown_slugs:
+            # Surface exactly which slugs didn't match, instead of failing silently.
+            message += " Unknown slugs: " + ", ".join(unknown_slugs[:10])
+            if len(unknown_slugs) > 10:
+                message += f" (+{len(unknown_slugs) - 10} more)"
+        flash(message, "success" if created else "error")
         return redirect(url_for("admin_dashboard"))
 
     return app
