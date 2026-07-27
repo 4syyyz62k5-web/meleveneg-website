@@ -10,6 +10,31 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <style>
   /* ---------------------------------------------------------------
+     Header overlay — floats transparently on top of the hero image
+     instead of sitting in its own solid navy bar. Falls back fine on
+     inner pages too (it just overlays whatever the first section is;
+     add a background to .site-header per-page if that's ever an issue).
+     --------------------------------------------------------------- */
+  .site-header{
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 30;
+    background: transparent !important;
+  }
+  /* Pages without a .hero or .compound-hero as their first section (About,
+     Contact, Properties) get the header back as a normal solid navy bar,
+     since there's no image behind it to float over. */
+  body:not(:has(.hero)):not(:has(.compound-hero)) .site-header{
+    position: static;
+    background: var(--color-navy) !important;
+  }
+  .nav-cta{
+    padding: 6px 16px !important;
+    font-size: 13px !important;
+    margin-left: 20px;
+  }
+
+  /* ---------------------------------------------------------------
      Footer accordion — every footer column is a <details> element,
      so its heading is the toggle. Uses the existing .footer-col h4 /
      .footer-col a styles from style.css as-is (Montserrat uppercase
