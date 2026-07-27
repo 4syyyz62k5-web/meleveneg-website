@@ -1,30 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
 {% block content %}
-<section class="hero" style="background-image: linear-gradient(135deg, rgba(10,33,68,0.85), rgba(16,68,128,0.7)), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
-    <div class="container hero-inner">
-        <h1>Your Trusted Partner in Egyptian Real Estate</h1>
-        <p>12 years of experience helping clients find, evaluate, and invest in the right property.</p>
-        <div class="hero-search">
-            <form action="{{ url_for('compounds') }}" method="get" class="search-form">
-                <select name="area">
-                    <option value="">All Areas</option>
-                    {% for area in ["North Coast", "New Cairo", "Sheikh Zayed", "New Capital"] %}
-                    <option value="{{ area }}">{{ area }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit">Search Properties</button>
-            </form>
-        </div>
-    </div>
-</section>
-
-<!--
-  =====================================================================
-  Shared styles for New Launches / Recommended Units / horizontal-scroll
-  card rows / collapsible Top Areas.
-  =====================================================================
--->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,13 +10,57 @@
     --mv-navy: #101B34;
     --mv-navy-soft: #1B2A4D;
     --mv-gold: #C6A15B;
-    --mv-ivory: #F6F3EC;
-    --mv-slate: #303A4D;
-    --mv-rule: #E4DFD3;
+    --mv-ivory: #F3EEE4;
+    --mv-slate: #5B5A54;
+    --mv-rule: #E1D9C8;
   }
 
+  .hero{
+    background-image:
+      linear-gradient(180deg, rgba(16,27,52,.55), rgba(16,27,52,.55)),
+      url('{{ url_for('static', filename='img/hero-cover.jpg') }}') !important;
+    background-size: cover;
+    background-position: center;
+  }
+  .hero-inner{
+    max-width: 720px;
+    text-align: center;
+    padding: 88px 24px;
+  }
+  .hero-inner h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.25;
+    color: var(--mv-ivory);
+    margin: 0 0 16px 0;
+  }
+  .hero-inner > p{
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: rgba(243,238,228,.8);
+    margin: 0 0 24px 0;
+  }
+  .hero-rule{
+    width: 44px; height: 1px; background: var(--mv-gold);
+    margin: 0 auto 24px auto;
+  }
+  .hero-search .search-form{
+    display: inline-flex; gap: 10px; background: rgba(243,238,228,.08);
+    border: 1px solid rgba(243,238,228,.25); padding: 6px; border-radius: 2px;
+  }
+  .hero-search select{
+    font-family: 'Inter', sans-serif; font-size: 13px; border: none; background: transparent;
+    color: var(--mv-ivory); padding: 8px 10px;
+  }
+  .hero-search button{
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .02em;
+    background: transparent; color: var(--mv-ivory); border: 1px solid var(--mv-gold);
+    padding: 8px 20px; cursor: pointer; transition: background .2s ease;
+  }
+  .hero-search button:hover{ background: rgba(198,161,91,.15); }
+
   .mv-section{ padding: 56px 24px; background: var(--mv-ivory); }
-  .mv-section--dark{ background: var(--mv-navy); }
   .mv-section__head{
     max-width: 1160px; margin: 0 auto 24px auto;
     display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
@@ -53,26 +73,17 @@
     font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(22px, 3vw, 32px);
     color: var(--mv-navy); margin: 0; line-height: 1.15;
   }
-  .mv-section--dark .mv-title{ color: var(--mv-ivory); }
   .mv-viewall{
     font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: var(--mv-slate);
     text-decoration: none; white-space: nowrap; border-bottom: 1px solid var(--mv-rule); padding-bottom: 2px;
   }
-  .mv-section--dark .mv-viewall{ color: var(--mv-ivory); border-color: rgba(246,243,236,.25); }
   .mv-viewall:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
 
-  /* ---------- Generic horizontal-scroll row (used by New Launches,
-     Featured Compounds, Latest Listings) ---------- */
   .mv-hscroll{ max-width: 1160px; margin: 0 auto; position: relative; }
   .mv-hscroll .card-grid,
   .mv-launches{
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 20px;
-    padding-bottom: 10px;
-    -webkit-overflow-scrolling: touch;
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
+    scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
   }
   .mv-hscroll .card-grid::-webkit-scrollbar,
   .mv-launches::-webkit-scrollbar,
@@ -80,13 +91,8 @@
   .mv-hscroll .card-grid::-webkit-scrollbar-thumb,
   .mv-launches::-webkit-scrollbar-thumb,
   .mv-unit-scroll::-webkit-scrollbar-thumb{ background: var(--mv-rule); border-radius: 4px; }
-  .mv-hscroll .card-grid > *{
-    flex: 0 0 auto !important;
-    width: min(78vw, 270px);
-    scroll-snap-align: start;
-  }
+  .mv-hscroll .card-grid > *{ flex: 0 0 auto !important; width: min(78vw, 270px); scroll-snap-align: start; }
 
-  /* ---------- New Launches: dark film-strip cards ---------- */
   .mv-launch-card{
     scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(78vw, 340px);
     aspect-ratio: 4 / 5; border-radius: 2px; overflow: hidden; background: var(--mv-navy-soft);
@@ -116,11 +122,9 @@
   }
   .mv-launch-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
 
-  /* ---------- Recommended Units: horizontal-scroll cards (not rows) ---------- */
   .mv-unit-scroll{
     max-width: 1160px; margin: 0 auto; display: flex; flex-wrap: nowrap; gap: 18px;
-    overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
   }
   .mv-unit-card{
     scroll-snap-align: start; flex: 0 0 auto; width: min(72vw, 250px);
@@ -144,7 +148,6 @@
   }
   .mv-unit-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
 
-  /* ---------- Top Areas: collapsible grid ---------- */
   .mv-areas-grid{
     max-width: 1160px; margin: 0 auto;
     display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px;
@@ -160,14 +163,43 @@
   .mv-areas-toggle:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
   .mv-areas-wrap.is-expanded .mv-areas-toggle-label--more{ display: none; }
   .mv-areas-wrap:not(.is-expanded) .mv-areas-toggle-label--less{ display: none; }
+
+  .cta-section{ background: var(--mv-ivory); }
+  .cta-inner h2{ font-family: 'Fraunces', serif; font-weight: 600; color: var(--mv-navy); }
+  .cta-inner p{ font-family: 'Inter', sans-serif; color: var(--mv-slate); }
+  .cta-inner .btn-primary{
+    display: inline-block; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--mv-navy); background: transparent; border: 1px solid var(--mv-navy);
+    padding: 10px 26px; text-decoration: none; transition: background .2s ease, color .2s ease;
+  }
+  .cta-inner .btn-primary:hover{ background: var(--mv-navy); color: var(--mv-ivory); }
 </style>
 
+<section class="hero">
+    <div class="container hero-inner">
+        <h1>Your trusted partner in Egyptian real estate</h1>
+        <div class="hero-rule"></div>
+        <p>12 years of experience helping clients find, evaluate, and invest in the right property.</p>
+        <div class="hero-search">
+            <form action="{{ url_for('compounds') }}" method="get" class="search-form">
+                <select name="area">
+                    <option value="">All Areas</option>
+                    {% for area in ["North Coast", "New Cairo", "Sheikh Zayed", "New Capital"] %}
+                    <option value="{{ area }}">{{ area }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Search properties</button>
+            </form>
+        </div>
+    </div>
+</section>
+
 {% if new_launches %}
-<section class="mv-section mv-section--dark">
+<section class="mv-section">
   <div class="mv-section__head">
     <div>
-      <p class="mv-eyebrow">Just Announced</p>
-      <h2 class="mv-title">New Launches</h2>
+      <p class="mv-eyebrow">Just announced</p>
+      <h2 class="mv-title">New launches</h2>
     </div>
     <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
   </div>
@@ -181,7 +213,7 @@
         {% endif %}
         <div class="mv-launch-card__scrim"></div>
         <div class="mv-launch-card__body">
-          <span class="mv-launch-card__tag">New Launch</span>
+          <span class="mv-launch-card__tag">New launch</span>
           <p class="mv-launch-card__name">{{ c.name }}</p>
           <p class="mv-launch-card__meta">{{ c.area }}{% if c.delivery_year %} · Delivery {{ c.delivery_year }}{% endif %}</p>
           <div class="mv-launch-card__rule"></div>
@@ -255,18 +287,12 @@
     </div>
 </section>
 
-<!--
-  =====================================================================
-  RECOMMENDED UNITS — horizontal-scroll cards (3-4 visible, scroll for more)
-  Populated by recommended_units (see app.py home()).
-  =====================================================================
--->
 {% if recommended_units %}
 <section class="mv-section">
   <div class="mv-section__head">
     <div>
       <p class="mv-eyebrow">Handpicked for you</p>
-      <h2 class="mv-title">Recommended Units</h2>
+      <h2 class="mv-title">Recommended units</h2>
     </div>
     <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
   </div>
@@ -300,7 +326,7 @@
     <div class="container cta-inner">
         <h2>Looking for the right property?</h2>
         <p>Talk to our consultancy team — we'll guide you through every step.</p>
-        <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
+        <a href="{{ url_for('contact') }}" class="btn-primary">Get in touch</a>
     </div>
 </section>
 {% endblock %}
