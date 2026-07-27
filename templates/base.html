@@ -6,23 +6,19 @@
 <title>{% block title %}Meleven Consultancy{% endblock %}</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon-square.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Jost:wght@400;500;600&family=Fraunces:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <style>
-  :root{
-    --mv-gold: #C6A15B;
-  }
-
   /* ---------------------------------------------------------------
      Footer accordion — every footer column is a <details> element,
-     restyled to match the Quiet Luxury Editorial direction: serif
-     headings, gold accents, thin hairline rules instead of heavy
-     borders. Any new column added later (just wrap it the same way)
-     automatically gets the same look with zero extra CSS/JS.
+     so its heading is the toggle. Uses the existing .footer-col h4 /
+     .footer-col a styles from style.css as-is (Montserrat uppercase
+     heading, Jost links, brand navy/gold colors) — this only adds
+     the collapse/expand behavior and a +/- indicator.
+     Any new column added later (just wrap it the same way) gets the
+     same behavior automatically, with zero extra CSS/JS.
      --------------------------------------------------------------- */
-  .footer-col{
-    border-bottom: 1px solid rgba(255,255,255,.1);
-  }
+  .footer-col{ border-bottom: 1px solid rgba(255,255,255,.1); }
   .footer-col:last-child{ border-bottom: none; }
   .footer-col > summary{
     cursor: pointer;
@@ -33,18 +29,13 @@
     padding: 14px 0;
   }
   .footer-col > summary::-webkit-details-marker{ display: none; }
-  .footer-col h4{
-    margin: 0;
-    font-family: 'Fraunces', serif;
-    font-weight: 600;
-    letter-spacing: .01em;
-  }
+  .footer-col > summary h4{ margin-bottom: 0; }
   .footer-col > summary::after{
     content: "+";
-    font-family: 'Jost', sans-serif;
+    font-family: var(--font-body);
     font-size: 16px;
     line-height: 1;
-    color: var(--mv-gold);
+    color: var(--color-gold);
     margin-left: 12px;
   }
   .footer-col[open] > summary::after{ content: "–"; }
@@ -53,22 +44,15 @@
     flex-direction: column;
     padding-bottom: 16px;
   }
-  .footer-col-links a{
-    font-family: 'Jost', sans-serif;
-    color: rgba(255,255,255,.7);
-    transition: color .2s ease;
-  }
-  .footer-col-links a:hover{ color: var(--mv-gold); }
 
   .footer-brand-col{
     border-bottom: 1px solid rgba(255,255,255,.1);
     padding-bottom: 20px;
   }
-  .footer-brand-rule{
-    width: 36px; height: 1px; background: var(--mv-gold); margin: 14px 0;
-  }
-  .footer-cta-link{ color: var(--mv-gold) !important; }
 
+  /* On wider screens, keep every column expanded and drop the toggle
+     affordance — the accordion behavior is a mobile/long-list fix,
+     not something desktop visitors need to click through. */
   @media (min-width: 900px){
     .footer-col > summary::after{ display: none; }
     .footer-col > summary{ cursor: default; }
@@ -109,7 +93,6 @@
             <div class="brand brand-footer">
                 <img src="{{ url_for('static', filename='img/logo-white.png') }}" alt="Meleven Real Estate">
             </div>
-            <div class="footer-brand-rule"></div>
             <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
         </div>
 
@@ -155,8 +138,7 @@
           </details>
 
           It will automatically collapse on mobile and stay expanded
-          on desktop, matching the columns above, with the same serif
-          heading and gold accent styling.
+          on desktop, matching the columns above.
         -->
     </div>
     <div class="container footer-copy">
