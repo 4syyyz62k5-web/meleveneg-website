@@ -1,85 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
 {% block content %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
-  :root{
-    --mv-navy: #101B34;
-    --mv-navy-soft: #1B2A4D;
-    --mv-gold: #C6A15B;
-    --mv-ivory: #F3EEE4;
-    --mv-slate: #5B5A54;
-    --mv-rule: #E1D9C8;
-  }
+  /* ---------------------------------------------------------------
+     These rules extend style.css using the real brand variables
+     (--color-navy, --color-navy-dark, --color-gold, --color-cream,
+     --font-heading = Montserrat, --font-body = Jost). No new fonts
+     or colors are introduced — everything here is built on the
+     existing Meleven_CI tokens already defined in style.css.
+     --------------------------------------------------------------- */
 
-  .hero{
-    background-image:
-      linear-gradient(180deg, rgba(16,27,52,.55), rgba(16,27,52,.55)),
-      url('{{ url_for('static', filename='img/hero-cover.jpg') }}') !important;
-    background-size: cover;
-    background-position: center;
-  }
-  .hero-inner{
-    max-width: 720px;
-    text-align: center;
-    padding: 88px 24px;
-  }
-  .hero-inner h1{
-    font-family: 'Fraunces', serif;
-    font-weight: 600;
-    font-size: clamp(28px, 4vw, 44px);
-    line-height: 1.25;
-    color: var(--mv-ivory);
-    margin: 0 0 16px 0;
-  }
-  .hero-inner > p{
-    font-family: 'Inter', sans-serif;
-    font-size: 15px;
-    color: rgba(243,238,228,.8);
-    margin: 0 0 24px 0;
-  }
   .hero-rule{
-    width: 44px; height: 1px; background: var(--mv-gold);
-    margin: 0 auto 24px auto;
+    width: 44px; height: 2px; background: var(--color-gold);
+    margin: 0 auto 22px auto;
   }
-  .hero-search .search-form{
-    display: inline-flex; gap: 10px; background: rgba(243,238,228,.08);
-    border: 1px solid rgba(243,238,228,.25); padding: 6px; border-radius: 2px;
-  }
-  .hero-search select{
-    font-family: 'Inter', sans-serif; font-size: 13px; border: none; background: transparent;
-    color: var(--mv-ivory); padding: 8px 10px;
-  }
-  .hero-search button{
-    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .02em;
-    background: transparent; color: var(--mv-ivory); border: 1px solid var(--mv-gold);
-    padding: 8px 20px; cursor: pointer; transition: background .2s ease;
-  }
-  .hero-search button:hover{ background: rgba(198,161,91,.15); }
 
-  .mv-section{ padding: 56px 24px; background: var(--mv-ivory); }
+  .mv-section{ padding: 56px 0; }
+  .mv-section--dark{ background: var(--color-navy-dark); }
   .mv-section__head{
-    max-width: 1160px; margin: 0 auto 24px auto;
     display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    margin-bottom: 24px;
   }
   .mv-eyebrow{
-    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-    letter-spacing: .14em; text-transform: uppercase; color: var(--mv-gold); margin: 0 0 6px 0;
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
   }
   .mv-title{
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(22px, 3vw, 32px);
-    color: var(--mv-navy); margin: 0; line-height: 1.15;
+    font-family: var(--font-heading); font-weight: 700; font-size: 26px;
+    color: var(--color-navy); text-transform: uppercase; letter-spacing: .3px; margin: 0;
   }
+  .mv-section--dark .mv-title{ color: var(--color-white); }
   .mv-viewall{
-    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: var(--mv-slate);
-    text-decoration: none; white-space: nowrap; border-bottom: 1px solid var(--mv-rule); padding-bottom: 2px;
+    font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--color-text-muted);
+    text-decoration: none; white-space: nowrap;
   }
-  .mv-viewall:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
+  .mv-section--dark .mv-viewall{ color: #b7bdc8; }
+  .mv-viewall:hover{ color: var(--color-gold); }
 
-  .mv-hscroll{ max-width: 1160px; margin: 0 auto; position: relative; }
+  /* ---------- Generic horizontal-scroll row (New Launches / Featured / Latest) ---------- */
   .mv-hscroll .card-grid,
   .mv-launches{
     display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
@@ -87,105 +45,95 @@
   }
   .mv-hscroll .card-grid::-webkit-scrollbar,
   .mv-launches::-webkit-scrollbar,
-  .mv-unit-scroll::-webkit-scrollbar{ height: 4px; }
+  .mv-unit-scroll::-webkit-scrollbar,
+  .mv-areas-scroll::-webkit-scrollbar{ height: 4px; }
   .mv-hscroll .card-grid::-webkit-scrollbar-thumb,
   .mv-launches::-webkit-scrollbar-thumb,
-  .mv-unit-scroll::-webkit-scrollbar-thumb{ background: var(--mv-rule); border-radius: 4px; }
-  .mv-hscroll .card-grid > *{ flex: 0 0 auto !important; width: min(78vw, 270px); scroll-snap-align: start; }
+  .mv-unit-scroll::-webkit-scrollbar-thumb,
+  .mv-areas-scroll::-webkit-scrollbar-thumb{ background: #e8e5dd; border-radius: 4px; }
+  .mv-hscroll .card-grid > *{ flex: 0 0 auto !important; width: min(78vw, 280px); scroll-snap-align: start; }
 
+  /* ---------- New Launches: dark navy photo cards ---------- */
   .mv-launch-card{
-    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(78vw, 340px);
-    aspect-ratio: 4 / 5; border-radius: 2px; overflow: hidden; background: var(--mv-navy-soft);
-    color: var(--mv-ivory); text-decoration: none; display: block;
+    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(78vw, 320px);
+    aspect-ratio: 4 / 5; border-radius: 8px; overflow: hidden; background: var(--color-navy);
+    color: var(--color-white); text-decoration: none; display: block;
   }
   .mv-launch-card__img{
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-    transform: scale(1.02); transition: transform .6s ease;
+    transform: scale(1.02); transition: transform .3s ease;
   }
-  .mv-launch-card:hover .mv-launch-card__img{ transform: scale(1.08); }
+  .mv-launch-card:hover .mv-launch-card__img{ transform: scale(1.06); }
   .mv-launch-card__scrim{
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(16,27,52,0) 40%, rgba(16,27,52,.92) 100%);
+    background: linear-gradient(180deg, rgba(10,33,68,0) 40%, rgba(10,33,68,.92) 100%);
   }
-  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 20px; }
+  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 18px; }
   .mv-launch-card__tag{
-    display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--mv-navy); background: var(--mv-gold);
-    padding: 4px 9px; margin-bottom: 10px;
+    display: inline-block; font-family: var(--font-body); font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--color-navy-dark); background: var(--color-gold);
+    padding: 4px 9px; border-radius: 4px; margin-bottom: 10px;
   }
-  .mv-launch-card__name{ font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; margin: 0 0 4px 0; }
-  .mv-launch-card__meta{ font-family: 'Inter', sans-serif; font-size: 13px; color: rgba(246,243,236,.8); margin: 0 0 12px 0; }
-  .mv-launch-card__rule{ height: 1px; background: rgba(198,161,91,.4); margin-bottom: 10px; }
+  .mv-launch-card__name{
+    font-family: var(--font-heading); font-size: 19px; font-weight: 700; text-transform: uppercase;
+    margin: 0 0 4px 0;
+  }
+  .mv-launch-card__meta{ font-family: var(--font-body); font-size: 13px; color: #c7cedb; margin: 0 0 10px 0; }
   .mv-launch-card__price{
-    font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 15px;
-    font-weight: 600; display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-body); font-size: 15px; font-weight: 600; color: var(--color-gold); margin: 0;
   }
-  .mv-launch-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
 
-  .mv-unit-scroll{
-    max-width: 1160px; margin: 0 auto; display: flex; flex-wrap: nowrap; gap: 18px;
-    overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
-  }
-  .mv-unit-card{
-    scroll-snap-align: start; flex: 0 0 auto; width: min(72vw, 250px);
-    background: #fff; border: 1px solid var(--mv-rule); border-radius: 2px;
-    overflow: hidden; text-decoration: none; display: block; transition: border-color .2s ease;
-  }
-  .mv-unit-card:hover{ border-color: var(--mv-gold); }
-  .mv-unit-card__thumb{ width: 100%; height: 140px; object-fit: cover; background: var(--mv-rule); display: block; }
-  .mv-unit-card__body{ padding: 14px 16px 18px 16px; }
-  .mv-unit-card__compound{
-    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .04em;
-    text-transform: uppercase; color: var(--mv-gold); margin: 0 0 4px 0;
-  }
-  .mv-unit-card__type{ font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; color: var(--mv-navy); margin: 0 0 6px 0; }
-  .mv-unit-card__facts{ font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--mv-slate); margin: 0 0 10px 0; }
-  .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: var(--mv-rule); }
-  .mv-unit-card__rule{ height: 1px; background: var(--mv-rule); margin-bottom: 10px; }
-  .mv-unit-card__price{
-    font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 14.5px;
-    font-weight: 700; color: var(--mv-navy); display: flex; align-items: center; gap: 7px;
-  }
-  .mv-unit-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
-
+  /* ---------- Top Areas: horizontal-scroll photo cards ---------- */
   .mv-areas-scroll{
-    max-width: 1160px; margin: 0 auto; display: flex; gap: 14px;
-    overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px;
-    -webkit-overflow-scrolling: touch;
+    display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 10px; -webkit-overflow-scrolling: touch;
   }
-  .mv-areas-scroll::-webkit-scrollbar{ height: 4px; }
-  .mv-areas-scroll::-webkit-scrollbar-thumb{ background: var(--mv-rule); border-radius: 4px; }
   .mv-area-card{
-    scroll-snap-align: start; flex: 0 0 auto; width: 150px; height: 110px;
-    border-radius: 2px; overflow: hidden; position: relative; text-decoration: none;
-    background-color: var(--mv-navy-soft); background-size: cover; background-position: center;
+    scroll-snap-align: start; flex: 0 0 auto; width: 160px; height: 110px;
+    border-radius: 8px; overflow: hidden; position: relative; text-decoration: none;
+    background-color: var(--color-navy); background-size: cover; background-position: center;
   }
   .mv-area-card__scrim{
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(16,27,52,0) 45%, rgba(16,27,52,.88) 100%);
+    background: linear-gradient(180deg, rgba(10,33,68,0) 45%, rgba(10,33,68,.88) 100%);
   }
   .mv-area-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; }
   .mv-area-card__name{
-    font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600; color: var(--mv-ivory); margin: 0 0 2px 0;
+    font-family: var(--font-heading); font-size: 14px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-white); margin: 0 0 2px 0;
   }
-  .mv-area-card__count{
-    font-family: 'Inter', sans-serif; font-size: 10.5px; color: rgba(243,238,228,.75); margin: 0;
-  }
+  .mv-area-card__count{ font-family: var(--font-body); font-size: 11px; color: #d7dbe2; margin: 0; }
 
-  .cta-section{ background: var(--mv-ivory); }
-  .cta-inner h2{ font-family: 'Fraunces', serif; font-weight: 600; color: var(--mv-navy); }
-  .cta-inner p{ font-family: 'Inter', sans-serif; color: var(--mv-slate); }
-  .cta-inner .btn-primary{
-    display: inline-block; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
-    color: var(--mv-navy); background: transparent; border: 1px solid var(--mv-navy);
-    padding: 10px 26px; text-decoration: none; transition: background .2s ease, color .2s ease;
+  /* ---------- Recommended Units: horizontal-scroll cards ---------- */
+  .mv-unit-scroll{
+    display: flex; flex-wrap: nowrap; gap: 18px; overflow-x: auto;
+    scroll-snap-type: x mandatory; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
   }
-  .cta-inner .btn-primary:hover{ background: var(--mv-navy); color: var(--mv-ivory); }
+  .mv-unit-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: min(72vw, 250px);
+    background: var(--color-white); border: 1px solid #e8e5dd; border-radius: 10px;
+    overflow: hidden; text-decoration: none; display: block;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .mv-unit-card:hover{ transform: translateY(-4px); box-shadow: 0 10px 24px rgba(16,35,59,.12); }
+  .mv-unit-card__thumb{ width: 100%; height: 140px; object-fit: cover; background: #ddd; display: block; }
+  .mv-unit-card__body{ padding: 14px 16px 18px 16px; }
+  .mv-unit-card__compound{
+    font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 0 0 4px 0;
+  }
+  .mv-unit-card__type{
+    font-family: var(--font-heading); font-size: 16px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 6px 0;
+  }
+  .mv-unit-card__facts{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0 0 10px 0; }
+  .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
+  .mv-unit-card__price{ font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-gold); margin: 0; }
 </style>
 
-<section class="hero">
+<section class="hero" style="background-image: linear-gradient(135deg, rgba(10,33,68,0.6), rgba(16,68,128,0.5)), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
     <div class="container hero-inner">
-        <h1>Your trusted partner in Egyptian real estate</h1>
+        <h1>Your Trusted Partner in Egyptian Real Estate</h1>
         <div class="hero-rule"></div>
         <p>12 years of experience helping clients find, evaluate, and invest in the right property.</p>
         <div class="hero-search">
@@ -196,43 +144,44 @@
                     <option value="{{ area }}">{{ area }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit">Search properties</button>
+                <button type="submit">Search Properties</button>
             </form>
         </div>
     </div>
 </section>
 
 {% if new_launches %}
-<section class="mv-section">
-  <div class="mv-section__head">
-    <div>
-      <p class="mv-eyebrow">Just announced</p>
-      <h2 class="mv-title">New launches</h2>
+<section class="mv-section mv-section--dark">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Just Announced</p>
+        <h2 class="mv-title">New Launches</h2>
+      </div>
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
     </div>
-    <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
-  </div>
 
-  <div class="mv-hscroll">
-    <div class="mv-launches">
-      {% for c in new_launches %}
-      <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
-        {% if c.cover_image_url %}
-          <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
-        {% endif %}
-        <div class="mv-launch-card__scrim"></div>
-        <div class="mv-launch-card__body">
-          <span class="mv-launch-card__tag">New launch</span>
-          <p class="mv-launch-card__name">{{ c.name }}</p>
-          <p class="mv-launch-card__meta">{{ c.area }}{% if c.delivery_year %} · Delivery {{ c.delivery_year }}{% endif %}</p>
-          <div class="mv-launch-card__rule"></div>
-          {% if c.min_price %}
-          <p class="mv-launch-card__price">Starting {{ "{:,.0f}".format(c.min_price) }} EGP</p>
-          {% else %}
-          <p class="mv-launch-card__price">Price on request</p>
+    <div class="mv-hscroll">
+      <div class="mv-launches">
+        {% for c in new_launches %}
+        <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+          {% if c.cover_image_url %}
+            <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
           {% endif %}
-        </div>
-      </a>
-      {% endfor %}
+          <div class="mv-launch-card__scrim"></div>
+          <div class="mv-launch-card__body">
+            <span class="mv-launch-card__tag">New Launch</span>
+            <p class="mv-launch-card__name">{{ c.name }}</p>
+            <p class="mv-launch-card__meta">{{ c.area }}{% if c.delivery_year %} · Delivery {{ c.delivery_year }}{% endif %}</p>
+            {% if c.min_price %}
+            <p class="mv-launch-card__price">Starting {{ "{:,.0f}".format(c.min_price) }} EGP</p>
+            {% else %}
+            <p class="mv-launch-card__price">Price on request</p>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </section>
@@ -254,25 +203,27 @@
 {% endif %}
 
 {% if top_areas %}
-<section class="mv-section">
-  <div class="mv-section__head">
-    <div>
-      <p class="mv-eyebrow">Explore by location</p>
-      <h2 class="mv-title">Top areas</h2>
-    </div>
-    <a class="mv-viewall" href="{{ url_for('compounds') }}">View all areas →</a>
-  </div>
-
-  <div class="mv-areas-scroll">
-    {% for area in top_areas %}
-    <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-      <div class="mv-area-card__scrim"></div>
-      <div class="mv-area-card__body">
-        <p class="mv-area-card__name">{{ area.name }}</p>
-        <p class="mv-area-card__count">{{ area.count }} compound{{ 's' if area.count != 1 else '' }}</p>
+<section class="mv-section area-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Explore by Location</p>
+        <h2 class="mv-title">Top Areas</h2>
       </div>
-    </a>
-    {% endfor %}
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">View all areas →</a>
+    </div>
+
+    <div class="mv-areas-scroll">
+      {% for area in top_areas %}
+      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ area.name }}</p>
+          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </div>
 </section>
 {% endif %}
@@ -296,35 +247,36 @@
 
 {% if recommended_units %}
 <section class="mv-section">
-  <div class="mv-section__head">
-    <div>
-      <p class="mv-eyebrow">Handpicked for you</p>
-      <h2 class="mv-title">Recommended units</h2>
-    </div>
-    <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
-  </div>
-
-  <div class="mv-unit-scroll">
-    {% for u in recommended_units %}
-    <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
-      <img class="mv-unit-card__thumb"
-           src="{{ u.image_url or u.compound.cover_image_url or '' }}"
-           alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
-      <div class="mv-unit-card__body">
-        <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
-        <p class="mv-unit-card__type">{{ u.unit_type }}</p>
-        <p class="mv-unit-card__facts">
-          {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
-          {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
-          {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
-        </p>
-        <div class="mv-unit-card__rule"></div>
-        <p class="mv-unit-card__price">
-          {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
-        </p>
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Handpicked for You</p>
+        <h2 class="mv-title">Recommended Units</h2>
       </div>
-    </a>
-    {% endfor %}
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
+    </div>
+
+    <div class="mv-unit-scroll">
+      {% for u in recommended_units %}
+      <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
+        <img class="mv-unit-card__thumb"
+             src="{{ u.image_url or u.compound.cover_image_url or '' }}"
+             alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
+        <div class="mv-unit-card__body">
+          <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
+          <p class="mv-unit-card__type">{{ u.unit_type }}</p>
+          <p class="mv-unit-card__facts">
+            {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
+            {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
+            {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
+          </p>
+          <p class="mv-unit-card__price">
+            {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
+          </p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </div>
 </section>
 {% endif %}
@@ -333,7 +285,7 @@
     <div class="container cta-inner">
         <h2>Looking for the right property?</h2>
         <p>Talk to our consultancy team — we'll guide you through every step.</p>
-        <a href="{{ url_for('contact') }}" class="btn-primary">Get in touch</a>
+        <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
     </div>
 </section>
 {% endblock %}
