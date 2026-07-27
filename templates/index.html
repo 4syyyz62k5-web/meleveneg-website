@@ -55,9 +55,18 @@
   .hero-search button svg{ width: 16px; height: 16px; flex-shrink: 0; }
 
   @media (max-width: 640px){
-    .hero-search .search-form{ flex-wrap: wrap; border-radius: 12px; }
-    .hero-search__field{ flex: 1 1 50%; border-right: none; border-bottom: 1px solid #ececec; }
-    .hero-search button{ width: 100%; padding: 14px; }
+    .hero-search .search-form{
+      display: grid; grid-template-columns: 1fr 1fr; border-radius: 12px;
+    }
+    .hero-search__field{
+      border-right: 1px solid #ececec; border-bottom: 1px solid #ececec; padding: 10px 12px;
+    }
+    .hero-search__field:nth-child(2n){ border-right: none; }
+    .hero-search__field:nth-last-child(1){ border-bottom: none; }
+    .hero-search__field:nth-last-child(2){ border-bottom: none; }
+    .hero-search button{
+      grid-column: 1 / -1; width: 100%; padding: 14px; border-radius: 0 0 12px 12px;
+    }
   }
 
   .mv-section{ padding: 56px 0; }
@@ -185,12 +194,12 @@
             <form action="{{ url_for('compounds') }}" method="get" class="search-form">
                 <div class="hero-search__field">
                     <span class="hero-search__label">Area</span>
-                    <select name="area">
-                        <option value="">All Areas</option>
-                        {% for area in all_area_names %}
-                        <option value="{{ area }}">{{ area }}</option>
+                    <input type="text" name="area" list="hero-area-list" placeholder="All areas">
+                    <datalist id="hero-area-list">
+                        {% for a in all_area_names %}
+                        <option value="{{ a }}"></option>
                         {% endfor %}
-                    </select>
+                    </datalist>
                 </div>
                 <div class="hero-search__field">
                     <span class="hero-search__label">Compound</span>
@@ -198,6 +207,15 @@
                     <datalist id="hero-compound-list">
                         {% for c in all_compound_names %}
                         <option value="{{ c }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Developer</span>
+                    <input type="text" name="developer" list="hero-developer-list" placeholder="All developers">
+                    <datalist id="hero-developer-list">
+                        {% for d in all_developer_names %}
+                        <option value="{{ d }}"></option>
                         {% endfor %}
                     </datalist>
                 </div>
