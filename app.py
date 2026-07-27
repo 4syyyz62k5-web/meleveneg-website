@@ -107,6 +107,16 @@ def create_app():
             .all()
         )
 
+        # Names for the hero search bar's compound autocomplete (datalist)
+        all_compound_names = [
+            row[0] for row in
+            db.session.query(Compound.name).filter(Compound.is_published == True).order_by(Compound.name.asc()).all()
+        ]
+
+        # Always pulled fresh from the DB, so a newly added area shows up
+        # in the hero search dropdown without any code changes.
+        all_area_names = sorted(row["name"] for row in top_areas)
+
         return render_template(
             "index.html",
             featured=featured,
@@ -114,6 +124,8 @@ def create_app():
             top_areas=top_areas,
             new_launches=new_launches,
             recommended_units=recommended_units,
+            all_compound_names=all_compound_names,
+            all_area_names=all_area_names,
         )
 
     @app.route("/compounds")
@@ -124,8 +136,12 @@ def create_app():
         min_price = request.args.get("min_price", "").strip()
         max_price = request.args.get("max_price", "").strip()
         delivery_year = request.args.get("delivery_year", "").strip()
+        search_query = request.args.get("q", "").strip()
 
         query = Compound.query.filter_by(is_published=True)
+
+        if search_query:
+            query = query.filter(Compound.name.ilike(f"%{search_query}%"))
 
         if selected_areas:
             query = query.filter(Compound.area.in_(selected_areas))
@@ -168,6 +184,7 @@ def create_app():
             min_price=min_price,
             max_price=max_price,
             selected_delivery_year=delivery_year,
+            search_query=search_query,
         )
 
     @app.route("/compound/<slug>")
