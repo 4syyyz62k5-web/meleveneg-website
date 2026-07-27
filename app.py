@@ -117,6 +117,13 @@ def create_app():
         # in the hero search dropdown without any code changes.
         all_area_names = sorted(row["name"] for row in top_areas)
 
+        # Developer names get the same predictive-search treatment
+        all_developer_names = sorted({
+            row[0] for row in
+            db.session.query(Compound.developer).filter(Compound.is_published == True).distinct().all()
+            if row[0]
+        })
+
         return render_template(
             "index.html",
             featured=featured,
@@ -126,6 +133,7 @@ def create_app():
             recommended_units=recommended_units,
             all_compound_names=all_compound_names,
             all_area_names=all_area_names,
+            all_developer_names=all_developer_names,
         )
 
     @app.route("/compounds")
@@ -144,10 +152,12 @@ def create_app():
             query = query.filter(Compound.name.ilike(f"%{search_query}%"))
 
         if selected_areas:
-            query = query.filter(Compound.area.in_(selected_areas))
+            area_filters = [Compound.area.ilike(f"%{a}%") for a in selected_areas if a]
+            if area_filters:
+                query = query.filter(db.or_(*area_filters))
 
         if selected_developer:
-            query = query.filter(Compound.developer == selected_developer)
+            query = query.filter(Compound.developer.ilike(f"%{selected_developer}%"))
 
         if delivery_year:
             query = query.filter(Compound.delivery_year == delivery_year)
