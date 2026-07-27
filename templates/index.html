@@ -119,6 +119,23 @@
   .mv-section--dark .mv-viewall{ color: #b7bdc8; }
   .mv-viewall:hover{ color: var(--color-gold); }
 
+  /* ---------------------------------------------------------------
+     Mobile type-scale rebalance — headings across the page (section
+     titles, mv-titles) were staying at full desktop size on small
+     screens, making them feel oversized next to the card text below
+     them. This brings the whole hierarchy down a notch on mobile.
+     --------------------------------------------------------------- */
+  @media (max-width: 640px){
+    .page-title{ font-size: 24px; }
+    .section-title{ font-size: 19px; margin-bottom: 18px; }
+    .mv-section{ padding: 36px 0; }
+    .mv-section__head{ margin-bottom: 16px; }
+    .mv-eyebrow{ font-size: 10.5px; }
+    .mv-title{ font-size: 19px; }
+    .mv-viewall{ font-size: 12.5px; }
+    .cta-inner h2{ font-size: 22px; }
+  }
+
   /* ---------- Generic horizontal-scroll row (New Launches / Featured / Latest) ---------- */
   .mv-hscroll .card-grid,
   .mv-launches{
