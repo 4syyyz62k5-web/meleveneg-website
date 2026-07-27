@@ -10,6 +10,9 @@
      existing Meleven_CI tokens already defined in style.css.
      --------------------------------------------------------------- */
 
+  .hero{
+    filter: contrast(1.12) saturate(1.15) brightness(0.98);
+  }
   .hero-rule{
     width: 44px; height: 2px; background: var(--color-gold);
     margin: 0 auto 22px auto;
@@ -131,7 +134,7 @@
   .mv-unit-card__price{ font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-gold); margin: 0; }
 </style>
 
-<section class="hero" style="background-image: linear-gradient(135deg, rgba(10,33,68,0.6), rgba(16,68,128,0.5)), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
+<section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.35) 0%, rgba(10,33,68,0.55) 45%, rgba(10,33,68,0.85) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
     <div class="container hero-inner">
         <h1>Your Trusted Partner in Egyptian Real Estate</h1>
         <div class="hero-rule"></div>
