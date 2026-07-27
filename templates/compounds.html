@@ -157,6 +157,11 @@
                     <form action="{{ url_for('compounds') }}" method="get">
 
                         <div class="filter-group">
+                            <h3>Search</h3>
+                            <input type="text" name="q" value="{{ search_query }}" placeholder="Compound name" class="filter-select">
+                        </div>
+
+                        <div class="filter-group">
                             <h3>Area</h3>
                             <div class="filter-checkbox-list">
                                 {% for area in areas %}
