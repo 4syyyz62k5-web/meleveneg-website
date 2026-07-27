@@ -2,6 +2,14 @@
 {% block title %}{{ compound.name }} — Meleven Consultancy{% endblock %}
 
 {% block content %}
+<style>
+    .compound-hero{
+        filter: contrast(1.1) saturate(1.12) brightness(0.98);
+    }
+    .compound-hero-overlay{
+        background: linear-gradient(180deg, rgba(10,33,68,0.15) 0%, rgba(10,33,68,0.55) 55%, rgba(10,33,68,0.9) 100%);
+    }
+</style>
 
 <section class="compound-hero" style="background-image: url('{{ compound.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
     <div class="compound-hero-overlay">
