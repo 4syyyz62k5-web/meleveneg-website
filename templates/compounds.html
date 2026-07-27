@@ -10,7 +10,7 @@
     .filter-sidebar {
         width: 260px;
         flex-shrink: 0;
-        background: #fff;
+        background: var(--color-white);
         border: 1px solid #e5e5e5;
         border-radius: 8px;
         padding: 20px;
@@ -18,10 +18,11 @@
         top: 20px;
     }
     .filter-sidebar h3 {
+        font-family: var(--font-heading);
         font-size: 14px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #104480;
+        color: var(--color-navy);
         margin: 0 0 12px;
     }
     .filter-group {
@@ -41,6 +42,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        font-family: var(--font-body);
         font-size: 14px;
         cursor: pointer;
     }
@@ -53,12 +55,14 @@
         padding: 8px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        font-family: var(--font-body);
     }
     .filter-select {
         width: 100%;
         padding: 8px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        font-family: var(--font-body);
     }
     .filter-actions {
         display: flex;
@@ -71,24 +75,60 @@
         text-align: center;
         padding: 10px;
         border-radius: 4px;
+        font-family: var(--font-body);
         font-size: 14px;
+        font-weight: 600;
         text-decoration: none;
         cursor: pointer;
     }
     .filter-apply-btn {
-        background: #104480;
-        color: #fff;
+        background: var(--color-gold);
+        color: var(--color-navy-dark);
         border: none;
     }
     .filter-reset-link {
         background: transparent;
-        color: #104480;
-        border: 1px solid #104480;
+        color: var(--color-navy);
+        border: 1px solid var(--color-navy);
     }
     .browse-content {
         flex: 1;
         min-width: 0;
     }
+    .browse-count {
+        font-family: var(--font-body);
+        font-size: 14px;
+        color: var(--color-text-muted);
+        margin: -12px 0 20px 0;
+    }
+
+    /* ---------------------------------------------------------------
+       Mobile: the filter sidebar becomes a collapsible <details> panel
+       instead of a permanently-open block, so it doesn't push the
+       actual listings down the page on small screens.
+       --------------------------------------------------------------- */
+    .filter-toggle-summary{
+        display: none;
+        cursor: pointer;
+        list-style: none;
+        font-family: var(--font-heading);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-size: 14px;
+        color: var(--color-navy);
+        padding: 12px 16px;
+        background: var(--color-white);
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .filter-toggle-summary::-webkit-details-marker{ display: none; }
+    .filter-toggle-summary::after{ content: "Filters ▾"; color: var(--color-gold); font-size: 13px; }
+    details[open] .filter-toggle-summary::after{ content: "Filters ▴"; }
+
     @media (max-width: 900px) {
         .browse-layout {
             flex-direction: column;
@@ -96,7 +136,13 @@
         .filter-sidebar {
             width: 100%;
             position: static;
+            border: none;
+            padding: 0;
         }
+        .filter-toggle-summary{ display: flex; }
+    }
+    @media (min-width: 901px){
+        .filter-drawer .filter-sidebar{ display: block !important; }
     }
 </style>
 
@@ -105,59 +151,63 @@
         <h1 class="page-title">Browse Properties</h1>
 
         <div class="browse-layout">
-            <aside class="filter-sidebar">
-                <form action="{{ url_for('compounds') }}" method="get">
+            <details class="filter-drawer">
+                <summary class="filter-toggle-summary">Filter properties</summary>
+                <aside class="filter-sidebar">
+                    <form action="{{ url_for('compounds') }}" method="get">
 
-                    <div class="filter-group">
-                        <h3>Area</h3>
-                        <div class="filter-checkbox-list">
-                            {% for area in areas %}
-                            <label>
-                                <input type="checkbox" name="area" value="{{ area }}"
-                                    {% if area in selected_areas %}checked{% endif %}>
-                                {{ area }}
-                            </label>
-                            {% endfor %}
+                        <div class="filter-group">
+                            <h3>Area</h3>
+                            <div class="filter-checkbox-list">
+                                {% for area in areas %}
+                                <label>
+                                    <input type="checkbox" name="area" value="{{ area }}"
+                                        {% if area in selected_areas %}checked{% endif %}>
+                                    {{ area }}
+                                </label>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="filter-group">
-                        <h3>Developer</h3>
-                        <select name="developer" class="filter-select">
-                            <option value="">All Developers</option>
-                            {% for dev in developers %}
-                            <option value="{{ dev }}" {% if dev == selected_developer %}selected{% endif %}>{{ dev }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <h3>Price Range (EGP)</h3>
-                        <div class="filter-price-row">
-                            <input type="number" name="min_price" placeholder="Min" value="{{ min_price }}">
-                            <input type="number" name="max_price" placeholder="Max" value="{{ max_price }}">
+                        <div class="filter-group">
+                            <h3>Developer</h3>
+                            <select name="developer" class="filter-select">
+                                <option value="">All Developers</option>
+                                {% for dev in developers %}
+                                <option value="{{ dev }}" {% if dev == selected_developer %}selected{% endif %}>{{ dev }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
 
-                    <div class="filter-group">
-                        <h3>Delivery Year</h3>
-                        <select name="delivery_year" class="filter-select">
-                            <option value="">Any</option>
-                            {% for year in delivery_years %}
-                            <option value="{{ year }}" {% if year|string == selected_delivery_year|string %}selected{% endif %}>{{ year }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                        <div class="filter-group">
+                            <h3>Price Range (EGP)</h3>
+                            <div class="filter-price-row">
+                                <input type="number" name="min_price" placeholder="Min" value="{{ min_price }}">
+                                <input type="number" name="max_price" placeholder="Max" value="{{ max_price }}">
+                            </div>
+                        </div>
 
-                    <div class="filter-actions">
-                        <button type="submit" class="filter-apply-btn">Apply Filters</button>
-                        <a href="{{ url_for('compounds') }}" class="filter-reset-link">Reset All</a>
-                    </div>
-                </form>
-            </aside>
+                        <div class="filter-group">
+                            <h3>Delivery Year</h3>
+                            <select name="delivery_year" class="filter-select">
+                                <option value="">Any</option>
+                                {% for year in delivery_years %}
+                                <option value="{{ year }}" {% if year|string == selected_delivery_year|string %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="submit" class="filter-apply-btn">Apply Filters</button>
+                            <a href="{{ url_for('compounds') }}" class="filter-reset-link">Reset All</a>
+                        </div>
+                    </form>
+                </aside>
+            </details>
 
             <div class="browse-content">
                 {% if compounds %}
+                <p class="browse-count">{{ compounds|length }} propert{{ 'y' if compounds|length == 1 else 'ies' }} found</p>
                 <div class="card-grid">
                     {% for c in compounds %}
                         {% include "_compound_card.html" %}
