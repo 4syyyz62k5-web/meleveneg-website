@@ -148,21 +148,29 @@
   }
   .mv-unit-card__price::before{ content: ""; width: 3px; height: 14px; background: var(--mv-gold); display: inline-block; }
 
-  .mv-areas-grid{
-    max-width: 1160px; margin: 0 auto;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px;
+  .mv-areas-scroll{
+    max-width: 1160px; margin: 0 auto; display: flex; gap: 14px;
+    overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
   }
-  .mv-area-extra{ display: none; }
-  .mv-areas-wrap.is-expanded .mv-area-extra{ display: block; }
-  .mv-areas-toggle{
-    display: block; margin: 28px auto 0 auto; max-width: 1160px;
-    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
-    color: var(--mv-navy); background: transparent; border: 1px solid var(--mv-rule);
-    padding: 10px 22px; border-radius: 2px; cursor: pointer; transition: border-color .2s ease, color .2s ease;
+  .mv-areas-scroll::-webkit-scrollbar{ height: 4px; }
+  .mv-areas-scroll::-webkit-scrollbar-thumb{ background: var(--mv-rule); border-radius: 4px; }
+  .mv-area-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: 150px; height: 110px;
+    border-radius: 2px; overflow: hidden; position: relative; text-decoration: none;
+    background-color: var(--mv-navy-soft); background-size: cover; background-position: center;
   }
-  .mv-areas-toggle:hover{ border-color: var(--mv-gold); color: var(--mv-gold); }
-  .mv-areas-wrap.is-expanded .mv-areas-toggle-label--more{ display: none; }
-  .mv-areas-wrap:not(.is-expanded) .mv-areas-toggle-label--less{ display: none; }
+  .mv-area-card__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(16,27,52,0) 45%, rgba(16,27,52,.88) 100%);
+  }
+  .mv-area-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; }
+  .mv-area-card__name{
+    font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600; color: var(--mv-ivory); margin: 0 0 2px 0;
+  }
+  .mv-area-card__count{
+    font-family: 'Inter', sans-serif; font-size: 10.5px; color: rgba(243,238,228,.75); margin: 0;
+  }
 
   .cta-section{ background: var(--mv-ivory); }
   .cta-inner h2{ font-family: 'Fraunces', serif; font-weight: 600; color: var(--mv-navy); }
@@ -246,27 +254,26 @@
 {% endif %}
 
 {% if top_areas %}
-<section class="section area-section">
-    <div class="container">
-        <h2 class="section-title">Top Areas</h2>
-        <div class="mv-areas-wrap" id="mv-areas-wrap">
-            <div class="mv-areas-grid">
-                {% for area in top_areas %}
-                <a href="{{ url_for('compounds', area=area.name) }}" class="area-card{{ ' mv-area-extra' if loop.index > 6 else '' }}">
-                    <div class="area-circle" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
-                    <h4>{{ area.name }}</h4>
-                    <p>{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
-                </a>
-                {% endfor %}
-            </div>
-            {% if top_areas|length > 6 %}
-            <button type="button" class="mv-areas-toggle" onclick="document.getElementById('mv-areas-wrap').classList.toggle('is-expanded'); this.setAttribute('aria-expanded', document.getElementById('mv-areas-wrap').classList.contains('is-expanded'));" aria-expanded="false">
-                <span class="mv-areas-toggle-label--more">Show all areas ({{ top_areas|length }})</span>
-                <span class="mv-areas-toggle-label--less">Show less</span>
-            </button>
-            {% endif %}
-        </div>
+<section class="mv-section">
+  <div class="mv-section__head">
+    <div>
+      <p class="mv-eyebrow">Explore by location</p>
+      <h2 class="mv-title">Top areas</h2>
     </div>
+    <a class="mv-viewall" href="{{ url_for('compounds') }}">View all areas →</a>
+  </div>
+
+  <div class="mv-areas-scroll">
+    {% for area in top_areas %}
+    <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+      <div class="mv-area-card__scrim"></div>
+      <div class="mv-area-card__body">
+        <p class="mv-area-card__name">{{ area.name }}</p>
+        <p class="mv-area-card__count">{{ area.count }} compound{{ 's' if area.count != 1 else '' }}</p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
 </section>
 {% endif %}
 
