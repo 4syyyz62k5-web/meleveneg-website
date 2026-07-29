@@ -116,18 +116,17 @@ def create_app():
         featured = Compound.query.filter_by(is_featured=True, is_published=True).limit(6).all()
         latest = Compound.query.filter_by(is_published=True).order_by(Compound.created_at.desc()).limit(8).all()
 
-        location_expr = db.func.coalesce(Compound.location, Compound.area)
         area_rows = db.session.query(
-            location_expr.label("location_name"), db.func.count(Compound.id)
-        ).filter(Compound.is_published == True, location_expr.isnot(None)).group_by("location_name").order_by("location_name").all()
+            Compound.area, db.func.count(Compound.id)
+        ).filter(Compound.is_published == True, Compound.area.isnot(None)).group_by(Compound.area).order_by(Compound.area).all()
 
         top_areas = []
         for area_name, count in area_rows:
-            # Grab one compound in this location that has a cover image, to represent it visually
+            # Grab one compound in this area that has a cover image, to represent it visually
             sample = (
                 Compound.query
                 .filter(
-                    location_expr == area_name,
+                    Compound.area == area_name,
                     Compound.is_published == True,
                     Compound.cover_image_url.isnot(None),
                     Compound.cover_image_url != "",
