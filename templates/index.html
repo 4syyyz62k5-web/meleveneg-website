@@ -224,6 +224,13 @@
   .mv-areas-scroll{
     display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
     padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+    justify-content: center;
+  }
+  @media (max-width: 900px){
+    /* On narrow screens the cards are more likely to overflow, so left-align
+       instead of centering — centering + overflow-x can clip the first
+       card behind the edge in some mobile browsers. */
+    .mv-areas-scroll{ justify-content: flex-start; }
   }
   .mv-area-card{
     scroll-snap-align: start; flex: 0 0 auto; width: 160px; height: 110px;
@@ -385,6 +392,7 @@
       {% endfor %}
     </div>
 
+    {% if locations_menu %}
     <div class="mv-dropdown mv-dropdown--under" id="areas-dropdown">
       <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
       <div class="mv-dropdown__panel">
@@ -395,6 +403,7 @@
         {% endfor %}
       </div>
     </div>
+    {% endif %}
   </div>
 </section>
 {% endif %}
