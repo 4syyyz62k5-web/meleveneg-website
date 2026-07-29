@@ -12,16 +12,8 @@
         {% endif %}
         <label>Developer</label>
         <input type="text" name="developer" value="{{ compound.developer if compound else '' }}">
-        <div class="admin-form-row">
-            <div>
-                <label>Location (top-level region)</label>
-                <input type="text" name="location" value="{{ compound.location if compound else '' }}" placeholder="e.g. New Cairo, North Coast">
-            </div>
-            <div>
-                <label>Area (sub-area)</label>
-                <input type="text" name="area" value="{{ compound.area if compound else '' }}" placeholder="e.g. Mostakbal City">
-            </div>
-        </div>
+        <label>Area</label>
+        <input type="text" name="area" value="{{ compound.area if compound else '' }}" placeholder="e.g. North Coast">
         <label>Location Detail</label>
         <input type="text" name="location_detail" value="{{ compound.location_detail if compound else '' }}" placeholder="e.g. Kilo 247, International Coastal Road">
         <label>Short Description</label>
