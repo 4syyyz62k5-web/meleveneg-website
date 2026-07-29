@@ -7,8 +7,7 @@ class Compound(db.Model):
     name = db.Column(db.String(150), nullable=False)
     slug = db.Column(db.String(150), unique=True, nullable=False)  # used in the URL, e.g. /compound/silversands
     developer = db.Column(db.String(150))
-    location = db.Column(db.String(150))  # top-level region, e.g. "New Cairo", "North Coast"
-    area = db.Column(db.String(150))  # sub-area within the location, e.g. "Mostakbal City", "Sidi Heneish"
+    area = db.Column(db.String(150))  # e.g. "North Coast", "New Cairo"
     location_detail = db.Column(db.String(255))  # e.g. "Kilo 247, International Coastal Road"
     short_description = db.Column(db.String(500))
     full_description = db.Column(db.Text)
@@ -72,3 +71,4 @@ class Lead(db.Model):
     # Once Circles integration is built, this flags whether the lead has been pushed there
     synced_to_circles = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
