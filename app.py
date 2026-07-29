@@ -43,6 +43,59 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        # ---------------------------------------------------------------
+        # One-time, self-healing migration: `db.create_all()` only creates
+        # brand-new tables, it never adds a column to a table that already
+        # exists. Since there's no direct database shell access in this
+        # workflow, this checks whether the `location` column is already on
+        # the `compounds` table and adds it automatically if it's missing.
+        # Safe to leave in permanently — once the column exists, this is a
+        # no-op on every future restart.
+        # ---------------------------------------------------------------
+        inspector = db.inspect(db.engine)
+        existing_columns = [col["name"] for col in inspector.get_columns("compounds")]
+        if "location" not in existing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE compounds ADD COLUMN location VARCHAR(150)"))
+                connection.commit()
+
+        # ---------------------------------------------------------------
+        # Backfill: any existing compound that doesn't have `location` set
+        # yet gets one assigned automatically based on its current `area`,
+        # grouping sub-areas under the top-level regions the site uses
+        # (New Cairo, North Coast, West Cairo, Ain Sokhna, New Capital,
+        # Alexandria). This runs on every startup but only touches rows
+        # where location is still empty, so it's safe to leave in place —
+        # it will pick up newly imported compounds automatically too.
+        # ---------------------------------------------------------------
+        AREA_TO_LOCATION = {
+            "New Cairo": "New Cairo",
+            "Mostakbal City": "New Cairo",
+            "New Heliopolis": "New Cairo",
+            "North Coast": "North Coast",
+            "North Coast-Sahel": "North Coast",
+            "Ras El Hekma": "North Coast",
+            "Sidi Abdel Rahman": "North Coast",
+            "Al Dabaa": "North Coast",
+            "New Zayed": "West Cairo",
+            "El Sheikh Zayed": "West Cairo",
+            "6th of October City": "West Cairo",
+            "6th Settlement": "West Cairo",
+            "October Gardens": "West Cairo",
+            "Ain Sokhna": "Ain Sokhna",
+            "New Capital City": "New Capital",
+            "Alexandria": "Alexandria",
+        }
+        unmatched_compounds = Compound.query.filter(
+            db.or_(Compound.location.is_(None), Compound.location == "")
+        ).all()
+        for c in unmatched_compounds:
+            mapped = AREA_TO_LOCATION.get((c.area or "").strip())
+            if mapped:
+                c.location = mapped
+        if unmatched_compounds:
+            db.session.commit()
+
     @app.context_processor
     def inject_footer_areas():
         rows = db.session.query(Compound.area, db.func.count(Compound.id)).filter(
@@ -114,8 +167,15 @@ def create_app():
         ]
 
         # Always pulled fresh from the DB, so a newly added area shows up
-        # in the hero search dropdown without any code changes.
-        all_area_names = sorted(row["name"] for row in top_areas)
+        # in the hero search dropdown without any code changes. Distinct
+        # `location` values are folded in too, so typing a top-level region
+        # like "New Cairo" is offered right alongside its sub-areas.
+        all_location_names = {
+            row[0] for row in
+            db.session.query(Compound.location).filter(Compound.is_published == True).distinct().all()
+            if row[0]
+        }
+        all_area_names = sorted({row["name"] for row in top_areas} | all_location_names)
 
         # Developer names get the same predictive-search treatment
         all_developer_names = sorted({
@@ -152,7 +212,16 @@ def create_app():
             query = query.filter(Compound.name.ilike(f"%{search_query}%"))
 
         if selected_areas:
-            area_filters = [Compound.area.ilike(f"%{a}%") for a in selected_areas if a]
+            area_filters = []
+            for a in selected_areas:
+                if not a:
+                    continue
+                # Matching against both `area` and `location` means typing a
+                # top-level region (e.g. "New Cairo") also returns compounds
+                # whose sub-area is "Mostakbal City" or "New Heliopolis",
+                # without needing a separate locations page.
+                area_filters.append(Compound.area.ilike(f"%{a}%"))
+                area_filters.append(Compound.location.ilike(f"%{a}%"))
             if area_filters:
                 query = query.filter(db.or_(*area_filters))
 
@@ -362,6 +431,7 @@ def create_app():
                 name=name,
                 slug=slug,
                 developer=request.form.get("developer", "").strip(),
+                location=request.form.get("location", "").strip(),
                 area=request.form.get("area", "").strip(),
                 location_detail=request.form.get("location_detail", "").strip(),
                 short_description=request.form.get("short_description", "").strip(),
@@ -402,6 +472,7 @@ def create_app():
                 c.slug = candidate
 
             c.developer = request.form.get("developer", "").strip()
+            c.location = request.form.get("location", "").strip()
             c.area = request.form.get("area", "").strip()
             c.location_detail = request.form.get("location_detail", "").strip()
             c.short_description = request.form.get("short_description", "").strip()
@@ -543,6 +614,7 @@ def create_app():
                 name=name,
                 slug=slug,
                 developer=(row.get("developer") or "").strip(),
+                location=(row.get("location") or "").strip(),
                 area=(row.get("area") or "").strip(),
                 location_detail=(row.get("location_detail") or "").strip(),
                 short_description=(row.get("short_description") or "").strip(),
