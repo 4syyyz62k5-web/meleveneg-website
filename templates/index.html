@@ -119,6 +119,34 @@
   .mv-section--dark .mv-viewall{ color: #b7bdc8; }
   .mv-viewall:hover{ color: var(--color-gold); }
 
+  /* ---------- "View all areas" dropdown ---------- */
+  .mv-dropdown{ position: relative; }
+  .mv-dropdown__trigger{
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--color-text-muted);
+  }
+  .mv-section--dark .mv-dropdown__trigger{ color: #b7bdc8; }
+  .mv-dropdown__trigger:hover{ color: var(--color-gold); }
+  .mv-dropdown__panel{
+    display: none;
+    position: absolute; top: calc(100% + 10px); right: 0; z-index: 20;
+    background: var(--color-white); border-radius: 8px;
+    box-shadow: 0 14px 34px rgba(10,33,68,.22);
+    min-width: 220px; max-height: 320px; overflow-y: auto;
+    padding: 8px;
+  }
+  .mv-dropdown.is-open .mv-dropdown__panel{ display: block; }
+  .mv-dropdown__item{
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 9px 12px; border-radius: 5px; text-decoration: none;
+    font-family: var(--font-body); font-size: 14px; color: var(--color-text);
+  }
+  .mv-dropdown__item:hover{ background: var(--color-cream); }
+  .mv-dropdown__item span{ font-size: 12px; color: var(--color-text-muted); }
+  @media (max-width: 640px){
+    .mv-dropdown__panel{ right: auto; left: 0; min-width: 200px; }
+  }
+
   /* ---------------------------------------------------------------
      Mobile type-scale rebalance — headings across the page (section
      titles, mv-titles) were staying at full desktop size on small
@@ -333,7 +361,16 @@
         <p class="mv-eyebrow">Explore by Location</p>
         <h2 class="mv-title">Top Areas</h2>
       </div>
-      <a class="mv-viewall" href="{{ url_for('compounds') }}">View all areas →</a>
+      <div class="mv-dropdown" id="areas-dropdown">
+        <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
+        <div class="mv-dropdown__panel">
+          {% for loc in locations_menu %}
+          <a class="mv-dropdown__item" href="{{ url_for('compounds', area=loc.name) }}">
+            {{ loc.name }} <span>{{ loc.count }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
     </div>
 
     <div class="mv-areas-scroll">
@@ -411,4 +448,13 @@
         <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
     </div>
 </section>
+
+<script>
+  document.addEventListener('click', function(e){
+    var dropdown = document.getElementById('areas-dropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('is-open');
+    }
+  });
+</script>
 {% endblock %}
