@@ -155,6 +155,10 @@
     border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
   }
   .mv-dropdown--under .mv-dropdown__trigger:hover{ background: var(--color-navy); color: var(--color-white); }
+  .mv-dropdown--under .mv-dropdown__trigger:disabled{
+    cursor: default; opacity: .4; border-color: #999; color: #999;
+  }
+  .mv-dropdown--under .mv-dropdown__trigger:disabled:hover{ background: none; color: #999; }
   .mv-dropdown--under .mv-dropdown__panel{ left: 50%; right: auto; transform: translateX(-50%); }
   .mv-dropdown__panel--cards{
     display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
@@ -398,7 +402,6 @@
       {% endfor %}
     </div>
 
-    {% if locations_menu %}
     <div class="mv-dropdown mv-dropdown--under" id="areas-dropdown">
       <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
       <div class="mv-dropdown__panel mv-dropdown__panel--cards">
@@ -413,7 +416,6 @@
         {% endfor %}
       </div>
     </div>
-    {% endif %}
   </div>
 </section>
 {% endif %}
