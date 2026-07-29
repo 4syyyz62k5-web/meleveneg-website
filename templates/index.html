@@ -403,6 +403,10 @@
         {% endfor %}
       </div>
     </div>
+    {% else %}
+    <div class="mv-dropdown mv-dropdown--under">
+      <a class="mv-dropdown__trigger" href="{{ url_for('compounds') }}">View all compounds →</a>
+    </div>
     {% endif %}
   </div>
 </section>
