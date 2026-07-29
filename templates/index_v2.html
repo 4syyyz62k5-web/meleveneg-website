@@ -445,6 +445,42 @@
     padding: 9px 20px; text-decoration: none; transition: border-color .2s ease, color .2s ease;
   }
   .mv-developer-pill:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  /* ---------- Phase 4: Luxury CTA + Consultation form ---------- */
+  .mv-luxury-cta{ background: var(--color-cream); }
+  .mv-luxury-cta__grid{
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center;
+  }
+  @media (max-width: 900px){ .mv-luxury-cta__grid{ grid-template-columns: 1fr; } }
+  .mv-luxury-cta__intro .mv-title{ color: var(--color-navy); }
+  .hero-cta--whatsapp{
+    display: inline-flex; margin-top: 24px;
+    background: #25D366; color: var(--color-white); border: 1px solid #25D366;
+  }
+  .hero-cta--whatsapp:hover{ background: #1ebe5b; }
+
+  .mv-consult-form-card{
+    background: var(--color-white); border: 1px solid #eee; border-radius: 10px;
+    padding: 28px; box-shadow: 0 14px 34px rgba(16,35,59,.08);
+  }
+  .mv-consult-form-card__title{
+    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 18px 0;
+  }
+  .mv-consult-form{ display: flex; flex-direction: column; gap: 12px; }
+  .mv-consult-form input,
+  .mv-consult-form textarea{
+    padding: 11px 14px; border: 1px solid #ddd; border-radius: 6px;
+    font-family: var(--font-body); font-size: 14px; resize: vertical;
+  }
+  .mv-consult-form__submit{ border: none; cursor: pointer; margin-top: 4px; }
+
+  .mv-whatsapp-float{
+    position: fixed; bottom: 22px; right: 22px; z-index: 50;
+    width: 56px; height: 56px; border-radius: 50%; background: #25D366; color: var(--color-white);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25); transition: transform .2s ease;
+  }
+  .mv-whatsapp-float:hover{ transform: scale(1.08); }
 </style>
 
 <section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
@@ -842,13 +878,34 @@
 </section>
 {% endif %}
 
-<section class="section cta-section">
-    <div class="container cta-inner">
-        <h2>Looking for the right property?</h2>
-        <p>Talk to our consultancy team — we'll guide you through every step.</p>
-        <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
+<section class="section mv-luxury-cta">
+    <div class="container mv-luxury-cta__grid">
+        <div class="mv-luxury-cta__intro">
+            <p class="mv-eyebrow">Book a Consultation</p>
+            <h2 class="mv-title">Looking For<br>The Right Property?</h2>
+            <p class="hero-subtitle" style="color:var(--color-text-muted); margin-top:16px;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
+            <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp">
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
+                Chat on WhatsApp
+            </a>
+        </div>
+
+        <div class="mv-consult-form-card">
+            <p class="mv-consult-form-card__title">Get in Touch</p>
+            <form action="{{ url_for('contact') }}" method="post" class="mv-consult-form">
+                <input type="text" name="name" placeholder="Your Name" required>
+                <input type="text" name="phone" placeholder="Phone Number" required>
+                <input type="email" name="email" placeholder="Email (optional)">
+                <textarea name="message" rows="3" placeholder="Tell us what you're looking for..."></textarea>
+                <button type="submit" class="hero-cta hero-cta--primary mv-consult-form__submit">Request a Callback</button>
+            </form>
+        </div>
     </div>
 </section>
+
+<a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="mv-whatsapp-float" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
+</a>
 
 
 
