@@ -101,7 +101,15 @@ def create_app():
         rows = db.session.query(Compound.area, db.func.count(Compound.id)).filter(
             Compound.is_published == True, Compound.area.isnot(None)
         ).group_by(Compound.area).order_by(Compound.area.asc()).all()
-        return {"footer_areas": [{"name": r[0], "count": r[1]} for r in rows]}
+
+        dev_rows = db.session.query(Compound.developer, db.func.count(Compound.id)).filter(
+            Compound.is_published == True, Compound.developer.isnot(None)
+        ).group_by(Compound.developer).order_by(Compound.developer.asc()).all()
+
+        return {
+            "footer_areas": [{"name": r[0], "count": r[1]} for r in rows],
+            "footer_developers": [{"name": r[0], "count": r[1]} for r in dev_rows],
+        }
 
     # ---------- Uploaded file serving ----------
 
