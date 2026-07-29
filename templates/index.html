@@ -119,53 +119,23 @@
   .mv-section--dark .mv-viewall{ color: #b7bdc8; }
   .mv-viewall:hover{ color: var(--color-gold); }
 
-  /* ---------- "View all areas" dropdown ---------- */
-  .mv-dropdown{ position: relative; }
-  .mv-dropdown__trigger{
-    background: none; border: none; padding: 0; cursor: pointer;
-    font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--color-text-muted);
-  }
-  .mv-section--dark .mv-dropdown__trigger{ color: #b7bdc8; }
-  .mv-dropdown__trigger:hover{ color: var(--color-gold); }
-  .mv-dropdown__panel{
-    display: none;
-    position: absolute; top: calc(100% + 10px); right: 0; z-index: 20;
-    background: var(--color-white); border-radius: 8px;
-    box-shadow: 0 14px 34px rgba(10,33,68,.22);
-    min-width: 220px; max-height: 320px; overflow-y: auto;
-    padding: 8px;
-  }
-  .mv-dropdown.is-open .mv-dropdown__panel{ display: block; }
-  .mv-dropdown__item{
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 9px 12px; border-radius: 5px; text-decoration: none;
-    font-family: var(--font-body); font-size: 14px; color: var(--color-text);
-  }
-  .mv-dropdown__item:hover{ background: var(--color-cream); }
-  .mv-dropdown__item span{ font-size: 12px; color: var(--color-text-muted); }
-  @media (max-width: 640px){
-    .mv-dropdown__panel{ right: auto; left: 0; min-width: 200px; }
-  }
-  .mv-dropdown--under{
-    display: flex; justify-content: center; margin-top: 18px;
-  }
-  .mv-dropdown--under .mv-dropdown__trigger{
+  /* ---------- "View all areas" — inline expand (no floating popup) ---------- */
+  .mv-areas-toggle{
+    display: block; margin: 18px auto 0; background: none; cursor: pointer;
     font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
     letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy);
     border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
   }
-  .mv-dropdown--under .mv-dropdown__trigger:hover{ background: var(--color-navy); color: var(--color-white); }
-  .mv-dropdown--under .mv-dropdown__trigger:disabled{
-    cursor: default; opacity: .4; border-color: #999; color: #999;
+  .mv-areas-toggle:hover{ background: var(--color-navy); color: var(--color-white); }
+  .mv-areas-toggle:disabled{
+    cursor: default; opacity: .4; border-color: #999; color: #999; background: none;
   }
-  .mv-dropdown--under .mv-dropdown__trigger:disabled:hover{ background: none; color: #999; }
-  .mv-dropdown--under .mv-dropdown__panel{ left: 50%; right: auto; transform: translateX(-50%); }
-  .mv-dropdown__panel--cards{
-    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
-    min-width: 320px; max-width: 90vw; max-height: none; overflow: visible;
-    padding: 16px; background: var(--color-white);
+  .mv-areas-more{
+    display: none; flex-wrap: wrap; gap: 14px; justify-content: center;
+    margin-top: 18px; width: 100%;
   }
-  .mv-area-card--small{ width: 140px; height: 96px; }
+  .mv-areas-more.is-open{ display: flex; }
+  .mv-area-card--small{ width: 160px; height: 110px; }
 
   /* ---------------------------------------------------------------
      Mobile type-scale rebalance — headings across the page (section
@@ -402,19 +372,18 @@
       {% endfor %}
     </div>
 
-    <div class="mv-dropdown mv-dropdown--under" id="areas-dropdown">
-      <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
-      <div class="mv-dropdown__panel mv-dropdown__panel--cards">
-        {% for loc in locations_menu %}
-        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-          <div class="mv-area-card__scrim"></div>
-          <div class="mv-area-card__body">
-            <p class="mv-area-card__name">{{ loc.name }}</p>
-            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
+    <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-more').classList.toggle('is-open')">View all areas ▾</button>
+
+    <div class="mv-areas-more" id="areas-more">
+      {% for loc in locations_menu %}
+      <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ loc.name }}</p>
+          <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+        </div>
+      </a>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -481,12 +450,5 @@
     </div>
 </section>
 
-<script>
-  document.addEventListener('click', function(e){
-    var dropdown = document.getElementById('areas-dropdown');
-    if (dropdown && !dropdown.contains(e.target)) {
-      dropdown.classList.remove('is-open');
-    }
-  });
-</script>
+
 {% endblock %}
