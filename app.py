@@ -141,6 +141,13 @@ def create_app():
                 "cover_image_url": sample.cover_image_url if sample else None,
             })
 
+        # Show at most this many as folder cards; anything beyond that is
+        # only reachable via the "View all areas" dropdown so the two lists
+        # never repeat each other.
+        CARD_LIMIT = 6
+        all_locations_sorted = top_areas
+        top_areas = all_locations_sorted[:CARD_LIMIT]
+
         # "New Launches" — soonest delivery first, most recently added as tiebreaker
         new_launches = (
             Compound.query
@@ -176,7 +183,7 @@ def create_app():
             db.session.query(Compound.location).filter(Compound.is_published == True).distinct().all()
             if row[0]
         }
-        all_area_names = sorted({row["name"] for row in top_areas} | all_location_names)
+        all_area_names = sorted({a["name"] for a in all_locations_sorted} | all_location_names)
 
         # Developer names get the same predictive-search treatment
         all_developer_names = sorted({
@@ -185,11 +192,12 @@ def create_app():
             if row[0]
         })
 
-        # Lightweight name+count list for the "View all areas" dropdown —
-        # same grouping as the folder cards above, just without the cover
-        # image, so the dropdown always lists every location even if some
-        # don't have a photo yet to show as a card.
-        locations_menu = [{"name": a["name"], "count": a["count"]} for a in top_areas]
+        # Only the locations NOT already shown as a folder card above — the
+        # dropdown exists purely to reach the "rest" of them, so it never
+        # repeats what's already visible in the scroll row.
+        locations_menu = [
+            {"name": a["name"], "count": a["count"]} for a in all_locations_sorted[CARD_LIMIT:]
+        ]
 
         return render_template(
             "index.html",
