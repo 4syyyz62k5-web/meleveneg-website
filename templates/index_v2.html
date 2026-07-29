@@ -372,6 +372,79 @@
   .mv-unit-card__facts{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0 0 10px 0; }
   .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
   .mv-unit-card__price{ font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-gold); margin: 0; }
+  /* ---------- Why Meleven + Investment Calculator ---------- */
+  .mv-why-grid{
+    display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; align-items: start;
+  }
+  @media (max-width: 900px){ .mv-why-grid{ grid-template-columns: 1fr; } }
+  .mv-why-features{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+  @media (max-width: 640px){ .mv-why-features{ grid-template-columns: 1fr; gap: 20px; } }
+  .mv-why-feature__icon{
+    width: 44px; height: 44px; border-radius: 8px; background: rgba(198,157,122,.15);
+    color: var(--color-gold); display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+  }
+  .mv-why-feature__icon svg{ width: 22px; height: 22px; }
+  .mv-why-feature__title{
+    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-white); margin: 0 0 6px 0;
+  }
+  .mv-why-feature__text{ font-family: var(--font-body); font-size: 13.5px; color: #c7cedb; margin: 0; line-height: 1.5; }
+
+  .mv-calc-card{
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px; padding: 26px;
+  }
+  .mv-calc-card__title{
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 20px 0;
+  }
+  .mv-calc-label{
+    display: block; font-family: var(--font-body); font-size: 11.5px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; color: #b7bdc8; margin-bottom: 6px;
+  }
+  .mv-calc-budget-display{
+    width: 100%; background: none; border: none; color: var(--color-white);
+    font-family: var(--font-heading); font-size: 24px; font-weight: 700; padding: 0 0 8px 0;
+  }
+  .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); }
+  .mv-calc-select{
+    width: 100%; padding: 10px 12px; margin-top: 4px; border-radius: 6px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
+    color: var(--color-white); font-family: var(--font-body); font-size: 14px;
+  }
+  .mv-calc-results{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin: 22px 0 18px 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12);
+  }
+  .mv-calc-results__label{ font-family: var(--font-body); font-size: 11.5px; color: #b7bdc8; margin: 0 0 4px 0; }
+  .mv-calc-results__value{ font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: var(--color-white); margin: 0; }
+  .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; }
+  .mv-calc-disclaimer{ font-family: var(--font-body); font-size: 11px; color: #8891a0; margin: 12px 0 0 0; line-height: 1.4; }
+
+  /* ---------- AI Property Match (uses existing /compounds filters) ---------- */
+  .mv-match-form{
+    display: flex; flex-wrap: wrap; align-items: end; gap: 16px;
+    background: var(--color-cream); border-radius: 10px; padding: 24px;
+  }
+  .mv-match-field{ flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 6px; }
+  .mv-match-field input{
+    padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+    font-family: var(--font-body); font-size: 14px; background: var(--color-white);
+  }
+  .mv-match-submit{ flex-shrink: 0; white-space: nowrap; }
+
+  /* ---------- Developers showcase ---------- */
+  .mv-developers-row{
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px;
+  }
+  .mv-developer-pill{
+    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .03em;
+    color: var(--color-white); border: 1px solid rgba(255,255,255,.25); border-radius: 20px;
+    padding: 9px 20px; text-decoration: none; transition: border-color .2s ease, color .2s ease;
+  }
+  .mv-developer-pill:hover{ border-color: var(--color-gold); color: var(--color-gold); }
 </style>
 
 <section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
@@ -666,6 +739,109 @@
 </section>
 {% endif %}
 
+<section class="mv-section mv-section--dark mv-why-section">
+  <div class="container mv-why-grid">
+    <div class="mv-why-intro">
+      <p class="mv-eyebrow">Why Meleven?</p>
+      <h2 class="mv-title">More Than<br>a Property Portal</h2>
+      <div class="hero-rule" style="margin:18px 0 0 0;"></div>
+      <div class="mv-why-features">
+        <div class="mv-why-feature">
+          <div class="mv-why-feature__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+          </div>
+          <p class="mv-why-feature__title">Curated Properties</p>
+          <p class="mv-why-feature__text">Only the finest projects from Egypt's most trusted developers.</p>
+        </div>
+        <div class="mv-why-feature">
+          <div class="mv-why-feature__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          </div>
+          <p class="mv-why-feature__title">Investment Focused</p>
+          <p class="mv-why-feature__text">Expert advice to help you make smart, profitable decisions.</p>
+        </div>
+        <div class="mv-why-feature">
+          <div class="mv-why-feature__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>
+          </div>
+          <p class="mv-why-feature__title">Global Standards</p>
+          <p class="mv-why-feature__text">International-level service backed by local market expertise.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mv-calc-card">
+      <p class="mv-calc-card__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
+        Investment Calculator
+      </p>
+      <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
+      <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
+      <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
+
+      <label class="mv-calc-label" for="calc-downpayment" style="margin-top:16px;">Down Payment</label>
+      <select id="calc-downpayment" class="mv-calc-select">
+        <option value="0.10">10%</option>
+        <option value="0.15">15%</option>
+        <option value="0.20" selected>20%</option>
+        <option value="0.30">30%</option>
+      </select>
+
+      <div class="mv-calc-results">
+        <div>
+          <p class="mv-calc-results__label">Estimated Monthly Payment</p>
+          <p class="mv-calc-results__value" id="calc-monthly">From EGP 33,333</p>
+        </div>
+        <div>
+          <p class="mv-calc-results__label">Properties Available</p>
+          <p class="mv-calc-results__value" id="calc-count">{{ all_compound_names|length }}</p>
+        </div>
+      </div>
+      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">View Matching Properties</a>
+      <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section mv-match-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Not Sure Where to Start?</p>
+        <h2 class="mv-title mv-title--light">Find Your Match</h2>
+      </div>
+    </div>
+    <form action="{{ url_for('compounds') }}" method="get" class="mv-match-form">
+      <div class="mv-match-field">
+        <span class="hero-search__label">Preferred Location</span>
+        <input type="text" name="area" list="hero-area-list" placeholder="Any area">
+      </div>
+      <div class="mv-match-field">
+        <span class="hero-search__label">Max Budget (EGP)</span>
+        <input type="number" name="max_price" placeholder="e.g. 15,000,000">
+      </div>
+      <div class="mv-match-field">
+        <span class="hero-search__label">Preferred Developer</span>
+        <input type="text" name="developer" list="hero-developer-list" placeholder="Any developer">
+      </div>
+      <button type="submit" class="hero-cta hero-cta--primary mv-match-submit">Match Me With Properties →</button>
+    </form>
+  </div>
+</section>
+
+{% if all_developer_names %}
+<section class="mv-section mv-developers-section">
+  <div class="container">
+    <p class="mv-eyebrow" style="text-align:center;">Partnering With Industry Leaders</p>
+    <div class="mv-developers-row">
+      {% for d in all_developer_names %}
+      <a class="mv-developer-pill" href="{{ url_for('compounds', developer=d) }}">{{ d }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="section cta-section">
     <div class="container cta-inner">
         <h2>Looking for the right property?</h2>
@@ -710,6 +886,47 @@
     } else {
       animateStats();
     }
+  })();
+</script>
+
+<script>
+  (function(){
+    var slider = document.getElementById('calc-budget');
+    var budgetDisplay = document.getElementById('calc-budget-display');
+    var downpaymentSelect = document.getElementById('calc-downpayment');
+    var monthlyOut = document.getElementById('calc-monthly');
+    var ctaLink = document.getElementById('calc-cta');
+    if (!slider) return;
+
+    var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
+
+    function formatEGP(n){
+      return Math.round(n).toLocaleString('en-US');
+    }
+
+    function recalculate(){
+      var budget = parseInt(slider.value, 10);
+      var downpaymentRate = parseFloat(downpaymentSelect.value);
+      var financedAmount = budget * (1 - downpaymentRate);
+      var monthly = financedAmount / INSTALLMENT_MONTHS;
+
+      budgetDisplay.value = formatEGP(budget);
+      monthlyOut.textContent = 'From EGP ' + formatEGP(monthly);
+
+      if (ctaLink) {
+        var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
+        url.searchParams.set('max_price', budget);
+        ctaLink.href = url.pathname + url.search;
+      }
+    }
+
+    if (ctaLink && !ctaLink.getAttribute('data-base-href')) {
+      ctaLink.setAttribute('data-base-href', ctaLink.getAttribute('href'));
+    }
+
+    slider.addEventListener('input', recalculate);
+    downpaymentSelect.addEventListener('change', recalculate);
+    recalculate();
   })();
 </script>
 {% endblock %}
