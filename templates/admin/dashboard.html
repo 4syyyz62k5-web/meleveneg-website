@@ -1,6 +1,5 @@
 {% extends "admin/base.html" %}
 {% block title %}Dashboard — Meleven Admin{% endblock %}
-
 {% block content %}
 <div class="admin-container">
     <div class="admin-page-header">
@@ -10,15 +9,15 @@
             <a href="{{ url_for('admin_compound_new') }}" class="btn-primary">+ Add Compound</a>
         </div>
     </div>
-
     {% if compounds %}
     <table class="admin-table">
         <thead>
-            <tr><th>Name</th><th>Area</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th></tr>
+            <tr><th>Developer</th><th>Name</th><th>Area</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th></tr>
         </thead>
         <tbody>
             {% for c in compounds %}
             <tr>
+                <td>{{ c.developer or '-' }}</td>
                 <td>{{ c.name }}</td>
                 <td>{{ c.area or '-' }}</td>
                 <td>{{ c.price_range_display() }}</td>
