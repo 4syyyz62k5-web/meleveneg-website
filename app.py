@@ -43,6 +43,22 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        # ---------------------------------------------------------------
+        # One-time, self-healing migration: `db.create_all()` only creates
+        # brand-new tables, it never adds a column to a table that already
+        # exists. Since there's no direct database shell access in this
+        # workflow, this checks whether the `location` column is already on
+        # the `compounds` table and adds it automatically if it's missing.
+        # Safe to leave in permanently — once the column exists, this is a
+        # no-op on every future restart.
+        # ---------------------------------------------------------------
+        inspector = db.inspect(db.engine)
+        existing_columns = [col["name"] for col in inspector.get_columns("compounds")]
+        if "location" not in existing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE compounds ADD COLUMN location VARCHAR(150)"))
+                connection.commit()
+
     @app.context_processor
     def inject_footer_areas():
         rows = db.session.query(Compound.area, db.func.count(Compound.id)).filter(
