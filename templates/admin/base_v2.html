@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Meleven Consultancy{% endblock %}</title>
+
+<!-- ---------- SEO ---------- -->
+<meta name="description" content="{% block meta_description %}Meleven Consultancy — a boutique Egyptian real estate advisory with 12 years of experience helping clients find, evaluate, and invest in premium properties across Cairo, the North Coast, and beyond.{% endblock %}">
+<link rel="canonical" href="{{ request.url }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Meleven Consultancy">
+<meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+<meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+<meta property="og:image" content="{{ url_for('static', filename='img/hero-cover.jpg', _external=True) }}">
+<meta property="og:url" content="{{ request.url }}">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "RealEstateAgent",
+  "name": "Meleven Consultancy",
+  "description": "Boutique Egyptian real estate advisory with 12 years of experience.",
+  "areaServed": "Egypt",
+  "url": "{{ request.url_root }}"
+}
+</script>
+
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon-square.png') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  /* ---------------------------------------------------------------
+     Header overlay — floats transparently on top of the hero image
+     instead of sitting in its own solid navy bar. Falls back fine on
+     inner pages too (it just overlays whatever the first section is;
+     add a background to .site-header per-page if that's ever an issue).
+     --------------------------------------------------------------- */
+  .site-header{
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 30;
+    background: transparent !important;
+  }
+  /* Pages without a .hero or .compound-hero as their first section (About,
+     Contact, Properties) get the header back as a normal solid navy bar,
+     since there's no image behind it to float over. */
+  body:not(:has(.hero)):not(:has(.compound-hero)) .site-header{
+    position: static;
+    background: var(--color-navy) !important;
+  }
+  .nav-cta{
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    margin-left: 16px;
+  }
+  .main-nav a.is-active{
+    color: var(--color-gold) !important;
+    border-bottom: 2px solid var(--color-gold);
+  }
+
+  /* ---------------------------------------------------------------
+     Skip-to-content link — invisible until keyboard-focused, lets
+     keyboard/screen-reader users jump past the nav straight to the
+     page content instead of tabbing through every header link first.
+     --------------------------------------------------------------- */
+  .skip-link{
+    position: absolute; left: -9999px; top: 0; z-index: 100;
+    background: var(--color-gold); color: var(--color-navy-dark);
+    padding: 10px 18px; font-family: var(--font-body); font-weight: 600;
+    text-decoration: none; border-radius: 0 0 6px 0;
+  }
+  .skip-link:focus{ left: 0; }
+
+  .sr-only{
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  /* ---------------------------------------------------------------
+     Footer accordion — every footer column is a <details> element,
+     so its heading is the toggle. Uses the existing .footer-col h4 /
+     .footer-col a styles from style.css as-is (Montserrat uppercase
+     heading, Jost links, brand navy/gold colors) — this only adds
+     the collapse/expand behavior and a +/- indicator.
+     Any new column added later (just wrap it the same way) gets the
+     same behavior automatically, with zero extra CSS/JS.
+     --------------------------------------------------------------- */
+  .footer-col{ border-bottom: 1px solid rgba(255,255,255,.1); }
+  .footer-col:last-child{ border-bottom: none; }
+  .footer-col > summary{
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+  }
+  .footer-col > summary::-webkit-details-marker{ display: none; }
+  .footer-col > summary h4{ margin-bottom: 0; }
+  .footer-col > summary::after{
+    content: "+";
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1;
+    color: var(--color-gold);
+    margin-left: 12px;
+  }
+  .footer-col[open] > summary::after{ content: "–"; }
+  .footer-col-links{
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 16px;
+  }
+
+  .footer-brand-col{
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    padding-bottom: 20px;
+  }
+
+  /* ---------- Phase 5: Newsletter + Social links ---------- */
+  .footer-newsletter{ display: flex; flex-direction: column; gap: 10px; padding-bottom: 16px; }
+  .footer-newsletter p{ font-family: var(--font-body); font-size: 13px; color: #b7bdc8; margin: 0; }
+  .footer-newsletter-form{ display: flex; gap: 6px; }
+  .footer-newsletter-form input{
+    flex: 1; min-width: 0; padding: 9px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.06); color: var(--color-white); font-family: var(--font-body); font-size: 13px;
+  }
+  .footer-newsletter-form input::placeholder{ color: #8891a0; }
+  .footer-newsletter-form button{
+    background: var(--color-gold); color: var(--color-navy-dark); border: none; border-radius: 4px;
+    padding: 0 16px; font-family: var(--font-body); font-weight: 600; font-size: 13px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .footer-social-row{ display: flex; gap: 10px; padding-bottom: 18px; }
+  .footer-social-row a{
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25);
+    display: flex; align-items: center; justify-content: center; color: var(--color-white);
+    transition: border-color .2s ease, color .2s ease;
+  }
+  .footer-social-row a:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  .footer-social-row svg{ width: 16px; height: 16px; }
+
+  /* On wider screens, keep every column expanded and drop the toggle
+     affordance — the accordion behavior is a mobile/long-list fix,
+     not something desktop visitors need to click through. */
+  @media (min-width: 900px){
+    .footer-col > summary::after{ display: none; }
+    .footer-col > summary{ cursor: default; }
+    .footer-col-links{ display: flex !important; }
+  }
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="{{ url_for('home') }}" class="brand">
+            <img src="{{ url_for('static', filename='img/logo-header.png') }}" alt="Meleven Real Estate" width="160" height="40" decoding="async">
+        </a>
+        <nav class="main-nav" aria-label="Main navigation">
+            <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="is-active" aria-current="page"{% endif %}>Home</a>
+            <a href="{{ url_for('compounds') }}" {% if request.endpoint == 'compounds' %}class="is-active" aria-current="page"{% endif %}>Properties</a>
+            <a href="{{ url_for('sell_property') }}" {% if request.endpoint == 'sell_property' %}class="is-active" aria-current="page"{% endif %}>Sell</a>
+            <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}class="is-active" aria-current="page"{% endif %}>About</a>
+            <a href="{{ url_for('contact') }}" class="nav-cta" {% if request.endpoint == 'contact' %}aria-current="page"{% endif %}>Contact Us</a>
+        </nav>
+    </div>
+</header>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-wrap" role="status">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+<main id="main-content">
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+    <div class="container footer-columns">
+        <div class="footer-col footer-brand-col">
+            <div class="brand brand-footer">
+                <img src="{{ url_for('static', filename='img/logo-white.png') }}" alt="Meleven Real Estate" width="160" height="40" loading="lazy" decoding="async">
+            </div>
+            <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
+        </div>
+
+        {% if footer_areas %}
+        <details class="footer-col">
+            <summary><h4>Areas</h4></summary>
+            <div class="footer-col-links">
+                {% for area in footer_areas %}
+                <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+
+        {% if footer_developers %}
+        <details class="footer-col">
+            <summary><h4>Developers</h4></summary>
+            <div class="footer-col-links">
+                {% for dev in footer_developers %}
+                <a href="{{ url_for('compounds', developer=dev.name) }}">{{ dev.name }}</a>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+
+        <details class="footer-col">
+            <summary><h4>Quick Links</h4></summary>
+            <div class="footer-col-links">
+                <a href="{{ url_for('home') }}">Home</a>
+                <a href="{{ url_for('compounds') }}">Properties</a>
+                <a href="{{ url_for('sell_property') }}">Sell</a>
+                <a href="{{ url_for('about') }}">About Us</a>
+                <a href="{{ url_for('contact') }}">Contact</a>
+            </div>
+        </details>
+
+        <details class="footer-col" open>
+            <summary><h4>Get In Touch</h4></summary>
+            <div class="footer-col-links">
+                <p class="footer-contact-line">Cairo, Egypt</p>
+                <a href="{{ url_for('contact') }}" class="footer-cta-link">Speak with our team →</a>
+
+                <div class="footer-newsletter">
+                    <p>Get new launches in your inbox.</p>
+                    <form class="footer-newsletter-form" onsubmit="event.preventDefault(); var e=this.elements.email.value; if(e){ window.location.href='mailto:info@meleveneg.com?subject=Newsletter%20Signup&body=' + encodeURIComponent(e); }">
+                        <label for="newsletter-email" class="sr-only">Email address</label>
+                        <input type="email" id="newsletter-email" name="email" placeholder="Your email" required>
+                        <button type="submit">Join</button>
+                    </form>
+                </div>
+
+                <div class="footer-social-row">
+                    <a href="#" aria-label="Meleven on Facebook" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Meleven on Instagram" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+                    </a>
+                    <a href="#" aria-label="Meleven on LinkedIn" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-.9 1.8-1.9 3.7-1.9 4 0 4.7 2.6 4.7 6v6.2h-4v-5.5c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg>
+                    </a>
+                </div>
+            </div>
+        </details>
+
+        <!--
+          To add a new footer column later, just copy this block:
+
+          <details class="footer-col">
+              <summary><h4>Your Title</h4></summary>
+              <div class="footer-col-links">
+                  <a href="#">Link one</a>
+                  <a href="#">Link two</a>
+              </div>
+          </details>
+
+          It will automatically collapse on mobile and stay expanded
+          on desktop, matching the columns above.
+        -->
+    </div>
+    <div class="container footer-copy">
+        &copy; {{ 2026 }} Meleven Consultancy. All rights reserved.
+    </div>
+</footer>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>
