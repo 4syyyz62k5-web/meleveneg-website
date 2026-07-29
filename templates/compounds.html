@@ -158,7 +158,17 @@
 
                         <div class="filter-group">
                             <h3>Search</h3>
-                            <input type="text" name="q" value="{{ search_query }}" placeholder="Compound name" class="filter-select">
+                            <input type="text" name="q" value="{{ search_query }}" placeholder="Compound name or developer" class="filter-select">
+                        </div>
+
+                        <div class="filter-group">
+                            <h3>Location</h3>
+                            <select name="location" class="filter-select">
+                                <option value="">All Locations</option>
+                                {% for loc in locations %}
+                                <option value="{{ loc }}" {% if loc == selected_location %}selected{% endif %}>{{ loc }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
 
                         <div class="filter-group">
