@@ -12,12 +12,13 @@
     {% if compounds %}
     <table class="admin-table">
         <thead>
-            <tr><th>Developer</th><th>Name</th><th>Area</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th></tr>
+            <tr><th>Developer</th><th>Location</th><th>Name</th><th>Area</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th></tr>
         </thead>
         <tbody>
             {% for c in compounds %}
             <tr>
                 <td>{{ c.developer or '-' }}</td>
+                <td>{{ c.location or '-' }}</td>
                 <td>{{ c.name }}</td>
                 <td>{{ c.area or '-' }}</td>
                 <td>{{ c.price_range_display() }}</td>
