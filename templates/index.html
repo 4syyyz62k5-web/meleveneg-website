@@ -156,6 +156,12 @@
   }
   .mv-dropdown--under .mv-dropdown__trigger:hover{ background: var(--color-navy); color: var(--color-white); }
   .mv-dropdown--under .mv-dropdown__panel{ left: 50%; right: auto; transform: translateX(-50%); }
+  .mv-dropdown__panel--cards{
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    min-width: 320px; max-width: 90vw; max-height: none; overflow: visible;
+    padding: 16px; background: var(--color-white);
+  }
+  .mv-area-card--small{ width: 140px; height: 96px; }
 
   /* ---------------------------------------------------------------
      Mobile type-scale rebalance — headings across the page (section
@@ -395,17 +401,17 @@
     {% if locations_menu %}
     <div class="mv-dropdown mv-dropdown--under" id="areas-dropdown">
       <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
-      <div class="mv-dropdown__panel">
+      <div class="mv-dropdown__panel mv-dropdown__panel--cards">
         {% for loc in locations_menu %}
-        <a class="mv-dropdown__item" href="{{ url_for('compounds', area=loc.name) }}">
-          {{ loc.name }} <span>{{ loc.count }}</span>
+        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+          <div class="mv-area-card__scrim"></div>
+          <div class="mv-area-card__body">
+            <p class="mv-area-card__name">{{ loc.name }}</p>
+            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+          </div>
         </a>
         {% endfor %}
       </div>
-    </div>
-    {% else %}
-    <div class="mv-dropdown mv-dropdown--under">
-      <a class="mv-dropdown__trigger" href="{{ url_for('compounds') }}">View all compounds →</a>
     </div>
     {% endif %}
   </div>
