@@ -146,6 +146,16 @@
   @media (max-width: 640px){
     .mv-dropdown__panel{ right: auto; left: 0; min-width: 200px; }
   }
+  .mv-dropdown--under{
+    display: flex; justify-content: center; margin-top: 18px;
+  }
+  .mv-dropdown--under .mv-dropdown__trigger{
+    font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy);
+    border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
+  }
+  .mv-dropdown--under .mv-dropdown__trigger:hover{ background: var(--color-navy); color: var(--color-white); }
+  .mv-dropdown--under .mv-dropdown__panel{ left: 50%; right: auto; transform: translateX(-50%); }
 
   /* ---------------------------------------------------------------
      Mobile type-scale rebalance — headings across the page (section
@@ -353,7 +363,7 @@
 </section>
 {% endif %}
 
-{% if locations_menu %}
+{% if top_areas %}
 <section class="mv-section area-section">
   <div class="container">
     <div class="mv-section__head">
@@ -361,15 +371,28 @@
         <p class="mv-eyebrow">Explore by Location</p>
         <h2 class="mv-title">Top Areas</h2>
       </div>
-      <div class="mv-dropdown" id="areas-dropdown">
-        <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
-        <div class="mv-dropdown__panel">
-          {% for loc in locations_menu %}
-          <a class="mv-dropdown__item" href="{{ url_for('compounds', area=loc.name) }}">
-            {{ loc.name }} <span>{{ loc.count }}</span>
-          </a>
-          {% endfor %}
+    </div>
+
+    <div class="mv-areas-scroll">
+      {% for area in top_areas %}
+      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ area.name }}</p>
+          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
         </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="mv-dropdown mv-dropdown--under" id="areas-dropdown">
+      <button type="button" class="mv-dropdown__trigger" onclick="document.getElementById('areas-dropdown').classList.toggle('is-open')">View all areas ▾</button>
+      <div class="mv-dropdown__panel">
+        {% for loc in locations_menu %}
+        <a class="mv-dropdown__item" href="{{ url_for('compounds', area=loc.name) }}">
+          {{ loc.name }} <span>{{ loc.count }}</span>
+        </a>
+        {% endfor %}
       </div>
     </div>
   </div>
