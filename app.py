@@ -116,17 +116,18 @@ def create_app():
         featured = Compound.query.filter_by(is_featured=True, is_published=True).limit(6).all()
         latest = Compound.query.filter_by(is_published=True).order_by(Compound.created_at.desc()).limit(8).all()
 
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
         area_rows = db.session.query(
-            Compound.area, db.func.count(Compound.id)
-        ).filter(Compound.is_published == True, Compound.area.isnot(None)).group_by(Compound.area).all()
+            location_expr.label("location_name"), db.func.count(Compound.id)
+        ).filter(Compound.is_published == True, location_expr.isnot(None)).group_by("location_name").order_by("location_name").all()
 
         top_areas = []
         for area_name, count in area_rows:
-            # Grab one compound in this area that has a cover image, to represent it visually
+            # Grab one compound in this location that has a cover image, to represent it visually
             sample = (
                 Compound.query
                 .filter(
-                    Compound.area == area_name,
+                    location_expr == area_name,
                     Compound.is_published == True,
                     Compound.cover_image_url.isnot(None),
                     Compound.cover_image_url != "",
@@ -184,20 +185,11 @@ def create_app():
             if row[0]
         })
 
-        # Lightweight location summary (name + count only) for the "View all
-        # areas" dropdown menu — clicking any entry goes straight to
-        # /compounds?area=X without leaving the homepage for a full page.
-        location_expr = db.func.coalesce(Compound.location, Compound.area)
-        locations_menu = [
-            {"name": row[0], "count": row[1]}
-            for row in (
-                db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
-                .filter(Compound.is_published == True, location_expr.isnot(None))
-                .group_by("location_name")
-                .order_by("location_name")
-                .all()
-            )
-        ]
+        # Lightweight name+count list for the "View all areas" dropdown —
+        # same grouping as the folder cards above, just without the cover
+        # image, so the dropdown always lists every location even if some
+        # don't have a photo yet to show as a card.
+        locations_menu = [{"name": a["name"], "count": a["count"]} for a in top_areas]
 
         return render_template(
             "index.html",
