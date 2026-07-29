@@ -184,6 +184,21 @@ def create_app():
             if row[0]
         })
 
+        # Lightweight location summary (name + count only) for the "View all
+        # areas" dropdown menu — clicking any entry goes straight to
+        # /compounds?area=X without leaving the homepage for a full page.
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
+        locations_menu = [
+            {"name": row[0], "count": row[1]}
+            for row in (
+                db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
+                .filter(Compound.is_published == True, location_expr.isnot(None))
+                .group_by("location_name")
+                .order_by("location_name")
+                .all()
+            )
+        ]
+
         return render_template(
             "index.html",
             featured=featured,
@@ -194,7 +209,54 @@ def create_app():
             all_compound_names=all_compound_names,
             all_area_names=all_area_names,
             all_developer_names=all_developer_names,
+            locations_menu=locations_menu,
         )
+
+    @app.route("/locations")
+    def locations():
+        # Group by the top-level `location` column (e.g. "New Cairo", "North
+        # Coast"). Compounds that don't have `location` set yet fall back to
+        # their `area` value, so nothing silently disappears from this page
+        # while any stragglers are still being backfilled.
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
+
+        rows = (
+            db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
+            .filter(Compound.is_published == True, location_expr.isnot(None))
+            .group_by("location_name")
+            .order_by("location_name")
+            .all()
+        )
+
+        location_list = []
+        for location_name, count in rows:
+            sample = (
+                Compound.query
+                .filter(
+                    location_expr == location_name,
+                    Compound.is_published == True,
+                    Compound.cover_image_url.isnot(None),
+                    Compound.cover_image_url != "",
+                )
+                .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                .first()
+            )
+            # Sub-areas within this location (e.g. New Cairo -> Mostakbal City, New Heliopolis)
+            sub_area_rows = (
+                db.session.query(Compound.area, db.func.count(Compound.id))
+                .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
+                .group_by(Compound.area)
+                .order_by(Compound.area.asc())
+                .all()
+            )
+            location_list.append({
+                "name": location_name,
+                "count": count,
+                "cover_image_url": sample.cover_image_url if sample else None,
+                "sub_areas": [{"name": r[0], "count": r[1]} for r in sub_area_rows],
+            })
+
+        return render_template("locations.html", locations=location_list)
 
     @app.route("/compounds")
     def compounds():
