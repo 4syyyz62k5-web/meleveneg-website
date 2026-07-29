@@ -196,7 +196,8 @@ def create_app():
         # dropdown exists purely to reach the "rest" of them, so it never
         # repeats what's already visible in the scroll row.
         locations_menu = [
-            {"name": a["name"], "count": a["count"]} for a in all_locations_sorted[CARD_LIMIT:]
+            {"name": a["name"], "count": a["count"], "cover_image_url": a["cover_image_url"]}
+            for a in all_locations_sorted[CARD_LIMIT:]
         ]
 
         return render_template(
