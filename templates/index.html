@@ -120,8 +120,13 @@
   .mv-viewall:hover{ color: var(--color-gold); }
 
   /* ---------- "View all areas" — inline expand (no floating popup) ---------- */
+  .mv-areas-expand{
+    display: flex; flex-direction: column; align-items: center; margin-top: 18px;
+  }
   .mv-areas-toggle{
-    display: block; margin: 18px auto 0; background: none; cursor: pointer;
+    order: 0;
+    display: flex; align-items: center; gap: 6px;
+    background: none; cursor: pointer;
     font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
     letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy);
     border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
@@ -130,11 +135,17 @@
   .mv-areas-toggle:disabled{
     cursor: default; opacity: .4; border-color: #999; color: #999; background: none;
   }
+  .mv-areas-toggle__arrow{ display: inline-block; transition: transform .2s ease; }
+  .mv-areas-expand.is-open .mv-areas-toggle__arrow{ transform: rotate(180deg); }
+  /* When open, swap order so the button ends up below the revealed cards
+     instead of staying sandwiched between the two rows. */
+  .mv-areas-expand.is-open .mv-areas-toggle{ order: 2; margin-top: 18px; }
   .mv-areas-more{
+    order: 1;
     display: none; flex-wrap: wrap; gap: 14px; justify-content: center;
-    margin-top: 18px; width: 100%;
+    width: 100%;
   }
-  .mv-areas-more.is-open{ display: flex; }
+  .mv-areas-expand.is-open .mv-areas-more{ display: flex; }
   .mv-area-card--small{ width: 160px; height: 110px; }
 
   /* ---------------------------------------------------------------
@@ -372,18 +383,22 @@
       {% endfor %}
     </div>
 
-    <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-more').classList.toggle('is-open')">View all areas ▾</button>
+    <div class="mv-areas-expand" id="areas-expand">
+      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+        View all areas <span class="mv-areas-toggle__arrow">▾</span>
+      </button>
 
-    <div class="mv-areas-more" id="areas-more">
-      {% for loc in locations_menu %}
-      <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-        <div class="mv-area-card__scrim"></div>
-        <div class="mv-area-card__body">
-          <p class="mv-area-card__name">{{ loc.name }}</p>
-          <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
-        </div>
-      </a>
-      {% endfor %}
+      <div class="mv-areas-more" id="areas-more">
+        {% for loc in locations_menu %}
+        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+          <div class="mv-area-card__scrim"></div>
+          <div class="mv-area-card__body">
+            <p class="mv-area-card__name">{{ loc.name }}</p>
+            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </section>
