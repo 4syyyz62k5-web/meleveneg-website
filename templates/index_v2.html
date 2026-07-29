@@ -1,0 +1,715 @@
+{% extends "base.html" %}
+{% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
+{% block content %}
+<style>
+  /* ---------------------------------------------------------------
+     These rules extend style.css using the real brand variables
+     (--color-navy, --color-navy-dark, --color-gold, --color-cream,
+     --font-heading = Montserrat, --font-body = Jost). No new fonts
+     or colors are introduced — everything here is built on the
+     existing Meleven_CI tokens already defined in style.css.
+     --------------------------------------------------------------- */
+
+  .hero{
+    filter: contrast(1.12) saturate(1.15) brightness(0.98);
+    background-position: center 65% !important;
+    padding-top: 170px !important;
+    padding-bottom: 64px !important;
+  }
+  .hero-inner{ text-align: left; }
+  .hero-eyebrow{
+    font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--color-gold);
+    margin: 0 0 14px 0;
+  }
+  .hero-inner h1{
+    font-family: var(--font-heading); font-weight: 700;
+    font-size: clamp(28px, 5vw, 52px);
+    line-height: 1.2;
+    max-width: 720px;
+    color: var(--color-white);
+    margin: 0 0 18px 0;
+  }
+  .hero-accent{ color: var(--color-gold); }
+  .hero-subtitle{
+    font-family: var(--font-body);
+    font-size: clamp(14px, 2vw, 17px);
+    max-width: 540px;
+    color: #dbe0e8;
+    margin: 0 0 30px 0;
+  }
+  .hero-cta-row{ display: flex; gap: 14px; margin-bottom: 40px; flex-wrap: wrap; }
+  .hero-cta{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-body); font-weight: 600; font-size: 14px;
+    padding: 13px 26px; border-radius: 4px; text-decoration: none;
+    transition: background .2s ease, color .2s ease;
+  }
+  .hero-cta--primary{ background: var(--color-gold); color: var(--color-navy-dark); border: 1px solid var(--color-gold); }
+  .hero-cta--primary:hover{ background: #b98d63; }
+  .hero-cta--outline{ background: transparent; color: var(--color-white); border: 1px solid rgba(255,255,255,.5); }
+  .hero-cta--outline:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  @media (max-width: 480px){
+    .hero{ padding-top: 140px !important; padding-bottom: 44px !important; }
+    .hero-inner h1{ font-size: 24px; }
+    .hero-subtitle{ font-size: 14px; }
+  }
+  .hero-search{ margin-top: 4px; }
+  .hero-search .search-form{
+    display: flex; align-items: stretch;
+    background: rgba(255,255,255,.97);
+    border-radius: 10px;
+    max-width: 900px;
+    margin: 0;
+    box-shadow: 0 14px 34px rgba(10,33,68,.28);
+    overflow: hidden;
+  }
+  .hero-search__field{
+    flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    min-width: 0; padding: 10px 18px; border-right: 1px solid #ececec;
+    text-align: left;
+  }
+  .hero-search__label{
+    font-family: var(--font-body); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted);
+  }
+  .hero-search select,
+  .hero-search input[type="text"],
+  .hero-search input[type="number"]{
+    border: none; background: transparent; appearance: none;
+    font-family: var(--font-body); font-size: 14px; color: var(--color-text);
+    padding: 2px 0; cursor: pointer; width: 100%;
+  }
+  .hero-search input[type="text"],
+  .hero-search input[type="number"]{ cursor: text; }
+  .hero-search input::placeholder{ color: #a9adb4; }
+  .hero-search__budget-row{ display: flex; gap: 6px; }
+  .hero-search__budget-row input{ min-width: 0; }
+  .hero-search button{
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--color-gold); color: var(--color-navy-dark); border: none;
+    padding: 0 26px; font-family: var(--font-body); font-weight: 600; font-size: 14px;
+    cursor: pointer; white-space: nowrap; transition: background .2s ease; flex-shrink: 0;
+  }
+  .hero-search button:hover{ background: #b98d63; }
+  .hero-search button svg{ width: 16px; height: 16px; flex-shrink: 0; }
+
+  @media (max-width: 640px){
+    .hero-search{ margin-top: 0; }
+    .hero-search .search-form{
+      display: grid; grid-template-columns: 1fr 1fr; border-radius: 10px;
+      max-width: 340px;
+    }
+    .hero-search__field{
+      border-right: 1px solid #ececec; border-bottom: 1px solid #ececec;
+      padding: 6px 10px; gap: 0;
+    }
+    .hero-search__label{ font-size: 9px; }
+    .hero-search select,
+    .hero-search input[type="text"],
+    .hero-search input[type="number"]{ font-size: 12.5px; }
+    .hero-search__field:nth-child(2n){ border-right: none; }
+    .hero-search__field:nth-last-child(1){ border-bottom: none; }
+    .hero-search__field:nth-last-child(2){ border-bottom: none; }
+    .hero-search button{
+      grid-column: 1 / -1; width: 100%; padding: 10px; font-size: 13px;
+      border-radius: 0 0 10px 10px;
+    }
+  }
+
+  /* ---------- Hero stats row ---------- */
+  .hero-stats{ background: var(--color-navy-dark); padding: 0 0 48px 0; }
+  .hero-stats__grid{
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+    border-top: 1px solid rgba(255,255,255,.12); padding-top: 32px;
+  }
+  .hero-stat{ text-align: center; }
+  .hero-stat__number{
+    font-family: var(--font-heading); font-weight: 700; font-size: clamp(26px, 4vw, 38px);
+    color: var(--color-gold); margin: 0 0 4px 0;
+  }
+  .hero-stat__label{
+    font-family: var(--font-body); font-size: 13px; color: #c7cedb; margin: 0;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  @media (max-width: 640px){
+    .hero-stats__grid{ grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .hero-stat__number{ font-size: 24px; }
+    .hero-stat__label{ font-size: 11px; }
+  }
+
+  .mv-section{ padding: 56px 0; }
+  .mv-section--dark{ background: var(--color-navy-dark); }
+  .mv-section__head{
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .mv-eyebrow{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
+  .mv-title{
+    font-family: var(--font-heading); font-weight: 700; font-size: 26px;
+    color: var(--color-navy); text-transform: uppercase; letter-spacing: .3px; margin: 0;
+  }
+  .mv-section--dark .mv-title{ color: var(--color-white); }
+  .mv-viewall{
+    font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--color-text-muted);
+    text-decoration: none; white-space: nowrap;
+  }
+  .mv-section--dark .mv-viewall{ color: #b7bdc8; }
+  .mv-viewall:hover{ color: var(--color-gold); }
+
+  /* ---------- "View all areas" — inline expand (no floating popup) ---------- */
+  .mv-areas-expand{
+    display: flex; flex-direction: column; align-items: center; margin-top: 18px;
+  }
+  .mv-areas-toggle{
+    order: 0;
+    display: flex; align-items: center; gap: 6px;
+    background: none; cursor: pointer;
+    font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy);
+    border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
+  }
+  .mv-areas-toggle:hover{ background: var(--color-navy); color: var(--color-white); }
+  .mv-areas-toggle:disabled{
+    cursor: default; opacity: .4; border-color: #999; color: #999; background: none;
+  }
+  .mv-areas-toggle__arrow{ display: inline-block; transition: transform .2s ease; }
+  .mv-areas-expand.is-open .mv-areas-toggle__arrow{ transform: rotate(180deg); }
+  /* When open, swap order so the button ends up below the revealed cards
+     instead of staying sandwiched between the two rows. */
+  .mv-areas-expand.is-open .mv-areas-toggle{ order: 2; margin-top: 18px; }
+  .mv-areas-more{
+    order: 1;
+    display: none; flex-wrap: wrap; gap: 14px; justify-content: center;
+    width: 100%;
+  }
+  .mv-areas-expand.is-open .mv-areas-more{ display: flex; }
+  .mv-area-card--small{ width: 160px; height: 110px; }
+
+  /* ---------------------------------------------------------------
+     Mobile type-scale rebalance — headings across the page (section
+     titles, mv-titles) were staying at full desktop size on small
+     screens, making them feel oversized next to the card text below
+     them. This brings the whole hierarchy down a notch on mobile.
+     --------------------------------------------------------------- */
+  @media (max-width: 640px){
+    .page-title{ font-size: 24px; }
+    .section-title{ font-size: 19px; margin-bottom: 18px; }
+    .mv-section{ padding: 36px 0; }
+    .mv-section__head{ margin-bottom: 16px; }
+    .mv-eyebrow{ font-size: 10.5px; }
+    .mv-title{ font-size: 19px; }
+    .mv-viewall{ font-size: 12.5px; }
+    .cta-inner h2{ font-size: 22px; }
+  }
+
+  /* ---------- Generic horizontal-scroll row (New Launches / Featured / Latest) ---------- */
+  .mv-hscroll .card-grid,
+  .mv-launches{
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
+    scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-hscroll .card-grid::-webkit-scrollbar,
+  .mv-launches::-webkit-scrollbar,
+  .mv-unit-scroll::-webkit-scrollbar,
+  .mv-property-grid::-webkit-scrollbar,
+  .mv-areas-scroll::-webkit-scrollbar{ height: 4px; }
+  .mv-hscroll .card-grid::-webkit-scrollbar-thumb,
+  .mv-launches::-webkit-scrollbar-thumb,
+  .mv-unit-scroll::-webkit-scrollbar-thumb,
+  .mv-property-grid::-webkit-scrollbar-thumb,
+  .mv-areas-scroll::-webkit-scrollbar-thumb{ background: #e8e5dd; border-radius: 4px; }
+  .mv-hscroll .card-grid > *{ flex: 0 0 auto !important; width: min(78vw, 280px); scroll-snap-align: start; }
+
+  /* ---------- New Launches: dark navy photo cards ---------- */
+  .mv-launch-card{
+    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(80vw, 340px);
+    aspect-ratio: 4 / 5; border-radius: 10px; overflow: hidden; background: var(--color-navy);
+    color: var(--color-white); text-decoration: none; display: block;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .mv-launch-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(0,0,0,.35); }
+  .mv-launch-card__img{
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scale(1.02); transition: transform .4s ease;
+  }
+  .mv-launch-card:hover .mv-launch-card__img{ transform: scale(1.08); }
+  .mv-launch-card__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,33,68,0) 35%, rgba(10,33,68,.95) 100%);
+  }
+  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 20px; }
+  .mv-launch-card__badges{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .mv-launch-card__tag{
+    display: inline-block; font-family: var(--font-body); font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--color-navy-dark); background: var(--color-gold);
+    padding: 4px 9px; border-radius: 4px;
+  }
+  .mv-launch-card__name{
+    font-family: var(--font-heading); font-size: 20px; font-weight: 700; text-transform: uppercase;
+    margin: 0 0 3px 0;
+  }
+  .mv-launch-card__developer{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
+  .mv-launch-card__meta{ font-family: var(--font-body); font-size: 13px; color: #c7cedb; margin: 0 0 10px 0; }
+  .mv-launch-card__price{ font-family: var(--font-body); font-size: 14px; color: #c7cedb; margin: 0; }
+  .mv-launch-card__price span{ font-size: 16px; font-weight: 700; color: var(--color-gold); }
+
+  /* ---------- Delivery badge (used on media, over the image) ---------- */
+  .mv-delivery-badge{
+    display: inline-block; font-family: var(--font-body); font-size: 11px; font-weight: 700;
+    letter-spacing: .04em; color: var(--color-white); background: rgba(10,33,68,.75);
+    padding: 4px 10px; border-radius: 4px; backdrop-filter: blur(2px);
+  }
+  .mv-delivery-badge--onmedia{
+    position: absolute; top: 14px; left: 14px; z-index: 2;
+  }
+
+  /* ---------- Favorite / Compare floating icon buttons ---------- */
+  .mv-card-icons{
+    position: absolute; top: 14px; right: 14px; z-index: 2;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .mv-icon-btn{
+    width: 34px; height: 34px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,.9); color: var(--color-navy);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .2s ease, color .2s ease, transform .15s ease;
+  }
+  .mv-icon-btn svg{ width: 17px; height: 17px; }
+  .mv-icon-btn:hover{ transform: scale(1.08); }
+  .mv-fav-btn.is-active{ background: var(--color-gold); color: var(--color-navy-dark); }
+  .mv-fav-btn.is-active svg{ fill: currentColor; }
+  .mv-compare-btn.is-active{ background: var(--color-navy); color: var(--color-white); }
+
+  /* ---------- Featured / Latest: luxury property cards (light background) ---------- */
+  .mv-title--light{ color: var(--color-navy); }
+  .mv-property-grid{
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
+    scroll-snap-type: x mandatory; gap: 22px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-property-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: min(82vw, 320px);
+    background: var(--color-white); border: 1px solid #eee; border-radius: 10px;
+    overflow: hidden; text-decoration: none; display: block;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .mv-property-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(16,35,59,.16); }
+  .mv-property-card__media{ position: relative; width: 100%; height: 210px; background: #ddd; overflow: hidden; }
+  .mv-property-card__media img{
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .4s ease;
+  }
+  .mv-property-card:hover .mv-property-card__media img{ transform: scale(1.08); }
+  .mv-property-card__body{ padding: 18px 20px 22px; }
+  .mv-property-card__developer{
+    font-family: var(--font-body); font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
+  .mv-property-card__name{
+    font-family: var(--font-heading); font-size: 19px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 4px 0;
+  }
+  .mv-property-card__meta{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0 0 12px 0; }
+  .mv-property-card__price{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0; }
+  .mv-property-card__price span{ font-size: 16px; font-weight: 700; color: var(--color-navy); }
+
+  /* ---------- Top Areas: horizontal-scroll photo cards ---------- */
+  .mv-areas-scroll{
+    display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+    justify-content: center;
+  }
+  @media (max-width: 900px){
+    /* On narrow screens the cards are more likely to overflow, so left-align
+       instead of centering — centering + overflow-x can clip the first
+       card behind the edge in some mobile browsers. */
+    .mv-areas-scroll{ justify-content: flex-start; }
+  }
+  .mv-area-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: 160px; height: 110px;
+    border-radius: 8px; overflow: hidden; position: relative; text-decoration: none;
+    background-color: var(--color-navy); background-size: cover; background-position: center;
+  }
+  .mv-area-card__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,33,68,0) 45%, rgba(10,33,68,.88) 100%);
+  }
+  .mv-area-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; }
+  .mv-area-card__name{
+    font-family: var(--font-heading); font-size: 14px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-white); margin: 0 0 2px 0;
+  }
+  .mv-area-card__count{ font-family: var(--font-body); font-size: 11px; color: #d7dbe2; margin: 0; }
+
+  /* ---------- Recommended Units: horizontal-scroll cards ---------- */
+  .mv-unit-scroll{
+    display: flex; flex-wrap: nowrap; gap: 18px; overflow-x: auto;
+    scroll-snap-type: x mandatory; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-unit-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: min(72vw, 250px);
+    background: var(--color-white); border: 1px solid #e8e5dd; border-radius: 10px;
+    overflow: hidden; text-decoration: none; display: block;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .mv-unit-card:hover{ transform: translateY(-4px); box-shadow: 0 10px 24px rgba(16,35,59,.12); }
+  .mv-unit-card__thumb{ width: 100%; height: 140px; object-fit: cover; background: #ddd; display: block; }
+  .mv-unit-card__body{ padding: 14px 16px 18px 16px; }
+  .mv-unit-card__compound{
+    font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 0 0 4px 0;
+  }
+  .mv-unit-card__type{
+    font-family: var(--font-heading); font-size: 16px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 6px 0;
+  }
+  .mv-unit-card__facts{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0 0 10px 0; }
+  .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
+  .mv-unit-card__price{ font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-gold); margin: 0; }
+</style>
+
+<section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
+    <div class="container hero-inner">
+        <p class="hero-eyebrow">Curating Egypt's Finest Real Estate</p>
+        <h1>Exclusive Opportunities.<br>Trusted Advice.<br><span class="hero-accent">Exceptional Investments.</span></h1>
+        <p class="hero-subtitle">Meleven Consultancy — a boutique real estate advisory with 12 years of experience helping clients find, evaluate, and invest in Egypt's best properties.</p>
+        <div class="hero-cta-row">
+            <a href="{{ url_for('compounds') }}" class="hero-cta hero-cta--primary">Explore Projects →</a>
+            <a href="{{ url_for('contact') }}" class="hero-cta hero-cta--outline">Book Consultation</a>
+        </div>
+        <div class="hero-search">
+            <form action="{{ url_for('compounds') }}" method="get" class="search-form">
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Location</span>
+                    <input type="text" name="area" list="hero-area-list" placeholder="All areas">
+                    <datalist id="hero-area-list">
+                        {% for a in all_area_names %}
+                        <option value="{{ a }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Developer</span>
+                    <input type="text" name="developer" list="hero-developer-list" placeholder="All developers">
+                    <datalist id="hero-developer-list">
+                        {% for d in all_developer_names %}
+                        <option value="{{ d }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Compound</span>
+                    <input type="text" name="q" list="hero-compound-list" placeholder="Search by name">
+                    <datalist id="hero-compound-list">
+                        {% for c in all_compound_names %}
+                        <option value="{{ c }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field hero-search__field--budget">
+                    <span class="hero-search__label">Budget (EGP)</span>
+                    <div class="hero-search__budget-row">
+                        <input type="number" name="min_price" placeholder="Min">
+                        <input type="number" name="max_price" placeholder="Max">
+                    </div>
+                </div>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    Search
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="hero-stats">
+  <div class="container hero-stats__grid">
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="12">0</p>
+      <p class="hero-stat__label">Years of Experience</p>
+    </div>
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="{{ all_compound_names|length }}">0</p>
+      <p class="hero-stat__label">Projects</p>
+    </div>
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="{{ all_developer_names|length }}">0</p>
+      <p class="hero-stat__label">Developers</p>
+    </div>
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="500" data-suffix="+">0</p>
+      <p class="hero-stat__label">Happy Clients</p>
+    </div>
+  </div>
+</section>
+
+{% if new_launches %}
+<section class="mv-section mv-section--dark">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Just Announced</p>
+        <h2 class="mv-title">New Launches</h2>
+      </div>
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
+    </div>
+
+    <div class="mv-hscroll">
+      <div class="mv-launches">
+        {% for c in new_launches %}
+        <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+          <div class="mv-card-icons">
+            <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+            </button>
+            <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+            </button>
+          </div>
+          {% if c.cover_image_url %}
+            <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
+          {% endif %}
+          <div class="mv-launch-card__scrim"></div>
+          <div class="mv-launch-card__body">
+            <div class="mv-launch-card__badges">
+              <span class="mv-launch-card__tag">New Launch</span>
+              {% if c.delivery_year %}<span class="mv-delivery-badge">Delivery {{ c.delivery_year }}</span>{% endif %}
+            </div>
+            <p class="mv-launch-card__name">{{ c.name }}</p>
+            {% if c.developer %}<p class="mv-launch-card__developer">{{ c.developer }}</p>{% endif %}
+            <p class="mv-launch-card__meta">{{ c.area }}</p>
+            {% if c.min_price %}
+            <p class="mv-launch-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+            {% else %}
+            <p class="mv-launch-card__price">Price on request</p>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if featured %}
+<section class="section">
+    <div class="container">
+        <div class="mv-section__head">
+          <div>
+            <p class="mv-eyebrow">Handpicked</p>
+            <h2 class="mv-title mv-title--light">Featured Compounds</h2>
+          </div>
+          <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
+        </div>
+        <div class="mv-hscroll">
+            <div class="mv-property-grid">
+                {% for c in featured %}
+                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+                  <div class="mv-property-card__media">
+                    <div class="mv-card-icons">
+                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+                      </button>
+                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+                      </button>
+                    </div>
+                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
+                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
+                  </div>
+                  <div class="mv-property-card__body">
+                    {% if c.developer %}<p class="mv-property-card__developer">{{ c.developer }}</p>{% endif %}
+                    <p class="mv-property-card__name">{{ c.name }}</p>
+                    <p class="mv-property-card__meta">{{ c.area }}</p>
+                    {% if c.min_price %}
+                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+                    {% else %}
+                    <p class="mv-property-card__price">Price on request</p>
+                    {% endif %}
+                  </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if top_areas %}
+<section class="mv-section area-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Explore by Location</p>
+        <h2 class="mv-title">Top Areas</h2>
+      </div>
+    </div>
+
+    <div class="mv-areas-scroll">
+      {% for area in top_areas %}
+      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ area.name }}</p>
+          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="mv-areas-expand" id="areas-expand">
+      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+        View all areas <span class="mv-areas-toggle__arrow">▾</span>
+      </button>
+
+      <div class="mv-areas-more" id="areas-more">
+        {% for loc in locations_menu %}
+        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+          <div class="mv-area-card__scrim"></div>
+          <div class="mv-area-card__body">
+            <p class="mv-area-card__name">{{ loc.name }}</p>
+            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+    <div class="container">
+        <div class="mv-section__head">
+          <div>
+            <p class="mv-eyebrow">Fresh on the Market</p>
+            <h2 class="mv-title mv-title--light">Latest Listings</h2>
+          </div>
+        </div>
+        {% if latest %}
+        <div class="mv-hscroll">
+            <div class="mv-property-grid">
+                {% for c in latest %}
+                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+                  <div class="mv-property-card__media">
+                    <div class="mv-card-icons">
+                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+                      </button>
+                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+                      </button>
+                    </div>
+                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
+                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
+                  </div>
+                  <div class="mv-property-card__body">
+                    {% if c.developer %}<p class="mv-property-card__developer">{{ c.developer }}</p>{% endif %}
+                    <p class="mv-property-card__name">{{ c.name }}</p>
+                    <p class="mv-property-card__meta">{{ c.area }}</p>
+                    {% if c.min_price %}
+                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+                    {% else %}
+                    <p class="mv-property-card__price">Price on request</p>
+                    {% endif %}
+                  </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% if recommended_units %}
+<section class="mv-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Handpicked for You</p>
+        <h2 class="mv-title">Recommended Units</h2>
+      </div>
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
+    </div>
+
+    <div class="mv-unit-scroll">
+      {% for u in recommended_units %}
+      <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
+        <img class="mv-unit-card__thumb"
+             src="{{ u.image_url or u.compound.cover_image_url or '' }}"
+             alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
+        <div class="mv-unit-card__body">
+          <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
+          <p class="mv-unit-card__type">{{ u.unit_type }}</p>
+          <p class="mv-unit-card__facts">
+            {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
+            {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
+            {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
+          </p>
+          <p class="mv-unit-card__price">
+            {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
+          </p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section cta-section">
+    <div class="container cta-inner">
+        <h2>Looking for the right property?</h2>
+        <p>Talk to our consultancy team — we'll guide you through every step.</p>
+        <a href="{{ url_for('contact') }}" class="btn-primary">Get in Touch</a>
+    </div>
+</section>
+
+
+
+<script>
+  (function(){
+    var statEls = document.querySelectorAll('.hero-stat__number');
+    if (!statEls.length) return;
+    var animated = false;
+    function animateStats(){
+      if (animated) return;
+      animated = true;
+      statEls.forEach(function(el){
+        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+        var suffix = el.getAttribute('data-suffix') || '';
+        var duration = 1200;
+        var startTime = null;
+        function step(ts){
+          if (!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / duration, 1);
+          el.textContent = Math.floor(progress * target) + suffix;
+          if (progress < 1) requestAnimationFrame(step);
+          else el.textContent = target + suffix;
+        }
+        requestAnimationFrame(step);
+      });
+    }
+    var statsSection = document.querySelector('.hero-stats');
+    if (statsSection && 'IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if (entry.isIntersecting) { animateStats(); observer.disconnect(); }
+        });
+      }, { threshold: 0.3 });
+      observer.observe(statsSection);
+    } else {
+      animateStats();
+    }
+  })();
+</script>
+{% endblock %}
