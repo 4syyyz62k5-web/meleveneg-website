@@ -237,6 +237,10 @@ def create_app():
 
         # Options for the filter sidebar
         areas = sorted({row[0] for row in db.session.query(Compound.area).distinct() if row[0]})
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
+        locations_list = sorted({
+            row[0] for row in db.session.query(location_expr).distinct() if row[0]
+        })
         developers = sorted({row[0] for row in db.session.query(Compound.developer).distinct() if row[0]})
         delivery_years = sorted(
             {row[0] for row in db.session.query(Compound.delivery_year).distinct() if row[0]}
@@ -246,6 +250,7 @@ def create_app():
             "compounds.html",
             compounds=all_compounds,
             areas=areas,
+            locations=locations_list,
             developers=developers,
             delivery_years=delivery_years,
             selected_areas=selected_areas,
