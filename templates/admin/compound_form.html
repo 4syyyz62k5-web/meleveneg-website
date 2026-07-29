@@ -10,10 +10,12 @@
         <label>URL Slug (leave blank to auto-generate from the name)</label>
         <input type="text" name="slug" placeholder="e.g. silversands">
         {% endif %}
+        <label>Location (top-level region, e.g. New Cairo, North Coast)</label>
+        <input type="text" name="location" value="{{ compound.location if compound else '' }}" placeholder="e.g. New Cairo">
         <label>Developer</label>
         <input type="text" name="developer" value="{{ compound.developer if compound else '' }}">
-        <label>Area</label>
-        <input type="text" name="area" value="{{ compound.area if compound else '' }}" placeholder="e.g. North Coast">
+        <label>Area (sub-area within the location)</label>
+        <input type="text" name="area" value="{{ compound.area if compound else '' }}" placeholder="e.g. Mostakbal City">
         <label>Location Detail</label>
         <input type="text" name="location_detail" value="{{ compound.location_detail if compound else '' }}" placeholder="e.g. Kilo 247, International Coastal Road">
         <label>Short Description</label>
