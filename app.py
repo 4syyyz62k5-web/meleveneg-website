@@ -136,10 +136,57 @@ def create_app():
             all_developer_names=all_developer_names,
         )
 
+    @app.route("/locations")
+    def locations():
+        # Group by the top-level `location` column (e.g. "New Cairo", "North Coast").
+        # Compounds that don't have `location` set yet fall back to their `area`
+        # value, so nothing silently disappears from this page while the data
+        # is still being backfilled.
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
+
+        rows = (
+            db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
+            .filter(Compound.is_published == True, location_expr.isnot(None))
+            .group_by("location_name")
+            .order_by("location_name")
+            .all()
+        )
+
+        location_list = []
+        for location_name, count in rows:
+            sample = (
+                Compound.query
+                .filter(
+                    location_expr == location_name,
+                    Compound.is_published == True,
+                    Compound.cover_image_url.isnot(None),
+                    Compound.cover_image_url != "",
+                )
+                .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                .first()
+            )
+            # Sub-areas within this location (e.g. New Cairo -> Mostakbal City, Tagamoa 5th)
+            sub_area_rows = (
+                db.session.query(Compound.area, db.func.count(Compound.id))
+                .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
+                .group_by(Compound.area)
+                .order_by(Compound.area.asc())
+                .all()
+            )
+            location_list.append({
+                "name": location_name,
+                "count": count,
+                "cover_image_url": sample.cover_image_url if sample else None,
+                "sub_areas": [{"name": r[0], "count": r[1]} for r in sub_area_rows],
+            })
+
+        return render_template("locations.html", locations=location_list)
+
     @app.route("/compounds")
     def compounds():
-        # Filters can be multi-select (areas) or single-value (developer, delivery_year, price range)
+        # Filters can be multi-select (areas) or single-value (developer, location, delivery_year, price range)
         selected_areas = request.args.getlist("area")
+        selected_location = request.args.get("location", "").strip()
         selected_developer = request.args.get("developer", "").strip()
         min_price = request.args.get("min_price", "").strip()
         max_price = request.args.get("max_price", "").strip()
@@ -149,7 +196,19 @@ def create_app():
         query = Compound.query.filter_by(is_published=True)
 
         if search_query:
-            query = query.filter(Compound.name.ilike(f"%{search_query}%"))
+            # A single search box is expected to "just work" regardless of which
+            # field the person actually types the term into, so this matches
+            # against the compound name OR its developer.
+            query = query.filter(
+                db.or_(
+                    Compound.name.ilike(f"%{search_query}%"),
+                    Compound.developer.ilike(f"%{search_query}%"),
+                )
+            )
+
+        if selected_location:
+            location_expr = db.func.coalesce(Compound.location, Compound.area)
+            query = query.filter(location_expr.ilike(f"%{selected_location}%"))
 
         if selected_areas:
             area_filters = [Compound.area.ilike(f"%{a}%") for a in selected_areas if a]
@@ -190,6 +249,7 @@ def create_app():
             developers=developers,
             delivery_years=delivery_years,
             selected_areas=selected_areas,
+            selected_location=selected_location,
             selected_developer=selected_developer,
             min_price=min_price,
             max_price=max_price,
@@ -362,6 +422,7 @@ def create_app():
                 name=name,
                 slug=slug,
                 developer=request.form.get("developer", "").strip(),
+                location=request.form.get("location", "").strip(),
                 area=request.form.get("area", "").strip(),
                 location_detail=request.form.get("location_detail", "").strip(),
                 short_description=request.form.get("short_description", "").strip(),
@@ -402,6 +463,7 @@ def create_app():
                 c.slug = candidate
 
             c.developer = request.form.get("developer", "").strip()
+            c.location = request.form.get("location", "").strip()
             c.area = request.form.get("area", "").strip()
             c.location_detail = request.form.get("location_detail", "").strip()
             c.short_description = request.form.get("short_description", "").strip()
@@ -543,6 +605,7 @@ def create_app():
                 name=name,
                 slug=slug,
                 developer=(row.get("developer") or "").strip(),
+                location=(row.get("location") or "").strip(),
                 area=(row.get("area") or "").strip(),
                 location_detail=(row.get("location_detail") or "").strip(),
                 short_description=(row.get("short_description") or "").strip(),
