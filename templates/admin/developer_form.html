@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ "Edit" if developer else "New" }} Developer — Meleven Admin{% endblock %}
+{% block content %}
+<div class="admin-container narrow-admin">
+    <h1>{{ "Edit Developer" if developer else "New Developer" }}</h1>
+    <form method="post" class="admin-form" enctype="multipart/form-data">
+        <label>Developer Name * (must match the "Developer" field on compounds exactly)</label>
+        <input type="text" name="name" value="{{ developer.name if developer else '' }}" placeholder="e.g. SODIC" required>
+
+        <label>Logo</label>
+        {% if developer and developer.logo_url %}
+        <p class="unit-payment-plan">
+            Current logo: <img src="{{ developer.logo_url }}" alt="{{ developer.name }}" style="height:40px; vertical-align:middle; margin-left:8px;">
+        </p>
+        {% endif %}
+        <input type="file" name="logo_file" accept="image/*">
+        <label>Or Logo URL (used only if you don't upload a file above)</label>
+        <input type="text" name="logo_url" value="{{ developer.logo_url if developer else '' }}" placeholder="https://...">
+
+        <div class="admin-form-actions">
+            <button type="submit" class="btn-primary">{{ "Save Changes" if developer else "Add Developer" }}</button>
+            <a href="{{ url_for('admin_developers') }}" class="admin-cancel-link">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
