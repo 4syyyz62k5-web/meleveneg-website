@@ -58,6 +58,7 @@ class Unit(db.Model):
     payment_plan = db.Column(db.String(255))  # e.g. "10% DP, 8 years installments"
     image_url = db.Column(db.String(500))  # falls back to the compound's cover image if empty
     is_available = db.Column(db.Boolean, default=True)
+    is_launch = db.Column(db.Boolean, default=False)  # shows a "Launch" badge on nawy.com-style listings; drives the homepage "New Launches" section
 class Lead(db.Model):
     """Captures inquiries from the Contact / 'Interested' forms.
     Later, this is the table that feeds referrals into Circles."""
