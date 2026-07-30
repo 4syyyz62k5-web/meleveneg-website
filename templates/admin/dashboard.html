@@ -12,7 +12,7 @@
     {% if compounds %}
     <table class="admin-table">
         <thead>
-            <tr><th>Name</th><th>Location</th><th>Area</th><th>Developer</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th></tr>
+            <tr><th>Name</th><th>Location</th><th>Area</th><th>Developer</th><th>Price</th><th>Featured</th><th>Launch</th><th>Published</th><th>Actions</th></tr>
         </thead>
         <tbody>
             {% for c in compounds %}
@@ -23,6 +23,7 @@
                 <td>{{ c.developer or '-' }}</td>
                 <td>{{ c.price_range_display() }}</td>
                 <td>{{ "Yes" if c.is_featured else "-" }}</td>
+                <td>{{ "Yes" if c.is_launch else "-" }}</td>
                 <td>{{ "Yes" if c.is_published else "No" }}</td>
                 <td class="admin-actions">
                     <a href="{{ url_for('admin_compound_edit', compound_id=c.id) }}">Edit</a>
