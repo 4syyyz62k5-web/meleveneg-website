@@ -1,60 +1,295 @@
 {% extends "base.html" %}
 {% block title %}Sell Your Property — Meleven Consultancy{% endblock %}
 {% block content %}
-<section class="hero">
-    <div class="container narrow">
-        <h1>Sell Your Property With Meleven</h1>
-        <p>List your property with Egypt's trusted real estate consultancy and reach serious buyers, fast.</p>
+<style>
+  .sp-hero{
+    position: relative; min-height: 62vh; display: flex; align-items: center;
+    background: linear-gradient(180deg, rgba(10,33,68,.75), rgba(10,33,68,.88)),
+                url('{{ url_for("static", filename="img/hero-bg.jpg") }}') center/cover no-repeat;
+    color: #fff; padding: 80px 0 60px;
+  }
+  .sp-eyebrow{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 14px 0;
+  }
+  .sp-hero h1{
+    font-family: var(--font-heading); font-weight: 700; font-size: clamp(30px, 4.5vw, 46px);
+    line-height: 1.2; max-width: 640px; margin: 0 0 16px 0;
+  }
+  .sp-hero p{ font-family: var(--font-body); font-size: 16px; max-width: 520px; color: #dbe0e8; margin: 0 0 26px 0; }
+  .sp-trust-badge{
+    display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.25); border-radius: 20px; padding: 8px 16px;
+    font-size: 12.5px; font-weight: 600; color: #fff; margin-bottom: 22px;
+  }
+  .sp-trust-badge svg{ width: 15px; height: 15px; color: var(--color-gold); }
+  .sp-cta-row{ display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 32px; }
+  .sp-btn-primary{
+    background: var(--color-gold); color: var(--color-navy-dark); font-family: var(--font-heading);
+    font-weight: 700; font-size: 14px; letter-spacing: .03em; text-transform: uppercase;
+    padding: 15px 28px; border-radius: 4px; text-decoration: none; border: none; cursor: pointer;
+  }
+  .sp-btn-secondary{
+    background: transparent; color: #fff; font-family: var(--font-heading); font-weight: 700;
+    font-size: 14px; letter-spacing: .03em; text-transform: uppercase; padding: 14px 26px;
+    border-radius: 4px; text-decoration: none; border: 1px solid rgba(255,255,255,.4);
+  }
+  .sp-stats-row{ display: flex; gap: 40px; flex-wrap: wrap; }
+  .sp-stat-value{ font-family: var(--font-heading); font-weight: 700; font-size: 28px; color: var(--color-gold); }
+  .sp-stat-label{ font-family: var(--font-body); font-size: 12.5px; color: #c8cedb; margin-top: 2px; }
+
+  /* How It Works — timeline */
+  .sp-timeline{ position: relative; max-width: 760px; margin: 40px auto 0; }
+  .sp-timeline::before{
+    content: ''; position: absolute; left: 27px; top: 8px; bottom: 8px; width: 2px; background: #e5e0d6;
+  }
+  .sp-timeline-item{ position: relative; display: flex; gap: 24px; padding-bottom: 40px; opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
+  .sp-timeline-item.sp-visible{ opacity: 1; transform: translateY(0); }
+  .sp-timeline-item:last-child{ padding-bottom: 0; }
+  .sp-timeline-icon{
+    flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%; background: var(--color-navy);
+    color: var(--color-gold); display: flex; align-items: center; justify-content: center; z-index: 1;
+  }
+  .sp-timeline-icon svg{ width: 24px; height: 24px; }
+  .sp-timeline-content h3{ font-family: var(--font-heading); font-weight: 700; font-size: 18px; color: var(--color-navy); margin: 6px 0 6px; }
+  .sp-timeline-content p{ font-family: var(--font-body); font-size: 14.5px; color: var(--color-text-muted); margin: 0; max-width: 480px; }
+
+  /* Why Meleven */
+  .sp-why-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 36px; }
+  .sp-why-card{ background: #fff; border: 1px solid #e5e0d6; border-radius: 8px; padding: 30px 24px; text-align: center; }
+  .sp-why-icon{ width: 44px; height: 44px; margin: 0 auto 16px; color: var(--color-gold); }
+  .sp-why-card h3{ font-family: var(--font-heading); font-weight: 700; font-size: 17px; color: var(--color-navy); margin: 0 0 8px; }
+  .sp-why-card p{ font-family: var(--font-body); font-size: 14px; color: var(--color-text-muted); margin: 0; }
+
+  /* Lead form */
+  .sp-form-card{ background: #fff; border: 1px solid #e5e0d6; border-radius: 10px; padding: 36px 32px; }
+  .sp-form-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .sp-field{ position: relative; }
+  .sp-field svg{ position: absolute; left: 14px; top: 15px; width: 17px; height: 17px; color: #9a978c; pointer-events: none; }
+  .sp-field input, .sp-field select{
+    width: 100%; padding: 13px 14px 13px 40px; border: 1px solid #ddd6c8; border-radius: 6px;
+    font-family: var(--font-body); font-size: 14.5px; color: var(--color-navy); background: #fdfcf9;
+  }
+  .sp-field input:focus, .sp-field select:focus{ outline: none; border-color: var(--color-gold); }
+  .sp-field input:invalid:not(:placeholder-shown){ border-color: #c96a5a; }
+  @media (max-width: 640px){ .sp-form-row{ grid-template-columns: 1fr; } }
+
+  /* Testimonials */
+  .sp-testimonial-track{ position: relative; max-width: 640px; margin: 36px auto 0; overflow: hidden; }
+  .sp-testimonial-slide{ display: none; text-align: center; padding: 0 20px; }
+  .sp-testimonial-slide.sp-active{ display: block; }
+  .sp-testimonial-slide p{ font-family: var(--font-heading); font-style: italic; font-size: 18px; color: var(--color-navy); line-height: 1.5; }
+  .sp-testimonial-slide .sp-t-name{ font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--color-gold); margin-top: 14px; text-transform: uppercase; letter-spacing: .04em; }
+  .sp-testimonial-arrows{ display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
+  .sp-t-arrow{ width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--color-gold); background: none; color: var(--color-gold); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .sp-t-arrow svg{ width: 15px; height: 15px; }
+
+  /* FAQ */
+  .sp-faq-item{ border-bottom: 1px solid #e5e0d6; }
+  .sp-faq-q{ width: 100%; text-align: left; background: none; border: none; padding: 18px 4px; font-family: var(--font-heading); font-weight: 700; font-size: 15.5px; color: var(--color-navy); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .sp-faq-q svg{ width: 16px; height: 16px; color: var(--color-gold); flex-shrink: 0; transition: transform .2s ease; }
+  .sp-faq-item.sp-open .sp-faq-q svg{ transform: rotate(180deg); }
+  .sp-faq-a{ max-height: 0; overflow: hidden; transition: max-height .25s ease; }
+  .sp-faq-item.sp-open .sp-faq-a{ max-height: 200px; }
+  .sp-faq-a p{ font-family: var(--font-body); font-size: 14.5px; color: var(--color-text-muted); padding: 0 4px 18px; margin: 0; }
+
+  /* Final CTA banner */
+  .sp-final-cta{ background: var(--color-navy-dark); color: #fff; text-align: center; padding: 56px 20px; }
+  .sp-final-cta h2{ font-family: var(--font-heading); font-weight: 700; font-size: 26px; margin: 0 0 10px; }
+  .sp-final-cta p{ font-family: var(--font-body); font-size: 15px; color: #c8cedb; margin: 0 0 26px; }
+</style>
+
+<section class="sp-hero">
+  <div class="container narrow">
+    <p class="sp-eyebrow">Sell With Confidence</p>
+    <span class="sp-trust-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z"/></svg>
+      12 Years of Trusted Real Estate Advisory in Egypt
+    </span>
+    <h1>Sell Your Property With Meleven</h1>
+    <p>List your property with Egypt's trusted real estate consultancy and reach serious buyers, fast.</p>
+    <div class="sp-cta-row">
+      <a href="#sp-form" class="sp-btn-primary">List Your Property →</a>
+      <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="sp-btn-secondary">Talk to a Consultant</a>
     </div>
+    <div class="sp-stats-row">
+      <div><div class="sp-stat-value">12</div><div class="sp-stat-label">Years of Experience</div></div>
+      <div><div class="sp-stat-value">500+</div><div class="sp-stat-label">Clients Served</div></div>
+      <div><div class="sp-stat-value">70+</div><div class="sp-stat-label">Compounds Covered</div></div>
+    </div>
+  </div>
 </section>
 
 <section class="section">
-    <div class="container">
-        <h2 class="section-title" style="text-align:center;">How It Works</h2>
-        <div class="steps-grid">
-            <div class="step-card">
-                <div class="step-number">1</div>
-                <h3>List Your Property Details</h3>
-                <p>Add all the information related to your property using the form below.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-number">2</div>
-                <h3>One Of Our Agents Will Call You</h3>
-                <p>Our team will get in touch to understand your property and help find the best buyer.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-number">3</div>
-                <h3>Meet With Serious Buyers</h3>
-                <p>We connect you with pre-qualified, serious buyers to close the deal.</p>
-            </div>
+  <div class="container">
+    <h2 class="section-title" style="text-align:center;">How It Works</h2>
+    <div class="sp-timeline" id="sp-timeline">
+      <div class="sp-timeline-item">
+        <div class="sp-timeline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
         </div>
+        <div class="sp-timeline-content">
+          <h3>List Your Property Details</h3>
+          <p>Add all the information related to your property using the form below.</p>
+        </div>
+      </div>
+      <div class="sp-timeline-item">
+        <div class="sp-timeline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="sp-timeline-content">
+          <h3>One Of Our Agents Will Call You</h3>
+          <p>Our team will get in touch to understand your property and help find the best buyer.</p>
+        </div>
+      </div>
+      <div class="sp-timeline-item">
+        <div class="sp-timeline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="sp-timeline-content">
+          <h3>Meet With Serious Buyers</h3>
+          <p>We connect you with pre-qualified, serious buyers to close the deal.</p>
+        </div>
+      </div>
     </div>
+  </div>
 </section>
 
-<section class="section area-section">
-    <div class="container narrow">
-        <h2 class="section-title" style="text-align:center;">Complete The Form</h2>
-        <p class="lead-text" style="text-align:center;">Your privacy is important to us. We won't publish or share your information with anyone.</p>
+<section class="section" style="background:var(--color-cream);">
+  <div class="container">
+    <h2 class="section-title" style="text-align:center;">Why Meleven</h2>
+    <div class="sp-why-grid">
+      <div class="sp-why-card">
+        <svg class="sp-why-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <h3>Free Valuation</h3>
+        <p>Get an accurate, no-obligation market valuation for your property.</p>
+      </div>
+      <div class="sp-why-card">
+        <svg class="sp-why-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
+        <h3>Qualified Buyers</h3>
+        <p>We connect you only with serious, pre-vetted buyers — no time wasted.</p>
+      </div>
+      <div class="sp-why-card">
+        <svg class="sp-why-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/></svg>
+        <h3>Dedicated Consultant</h3>
+        <p>One point of contact guiding you from listing to closing.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <form method="POST" action="{{ url_for('sell_property') }}" class="contact-form">
+<section class="section area-section" id="sp-form">
+  <div class="container narrow">
+    <h2 class="section-title" style="text-align:center;">Complete The Form</h2>
+    <p class="lead-text" style="text-align:center;">Your privacy is important to us. We won't publish or share your information with anyone.</p>
+    <div class="sp-form-card">
+      <form method="POST" action="{{ url_for('sell_property') }}" class="contact-form">
+        <div class="sp-form-row">
+          <div class="sp-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/></svg>
             <input type="text" name="name" placeholder="Your Name" required>
-            <input type="text" name="phone" placeholder="Phone Number" required>
+          </div>
+          <div class="sp-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <input type="text" name="phone" placeholder="Phone Number" required pattern="[0-9+ ]{8,}">
+          </div>
+        </div>
+        <div class="sp-form-row">
+          <div class="sp-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
             <input type="email" name="email" placeholder="Email (optional)">
+          </div>
+          <div class="sp-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>
             <input type="text" name="location" placeholder="Location (e.g. New Cairo, 6th Settlement)">
+          </div>
+        </div>
+        <div class="sp-form-row">
+          <div class="sp-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             <input type="text" name="compound_name" placeholder="Compound Name">
+          </div>
+          <div class="sp-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             <select name="property_type" required>
-                <option value="">Property Type</option>
-                <option value="Apartment">Apartment</option>
-                <option value="Duplex">Duplex</option>
-                <option value="Penthouse">Penthouse</option>
-                <option value="Villa">Villa</option>
-                <option value="Twin House">Twin House</option>
-                <option value="Townhouse">Townhouse</option>
-                <option value="Chalet">Chalet</option>
-                <option value="Other">Other</option>
+              <option value="">Property Type</option>
+              <option value="Apartment">Apartment</option>
+              <option value="Duplex">Duplex</option>
+              <option value="Penthouse">Penthouse</option>
+              <option value="Villa">Villa</option>
+              <option value="Twin House">Twin House</option>
+              <option value="Townhouse">Townhouse</option>
+              <option value="Chalet">Chalet</option>
+              <option value="Other">Other</option>
             </select>
-            <button type="submit" class="btn-primary btn-block">Submit</button>
-        </form>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary btn-block">Submit</button>
+      </form>
     </div>
+  </div>
 </section>
+
+<section class="section" style="background:var(--color-cream);">
+  <div class="container narrow">
+    <h2 class="section-title" style="text-align:center;">FAQ</h2>
+    <div id="sp-faq">
+      <div class="sp-faq-item">
+        <button type="button" class="sp-faq-q">How long does selling typically take?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="sp-faq-a"><p>Timelines vary by location and pricing, but most listings we manage find a qualified buyer within a few weeks to a couple of months.</p></div>
+      </div>
+      <div class="sp-faq-item">
+        <button type="button" class="sp-faq-q">What fees does Meleven charge?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="sp-faq-a"><p>We work on a commission basis only when your property sells — there are no upfront fees to list with us.</p></div>
+      </div>
+      <div class="sp-faq-item">
+        <button type="button" class="sp-faq-q">Which areas do you cover?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="sp-faq-a"><p>We cover New Cairo, North Coast, West Cairo, Ain Sokhna, New Capital, and Alexandria.</p></div>
+      </div>
+      <div class="sp-faq-item">
+        <button type="button" class="sp-faq-q">Is the valuation really free?
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="sp-faq-a"><p>Yes — our market valuation is completely free with no obligation to list with us afterward.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sp-final-cta">
+  <div class="container narrow">
+    <h2>Ready to sell with confidence?</h2>
+    <p>Book a free consultation with a Meleven advisor today.</p>
+    <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="sp-btn-primary">Book Free Consultation</a>
+  </div>
+</section>
+
+<script>
+(function(){
+  var items = document.querySelectorAll('.sp-timeline-item');
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('sp-visible'); });
+    }, { threshold: .25 });
+    items.forEach(function(i){ obs.observe(i); });
+  } else {
+    items.forEach(function(i){ i.classList.add('sp-visible'); });
+  }
+
+  document.querySelectorAll('.sp-faq-q').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var item = btn.closest('.sp-faq-item');
+      var wasOpen = item.classList.contains('sp-open');
+      document.querySelectorAll('.sp-faq-item.sp-open').forEach(function(o){ o.classList.remove('sp-open'); });
+      if (!wasOpen) item.classList.add('sp-open');
+    });
+  });
+})();
+</script>
 {% endblock %}
