@@ -484,10 +484,18 @@
   }
   .mv-developer-pill{
     font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .03em;
-    color: var(--color-white); border: 1px solid rgba(255,255,255,.25); border-radius: 20px;
+    color: var(--color-navy); border: 1px solid #ddd; border-radius: 20px;
     padding: 9px 20px; text-decoration: none; transition: border-color .2s ease, color .2s ease;
   }
   .mv-developer-pill:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  .mv-developer-logo-pill{
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #ddd; border-radius: 20px;
+    padding: 9px 24px; height: 38px; box-sizing: border-box;
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .mv-developer-logo-pill:hover{ border-color: var(--color-gold); background: var(--color-cream); }
+  .mv-developer-logo-pill img{ height: 100%; max-width: 110px; object-fit: contain; }
   /* ---------- Phase 4: Luxury CTA + Consultation form ---------- */
   .mv-luxury-cta{ background: var(--color-cream); }
   .mv-luxury-cta__grid{
@@ -954,7 +962,13 @@
     <p class="mv-eyebrow" style="text-align:center;">Partnering With Industry Leaders</p>
     <div class="mv-developers-row">
       {% for d in all_developer_names %}
+      {% if d in developer_logos %}
+      <a class="mv-developer-logo-pill" href="{{ url_for('compounds', developer=d) }}">
+        <img src="{{ developer_logos[d] }}" alt="{{ d }}">
+      </a>
+      {% else %}
       <a class="mv-developer-pill" href="{{ url_for('compounds', developer=d) }}">{{ d }}</a>
+      {% endif %}
       {% endfor %}
     </div>
   </div>
