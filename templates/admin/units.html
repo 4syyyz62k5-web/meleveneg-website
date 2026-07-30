@@ -6,10 +6,14 @@
         <h1>Units — {{ compound.name }}</h1>
         <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
     </div>
+
     {% if compound.units %}
     <table class="admin-table">
         <thead>
-            <tr><th>Type</th><th>Phase</th><th>Delivery</th><th>Beds</th><th>Baths</th><th>Area (sqm)</th><th>Price</th><th>Available</th><th></th><th></th></tr>
+            <tr>
+                <th>Type</th><th>Phase</th><th>Delivery</th><th>Beds</th><th>Baths</th>
+                <th>Area (sqm)</th><th>Price</th><th>Available</th><th>Launch</th><th>Actions</th>
+            </tr>
         </thead>
         <tbody>
             {% for u in compound.units %}
@@ -19,11 +23,12 @@
                 <td>{{ u.delivery_year or '-' }}</td>
                 <td>{{ u.bedrooms or '-' }}</td>
                 <td>{{ u.bathrooms or '-' }}</td>
-                <td>{{ u.area_sqm or '-' }}</td>
+                <td>{{ "%.2f"|format(u.area_sqm) if u.area_sqm else '-' }}</td>
                 <td>{{ "{:,.0f}".format(u.price) if u.price else '-' }}</td>
                 <td>{{ "Yes" if u.is_available else "No" }}</td>
-                <td><a href="{{ url_for('admin_unit_edit', unit_id=u.id) }}">Edit</a></td>
-                <td>
+                <td>{{ "Yes" if u.is_launch else "-" }}</td>
+                <td class="admin-actions">
+                    <a href="{{ url_for('admin_unit_edit', unit_id=u.id) }}">Edit</a>
                     <form method="post" action="{{ url_for('admin_unit_delete', unit_id=u.id) }}" onsubmit="return confirm('Delete this unit?');">
                         <button type="submit" class="admin-delete-btn">Delete</button>
                     </form>
@@ -33,14 +38,17 @@
         </tbody>
     </table>
     {% else %}
-    <p class="empty-state">No units added yet for this compound.</p>
+    <p class="empty-state">No units yet for this compound. Add one below.</p>
     {% endif %}
-    <h2 class="admin-subheading">Add a Unit</h2>
+
+    <h2 style="margin-top:40px;">Add a Unit</h2>
     <form method="post" class="admin-form" enctype="multipart/form-data">
         <label>Unit Type *</label>
-        <input type="text" name="unit_type" placeholder="e.g. Chalet, Villa, Twin House" required>
+        <input type="text" name="unit_type" placeholder="Chalet, Villa, Townhouse, Apartment..." required>
+
         <label>Phase / Neighborhood (optional)</label>
         <input type="text" name="phase" placeholder="e.g. Shore Residence, Town Island, Lagoon Town">
+
         <div class="admin-form-row">
             <div>
                 <label>Bedrooms</label>
@@ -51,6 +59,7 @@
                 <input type="number" name="bathrooms">
             </div>
         </div>
+
         <div class="admin-form-row">
             <div>
                 <label>Area (sqm)</label>
@@ -58,17 +67,18 @@
             </div>
             <div>
                 <label>Price (EGP)</label>
-                <input type="number" name="price">
+                <input type="number" step="0.01" name="price">
             </div>
         </div>
+
         <div class="admin-form-row">
             <div>
                 <label>Delivery Year</label>
-                <input type="number" name="delivery_year" placeholder="e.g. 2030">
+                <input type="number" name="delivery_year">
             </div>
             <div>
                 <label>Payment Plan</label>
-                <input type="text" name="payment_plan" placeholder="e.g. 10% down, 8-year installments">
+                <input type="text" name="payment_plan">
             </div>
         </div>
 
@@ -81,7 +91,14 @@
             <input type="checkbox" name="is_available" checked>
             Available
         </label>
-        <button type="submit" class="btn-primary">Add Unit</button>
+        <label class="checkbox-label">
+            <input type="checkbox" name="is_launch">
+            Launch (shows a "Launch" badge and drives the homepage "New Launches" section)
+        </label>
+
+        <div class="admin-form-actions">
+            <button type="submit" class="btn-primary">Add Unit</button>
+        </div>
     </form>
 </div>
 {% endblock %}
