@@ -49,10 +49,19 @@
   .hero-cta--primary:hover{ background: #b98d63; }
   .hero-cta--outline{ background: transparent; color: var(--color-white); border: 1px solid rgba(255,255,255,.5); }
   .hero-cta--outline:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  @media (max-width: 640px){
+    .hero{ padding-top: 120px !important; padding-bottom: 36px !important; }
+    .hero-inner{ text-align: center; }
+    .hero-inner h1{ font-size: 22px; max-width: 100%; }
+    .hero-subtitle{ font-size: 13.5px; margin-left: auto; margin-right: auto; }
+    .hero-eyebrow{ font-size: 11px; }
+    .hero-cta-row{ justify-content: center; margin-bottom: 24px; }
+    .hero-search{ display: flex; justify-content: center; }
+  }
   @media (max-width: 480px){
-    .hero{ padding-top: 140px !important; padding-bottom: 44px !important; }
-    .hero-inner h1{ font-size: 24px; }
-    .hero-subtitle{ font-size: 14px; }
+    .hero{ padding-top: 110px !important; padding-bottom: 32px !important; }
+    .hero-inner h1{ font-size: 20px; }
+    .hero-subtitle{ font-size: 13px; }
   }
   .hero-search{ margin-top: 4px; }
   .hero-search .search-form{
@@ -98,7 +107,7 @@
     .hero-search{ margin-top: 0; }
     .hero-search .search-form{
       display: grid; grid-template-columns: 1fr 1fr; border-radius: 10px;
-      max-width: 340px;
+      max-width: 340px; margin: 0 auto;
     }
     .hero-search__field{
       border-right: 1px solid #ececec; border-bottom: 1px solid #ececec;
@@ -133,7 +142,8 @@
     text-transform: uppercase; letter-spacing: .04em;
   }
   @media (max-width: 640px){
-    .hero-stats__grid{ grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .hero-stats{ padding-bottom: 28px; }
+    .hero-stats__grid{ grid-template-columns: repeat(2, 1fr); gap: 20px; padding-top: 20px; }
     .hero-stat__number{ font-size: 24px; }
     .hero-stat__label{ font-size: 11px; }
   }
@@ -481,6 +491,26 @@
     box-shadow: 0 8px 20px rgba(0,0,0,.25); transition: transform .2s ease;
   }
   .mv-whatsapp-float:hover{ transform: scale(1.08); }
+
+  /* ---------------------------------------------------------------
+     Mobile compression — the page was running very long on phones.
+     This tightens vertical rhythm across the newer Phase 1-4 sections
+     without touching their desktop layout.
+     --------------------------------------------------------------- */
+  @media (max-width: 640px){
+    .mv-property-card__media{ height: 160px; }
+    .mv-calc-card{ padding: 18px; }
+    .mv-why-section{ padding-top: 32px; padding-bottom: 32px; }
+    .mv-luxury-cta{ padding-top: 8px; }
+    .mv-luxury-cta__grid{ gap: 28px; }
+    .mv-match-form{ padding: 16px; gap: 12px; flex-direction: column; align-items: stretch; }
+    .mv-match-field{ min-width: 0; }
+    .mv-match-submit{ width: 100%; text-align: center; }
+    .mv-developers-section{ padding-top: 28px; padding-bottom: 28px; }
+    .mv-developers-row{ gap: 8px; }
+    .mv-developer-pill{ padding: 7px 14px; font-size: 12px; }
+    .mv-consult-form-card{ padding: 20px; }
+  }
 </style>
 
 <section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
