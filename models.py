@@ -21,6 +21,7 @@ class Compound(db.Model):
     contact_phone = db.Column(db.String(50))       # for the "Call" button
     contact_whatsapp = db.Column(db.String(50))     # for the "WhatsApp" button (digits only, e.g. 201234567890)
     is_featured = db.Column(db.Boolean, default=False)
+    is_launch = db.Column(db.Boolean, default=False)  # marks the WHOLE compound as a launch, as a shortcut to flagging every unit individually
     is_published = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     units = db.relationship("Unit", backref="compound", lazy=True, cascade="all, delete-orphan")
