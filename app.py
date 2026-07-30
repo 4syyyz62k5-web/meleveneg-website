@@ -7,7 +7,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Compound, Unit, Lead
+from models import db, Compound, Unit, Lead, Developer
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
@@ -207,6 +207,13 @@ def create_app():
             for a in all_locations_sorted[CARD_LIMIT:]
         ]
 
+        # Developer name -> logo URL, so property cards can show a real logo
+        # instead of just the developer's name when one has been uploaded.
+        developer_logos = {
+            d.name: d.logo_url
+            for d in Developer.query.filter(Developer.logo_url.isnot(None), Developer.logo_url != "").all()
+        }
+
         return render_template(
             "index.html",
             featured=featured,
@@ -218,6 +225,7 @@ def create_app():
             all_area_names=all_area_names,
             all_developer_names=all_developer_names,
             locations_menu=locations_menu,
+            developer_logos=developer_logos,
         )
 
     @app.route("/locations")
@@ -576,6 +584,77 @@ def create_app():
         db.session.commit()
         flash("Compound deleted.", "success")
         return redirect(url_for("admin_dashboard"))
+
+    # ---------- Admin: developer logos ----------
+
+    @app.route("/admin/developers")
+    @login_required
+    def admin_developers():
+        all_developers = Developer.query.order_by(Developer.name.asc()).all()
+        return render_template("admin/developers.html", developers=all_developers)
+
+    @app.route("/admin/developers/new", methods=["GET", "POST"])
+    @login_required
+    def admin_developer_new():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            if not name:
+                flash("Developer name is required.", "error")
+                return redirect(url_for("admin_developer_new"))
+            if Developer.query.filter(db.func.lower(Developer.name) == name.lower()).first():
+                flash(f"A developer named '{name}' already exists.", "error")
+                return redirect(url_for("admin_developer_new"))
+
+            logo_url = request.form.get("logo_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                logo_url = url_for("uploaded_file", filename=uploaded_name)
+
+            d = Developer(name=name, logo_url=logo_url)
+            db.session.add(d)
+            db.session.commit()
+            flash("Developer added.", "success")
+            return redirect(url_for("admin_developers"))
+
+        return render_template("admin/developer_form.html", developer=None)
+
+    @app.route("/admin/developers/<int:developer_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_developer_edit(developer_id):
+        d = Developer.query.get_or_404(developer_id)
+        if request.method == "POST":
+            new_name = request.form.get("name", "").strip()
+            if not new_name:
+                flash("Developer name is required.", "error")
+                return redirect(url_for("admin_developer_edit", developer_id=d.id))
+            duplicate = Developer.query.filter(
+                db.func.lower(Developer.name) == new_name.lower(), Developer.id != d.id
+            ).first()
+            if duplicate:
+                flash(f"A developer named '{new_name}' already exists.", "error")
+                return redirect(url_for("admin_developer_edit", developer_id=d.id))
+            d.name = new_name
+
+            logo_url = request.form.get("logo_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                logo_url = url_for("uploaded_file", filename=uploaded_name)
+            d.logo_url = logo_url
+
+            db.session.commit()
+            flash("Developer updated.", "success")
+            return redirect(url_for("admin_developers"))
+
+        return render_template("admin/developer_form.html", developer=d)
+
+    @app.route("/admin/developers/<int:developer_id>/delete", methods=["POST"])
+    @login_required
+    def admin_developer_delete(developer_id):
+        d = Developer.query.get_or_404(developer_id)
+        db.session.delete(d)
+        db.session.commit()
+        flash("Developer deleted.", "success")
+        return redirect(url_for("admin_developers"))
 
     # ---------- Admin: units ----------
 
