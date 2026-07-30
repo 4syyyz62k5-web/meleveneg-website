@@ -24,11 +24,11 @@
   }
   .hero-inner h1{
     font-family: var(--font-heading); font-weight: 700;
-    font-size: clamp(28px, 5vw, 52px);
+    font-size: clamp(26px, 4vw, 42px);
     line-height: 1.2;
-    max-width: 720px;
+    max-width: 650px;
     color: var(--color-white);
-    margin: 0 0 18px 0;
+    margin: 0 0 14px 0;
   }
   .hero-accent{ color: var(--color-gold); }
   .hero-subtitle{
@@ -36,7 +36,7 @@
     font-size: clamp(14px, 2vw, 17px);
     max-width: 540px;
     color: #dbe0e8;
-    margin: 0 0 30px 0;
+    margin: 0 0 24px 0;
   }
   .hero-cta-row{ display: flex; gap: 14px; margin-bottom: 40px; flex-wrap: wrap; }
   .hero-cta{
@@ -519,8 +519,7 @@
 <section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
     <div class="container hero-inner">
         <p class="hero-eyebrow">Curating Egypt's Finest Real Estate</p>
-        <h1>Exclusive Opportunities.<br>Trusted Advice.<br><span class="hero-accent">Exceptional Investments.</span></h1>
-        <p class="hero-subtitle">Meleven Consultancy — a boutique real estate advisory with 12 years of experience helping clients find, evaluate, and invest in Egypt's best properties.</p>
+        <h1>Exclusive Opportunities, Trusted Advice.<br><span class="hero-accent">Exceptional Investments.</span></h1>
         <div class="hero-cta-row">
             <a href="{{ url_for('compounds') }}" class="hero-cta hero-cta--primary">Explore Projects →</a>
             <a href="{{ url_for('contact') }}" class="hero-cta hero-cta--outline">Book Consultation</a>
