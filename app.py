@@ -59,6 +59,12 @@ def create_app():
                 connection.execute(db.text("ALTER TABLE compounds ADD COLUMN location VARCHAR(150)"))
                 connection.commit()
 
+        existing_unit_columns = [col["name"] for col in inspector.get_columns("units")]
+        if "is_launch" not in existing_unit_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE units ADD COLUMN is_launch BOOLEAN DEFAULT FALSE"))
+                connection.commit()
+
         # ---------------------------------------------------------------
         # Backfill: any existing compound that doesn't have `location` set
         # yet gets one assigned automatically based on its current `area`,
@@ -155,14 +161,28 @@ def create_app():
         all_locations_sorted = top_areas
         top_areas = all_locations_sorted[:CARD_LIMIT]
 
-        # "New Launches" — soonest delivery first, most recently added as tiebreaker
+        # "New Launches" — compounds with at least one unit explicitly flagged
+        # as a launch (Unit.is_launch), most recently added first. Falls back
+        # to the old "soonest delivery year" sort if nothing has been flagged
+        # yet, so the section never sits empty while launch flags are still
+        # being set in the admin.
         new_launches = (
             Compound.query
-            .filter(Compound.is_published == True)
-            .order_by(Compound.delivery_year.asc().nullslast(), Compound.created_at.desc())
+            .join(Unit, Unit.compound_id == Compound.id)
+            .filter(Compound.is_published == True, Unit.is_launch == True)
+            .distinct()
+            .order_by(Compound.created_at.desc())
             .limit(8)
             .all()
         )
+        if not new_launches:
+            new_launches = (
+                Compound.query
+                .filter(Compound.is_published == True)
+                .order_by(Compound.delivery_year.asc().nullslast(), Compound.created_at.desc())
+                .limit(8)
+                .all()
+            )
 
         # "Recommended Units" — most recently added available units across published compounds
         # (Unit has no created_at column, so we use id as a proxy for insertion order)
@@ -680,6 +700,7 @@ def create_app():
                 payment_plan=request.form.get("payment_plan", "").strip(),
                 image_url=image_url,
                 is_available=bool(request.form.get("is_available")),
+                is_launch=bool(request.form.get("is_launch")),
             )
             db.session.add(u)
             db.session.commit()
@@ -709,6 +730,7 @@ def create_app():
             u.image_url = image_url
 
             u.is_available = bool(request.form.get("is_available"))
+            u.is_launch = bool(request.form.get("is_launch"))
             db.session.commit()
             flash("Unit updated.", "success")
             return redirect(url_for("admin_units", compound_id=u.compound_id))
@@ -823,6 +845,7 @@ def create_app():
                 payment_plan=(row.get("payment_plan") or "").strip(),
                 image_url=(row.get("image_url") or "").strip(),
                 is_available=parse_bool(row.get("is_available", "true")),
+                is_launch=parse_bool(row.get("is_launch")),
             )
             db.session.add(u)
             created += 1
