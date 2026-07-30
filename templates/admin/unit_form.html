@@ -1,44 +1,49 @@
 {% extends "admin/base.html" %}
 {% block title %}Edit Unit — {{ unit.compound.name }} — Meleven Admin{% endblock %}
 {% block content %}
-<div class="admin-container">
+<div class="admin-container narrow-admin">
     <div class="admin-page-header">
         <h1>Edit Unit — {{ unit.compound.name }}</h1>
         <a href="{{ url_for('admin_units', compound_id=unit.compound_id) }}" class="admin-cancel-link">← Back to Units</a>
     </div>
+
     <form method="post" class="admin-form" enctype="multipart/form-data">
         <label>Unit Type *</label>
-        <input type="text" name="unit_type" value="{{ unit.unit_type or '' }}" placeholder="e.g. Chalet, Villa, Twin House" required>
+        <input type="text" name="unit_type" value="{{ unit.unit_type }}" required>
+
         <label>Phase / Neighborhood (optional)</label>
         <input type="text" name="phase" value="{{ unit.phase or '' }}" placeholder="e.g. Shore Residence, Town Island, Lagoon Town">
+
         <div class="admin-form-row">
             <div>
                 <label>Bedrooms</label>
-                <input type="number" name="bedrooms" value="{{ unit.bedrooms or '' }}">
+                <input type="number" name="bedrooms" value="{{ unit.bedrooms if unit.bedrooms is not none else '' }}">
             </div>
             <div>
                 <label>Bathrooms</label>
-                <input type="number" name="bathrooms" value="{{ unit.bathrooms or '' }}">
+                <input type="number" name="bathrooms" value="{{ unit.bathrooms if unit.bathrooms is not none else '' }}">
             </div>
         </div>
+
         <div class="admin-form-row">
             <div>
                 <label>Area (sqm)</label>
-                <input type="number" step="0.01" name="area_sqm" value="{{ unit.area_sqm or '' }}">
+                <input type="number" step="0.01" name="area_sqm" value="{{ unit.area_sqm if unit.area_sqm is not none else '' }}">
             </div>
             <div>
                 <label>Price (EGP)</label>
-                <input type="number" name="price" value="{{ unit.price or '' }}">
+                <input type="number" step="0.01" name="price" value="{{ unit.price if unit.price is not none else '' }}">
             </div>
         </div>
+
         <div class="admin-form-row">
             <div>
                 <label>Delivery Year</label>
-                <input type="number" name="delivery_year" value="{{ unit.delivery_year or '' }}" placeholder="e.g. 2030">
+                <input type="number" name="delivery_year" value="{{ unit.delivery_year if unit.delivery_year is not none else '' }}">
             </div>
             <div>
                 <label>Payment Plan</label>
-                <input type="text" name="payment_plan" value="{{ unit.payment_plan or '' }}" placeholder="e.g. 10% down, 8-year installments">
+                <input type="text" name="payment_plan" value="{{ unit.payment_plan or '' }}">
             </div>
         </div>
 
@@ -54,7 +59,15 @@
             <input type="checkbox" name="is_available" {% if unit.is_available %}checked{% endif %}>
             Available
         </label>
-        <button type="submit" class="btn-primary">Save Changes</button>
+        <label class="checkbox-label">
+            <input type="checkbox" name="is_launch" {% if unit.is_launch %}checked{% endif %}>
+            Launch (shows a "Launch" badge and drives the homepage "New Launches" section)
+        </label>
+
+        <div class="admin-form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('admin_units', compound_id=unit.compound_id) }}" class="admin-cancel-link">Cancel</a>
+        </div>
     </form>
 </div>
 {% endblock %}
