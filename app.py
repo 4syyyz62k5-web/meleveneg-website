@@ -59,6 +59,11 @@ def create_app():
                 connection.execute(db.text("ALTER TABLE compounds ADD COLUMN location VARCHAR(150)"))
                 connection.commit()
 
+        if "is_launch" not in existing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE compounds ADD COLUMN is_launch BOOLEAN DEFAULT FALSE"))
+                connection.commit()
+
         existing_unit_columns = [col["name"] for col in inspector.get_columns("units")]
         if "is_launch" not in existing_unit_columns:
             with db.engine.connect() as connection:
@@ -161,15 +166,18 @@ def create_app():
         all_locations_sorted = top_areas
         top_areas = all_locations_sorted[:CARD_LIMIT]
 
-        # "New Launches" — compounds with at least one unit explicitly flagged
-        # as a launch (Unit.is_launch), most recently added first. Falls back
-        # to the old "soonest delivery year" sort if nothing has been flagged
-        # yet, so the section never sits empty while launch flags are still
-        # being set in the admin.
+        # "New Launches" — compounds flagged directly (Compound.is_launch) OR
+        # with at least one unit explicitly flagged (Unit.is_launch), most
+        # recently added first. Falls back to the old "soonest delivery
+        # year" sort if nothing has been flagged yet, so the section never
+        # sits empty while launch flags are still being set in the admin.
         new_launches = (
             Compound.query
-            .join(Unit, Unit.compound_id == Compound.id)
-            .filter(Compound.is_published == True, Unit.is_launch == True)
+            .outerjoin(Unit, Unit.compound_id == Compound.id)
+            .filter(
+                Compound.is_published == True,
+                db.or_(Compound.is_launch == True, Unit.is_launch == True),
+            )
             .distinct()
             .order_by(Compound.created_at.desc())
             .limit(8)
@@ -542,6 +550,7 @@ def create_app():
                 contact_phone=request.form.get("contact_phone", "").strip(),
                 contact_whatsapp=request.form.get("contact_whatsapp", "").strip(),
                 is_featured=bool(request.form.get("is_featured")),
+                is_launch=bool(request.form.get("is_launch")),
                 is_published=bool(request.form.get("is_published")),
             )
             db.session.add(c)
@@ -589,6 +598,7 @@ def create_app():
             c.contact_phone = request.form.get("contact_phone", "").strip()
             c.contact_whatsapp = request.form.get("contact_whatsapp", "").strip()
             c.is_featured = bool(request.form.get("is_featured"))
+            c.is_launch = bool(request.form.get("is_launch"))
             c.is_published = bool(request.form.get("is_published"))
             db.session.commit()
             flash("Compound updated.", "success")
@@ -798,6 +808,7 @@ def create_app():
                 contact_phone=(row.get("contact_phone") or "").strip(),
                 contact_whatsapp=(row.get("contact_whatsapp") or "").strip(),
                 is_featured=parse_bool(row.get("is_featured")),
+                is_launch=parse_bool(row.get("is_launch")),
                 is_published=parse_bool(row.get("is_published", "true")),
             )
             db.session.add(c)
