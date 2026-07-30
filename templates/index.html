@@ -13,8 +13,8 @@
   .hero{
     filter: contrast(1.12) saturate(1.15) brightness(0.98);
     background-position: center 65% !important;
-    padding-top: 170px !important;
-    padding-bottom: 64px !important;
+    padding-top: 120px !important;
+    padding-bottom: 44px !important;
   }
   .hero-inner{ text-align: left; }
   .hero-eyebrow{
@@ -50,7 +50,7 @@
   .hero-cta--outline{ background: transparent; color: var(--color-white); border: 1px solid rgba(255,255,255,.5); }
   .hero-cta--outline:hover{ border-color: var(--color-gold); color: var(--color-gold); }
   @media (max-width: 640px){
-    .hero{ padding-top: 120px !important; padding-bottom: 36px !important; }
+    .hero{ padding-top: 100px !important; padding-bottom: 28px !important; }
     .hero-inner{ text-align: center; }
     .hero-inner h1{ font-size: 22px; max-width: 100%; }
     .hero-subtitle{ font-size: 13.5px; margin-left: auto; margin-right: auto; }
@@ -59,11 +59,17 @@
     .hero-search{ display: flex; justify-content: center; }
   }
   @media (max-width: 480px){
-    .hero{ padding-top: 110px !important; padding-bottom: 32px !important; }
+    .hero{ padding-top: 90px !important; padding-bottom: 24px !important; }
     .hero-inner h1{ font-size: 20px; }
     .hero-subtitle{ font-size: 13px; }
   }
   .hero-search{ margin-top: 4px; }
+  .floating-search-wrap{
+    position: relative; z-index: 5; margin-top: -46px; margin-bottom: 40px;
+  }
+  @media (max-width: 640px){
+    .floating-search-wrap{ margin-top: -18px; margin-bottom: 28px; }
+  }
   .hero-search .search-form{
     display: flex; align-items: stretch;
     background: rgba(255,255,255,.97);
@@ -148,8 +154,8 @@
     .hero-stat__label{ font-size: 10.5px; }
   }
 
-  .mv-section{ padding: 40px 0; }
-  .section{ padding: 40px 0; }
+  .mv-section{ padding: 100px 0; }
+  .section{ padding: 100px 0; }
   .mv-section--dark{ background: var(--color-navy-dark); }
   .mv-section__head{
     display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
@@ -235,7 +241,8 @@
   @media (max-width: 640px){
     .page-title{ font-size: 24px; }
     .section-title{ font-size: 19px; margin-bottom: 18px; }
-    .mv-section{ padding: 36px 0; }
+    .mv-section{ padding: 72px 0; }
+    .section{ padding: 72px 0; }
     .mv-section__head{ margin-bottom: 16px; }
     .mv-eyebrow{ font-size: 10.5px; }
     .mv-title{ font-size: 19px; }
@@ -554,6 +561,7 @@
   }
 </style>
 
+
 <section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
     <div class="container hero-inner">
         <p class="hero-eyebrow">Curating Egypt's Finest Real Estate</p>
@@ -562,6 +570,11 @@
             <a href="{{ url_for('compounds') }}" class="hero-cta hero-cta--primary">Explore Projects →</a>
             <a href="{{ url_for('contact') }}" class="hero-cta hero-cta--outline">Book Consultation</a>
         </div>
+    </div>
+</section>
+
+<div class="floating-search-wrap">
+    <div class="container">
         <div class="hero-search">
             <form action="{{ url_for('compounds') }}" method="get" class="search-form">
                 <div class="hero-search__field">
@@ -605,7 +618,8 @@
             </form>
         </div>
     </div>
-</section>
+</div>
+
 
 <section class="hero-stats">
   <div class="container hero-stats__grid">
@@ -628,8 +642,9 @@
   </div>
 </section>
 
+
 {% if new_launches %}
-<section class="mv-section mv-section--dark">
+<section class="mv-section">
   <div class="container">
     <div class="mv-section__head">
       <div>
@@ -680,6 +695,7 @@
   </div>
 </section>
 {% endif %}
+
 
 {% if featured %}
 <section class="section">
@@ -738,104 +754,6 @@
 </section>
 {% endif %}
 
-{% if top_areas %}
-<section class="mv-section area-section">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Explore by Location</p>
-        <h2 class="mv-title">Top Areas</h2>
-      </div>
-    </div>
-
-    <div class="mv-areas-scroll">
-      {% for area in top_areas %}
-      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-        <div class="mv-area-card__scrim"></div>
-        <div class="mv-area-card__body">
-          <p class="mv-area-card__name">{{ area.name }}</p>
-          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-
-    <div class="mv-areas-expand" id="areas-expand">
-      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
-        View all areas <span class="mv-areas-toggle__arrow">▾</span>
-      </button>
-
-      <div class="mv-areas-more" id="areas-more">
-        {% for loc in locations_menu %}
-        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-          <div class="mv-area-card__scrim"></div>
-          <div class="mv-area-card__body">
-            <p class="mv-area-card__name">{{ loc.name }}</p>
-            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{# ---------------------------------------------------------------
-   Latest Listings — temporarily hidden until all projects/compounds
-   are fully populated. Delete the two comment-wrapper lines below
-   (the ones starting and ending this block) to bring it back.
-   --------------------------------------------------------------- #}
-{#
-<section class="section">
-    <div class="container">
-        <div class="mv-section__head">
-          <div>
-            <p class="mv-eyebrow">Fresh on the Market</p>
-            <h2 class="mv-title mv-title--light">Latest Listings</h2>
-          </div>
-        </div>
-        {% if latest %}
-        <div class="mv-hscroll">
-            <div class="mv-property-grid">
-                {% for c in latest %}
-                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
-                  <div class="mv-property-card__media">
-                    <div class="mv-card-icons">
-                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
-                      </button>
-                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
-                      </button>
-                    </div>
-                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
-                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
-                  </div>
-                  <div class="mv-property-card__body">
-                    {% if c.developer in developer_logos %}
-                    <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-                    {% elif c.developer %}
-                    <p class="mv-property-card__developer">{{ c.developer }}</p>
-                    {% endif %}
-                    <p class="mv-property-card__name">{{ c.name }}</p>
-                    <p class="mv-property-card__meta">{{ c.area }}</p>
-                    {% if c.min_price %}
-                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
-                    {% else %}
-                    <p class="mv-property-card__price">Price on request</p>
-                    {% endif %}
-                  </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-        {% else %}
-        <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
-        {% endif %}
-    </div>
-</section>
-#}
 
 {% if recommended_units %}
 <section class="mv-section">
@@ -873,37 +791,13 @@
 </section>
 {% endif %}
 
-<section class="mv-section mv-section--dark mv-why-section">
-  <div class="container mv-why-grid">
-    <div class="mv-why-intro">
-      <p class="mv-eyebrow">Why Meleven?</p>
-      <h2 class="mv-title">More Than<br>a Property Portal</h2>
-      <div class="hero-rule" style="margin:18px 0 0 0;"></div>
-      <div class="mv-why-features">
-        <div class="mv-why-feature">
-          <div class="mv-why-feature__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
-          </div>
-          <p class="mv-why-feature__title">Curated Properties</p>
-          <p class="mv-why-feature__text">Only the finest projects from Egypt's most trusted developers.</p>
-        </div>
-        <div class="mv-why-feature">
-          <div class="mv-why-feature__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
-          </div>
-          <p class="mv-why-feature__title">Investment Focused</p>
-          <p class="mv-why-feature__text">Expert advice to help you make smart, profitable decisions.</p>
-        </div>
-        <div class="mv-why-feature">
-          <div class="mv-why-feature__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>
-          </div>
-          <p class="mv-why-feature__title">Global Standards</p>
-          <p class="mv-why-feature__text">International-level service backed by local market expertise.</p>
-        </div>
-      </div>
-    </div>
 
+<section class="section">
+  <div class="container">
+    <div style="text-align:center; max-width:560px; margin:0 auto 32px auto;">
+      <p class="mv-eyebrow">Plan Your Investment</p>
+      <h2 class="mv-title">Investment Calculator</h2>
+    </div>
     <div class="mv-calc-card">
       <p class="mv-calc-card__title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
@@ -963,6 +857,51 @@
   </div>
 </section>
 
+
+{% if top_areas %}
+<section class="mv-section area-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Explore by Location</p>
+        <h2 class="mv-title">Top Areas</h2>
+      </div>
+    </div>
+
+    <div class="mv-areas-scroll">
+      {% for area in top_areas %}
+      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ area.name }}</p>
+          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="mv-areas-expand" id="areas-expand">
+      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+        View all areas <span class="mv-areas-toggle__arrow">▾</span>
+      </button>
+
+      <div class="mv-areas-more" id="areas-more">
+        {% for loc in locations_menu %}
+        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+          <div class="mv-area-card__scrim"></div>
+          <div class="mv-area-card__body">
+            <p class="mv-area-card__name">{{ loc.name }}</p>
+            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+
 {% if all_developer_names %}
 <section class="mv-section mv-developers-section">
   <div class="container">
@@ -982,30 +921,123 @@
 </section>
 {% endif %}
 
-<section class="section mv-luxury-cta">
-    <div class="container mv-luxury-cta__grid">
-        <div class="mv-luxury-cta__intro">
-            <p class="mv-eyebrow">Book a Consultation</p>
-            <h2 class="mv-title">Looking For<br>The Right Property?</h2>
-            <p class="hero-subtitle" style="color:var(--color-text-muted); margin-top:16px;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
-            <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp">
-                <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
-                Chat on WhatsApp
-            </a>
-        </div>
 
-        <div class="mv-consult-form-card">
-            <p class="mv-consult-form-card__title">Get in Touch</p>
-            <form action="{{ url_for('contact') }}" method="post" class="mv-consult-form">
-                <input type="text" name="name" placeholder="Your Name" required>
-                <input type="text" name="phone" placeholder="Phone Number" required>
-                <input type="email" name="email" placeholder="Email (optional)">
-                <textarea name="message" rows="3" placeholder="Tell us what you're looking for..."></textarea>
-                <button type="submit" class="hero-cta hero-cta--primary mv-consult-form__submit">Request a Callback</button>
-            </form>
+<section class="section" style="background:var(--color-cream);">
+  <div class="container">
+    <div style="text-align:center; max-width:640px; margin:0 auto 40px auto;">
+      <p class="mv-eyebrow">Why Meleven?</p>
+      <h2 class="mv-title">More Than a Property Portal</h2>
+      <div class="hero-rule" style="margin:18px auto 0;"></div>
+    </div>
+    <div class="mv-why-features">
+      <div class="mv-why-feature">
+        <div class="mv-why-feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
         </div>
+        <p class="mv-why-feature__title">Curated Properties</p>
+        <p class="mv-why-feature__text">Only the finest projects from Egypt's most trusted developers.</p>
+      </div>
+      <div class="mv-why-feature">
+        <div class="mv-why-feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+        </div>
+        <p class="mv-why-feature__title">Investment Focused</p>
+        <p class="mv-why-feature__text">Expert advice to help you make smart, profitable decisions.</p>
+      </div>
+      <div class="mv-why-feature">
+        <div class="mv-why-feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>
+        </div>
+        <p class="mv-why-feature__title">Global Standards</p>
+        <p class="mv-why-feature__text">International-level service backed by local market expertise.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--color-navy-dark); text-align:center;">
+  <div class="container narrow">
+    <p class="mv-eyebrow">Book a Consultation</p>
+    <h2 class="mv-title" style="color:var(--color-white);">Looking For The Right Property?</h2>
+    <p class="hero-subtitle" style="color:#dbe0e8; margin:16px auto 0; text-align:center;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
+    <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp" style="margin-top:24px;">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
+        Chat on WhatsApp
+    </a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container narrow">
+    <div class="mv-consult-form-card" style="max-width:480px; margin:0 auto;">
+      <p class="mv-consult-form-card__title" style="text-align:center;">Get in Touch</p>
+      <form action="{{ url_for('contact') }}" method="post" class="mv-consult-form">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="text" name="phone" placeholder="Phone Number" required>
+        <input type="email" name="email" placeholder="Email (optional)">
+        <textarea name="message" rows="3" placeholder="Tell us what you're looking for..."></textarea>
+        <button type="submit" class="hero-cta hero-cta--primary mv-consult-form__submit">Request a Callback</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+{# ---------------------------------------------------------------
+   Latest Listings — temporarily hidden until all projects/compounds
+   are fully populated. Delete the two comment-wrapper lines below
+   (the ones starting and ending this block) to bring it back.
+   --------------------------------------------------------------- #}
+{#
+<section class="section">
+    <div class="container">
+        <div class="mv-section__head">
+          <div>
+            <p class="mv-eyebrow">Fresh on the Market</p>
+            <h2 class="mv-title mv-title--light">Latest Listings</h2>
+          </div>
+        </div>
+        {% if latest %}
+        <div class="mv-hscroll">
+            <div class="mv-property-grid">
+                {% for c in latest %}
+                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+                  <div class="mv-property-card__media">
+                    <div class="mv-card-icons">
+                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+                      </button>
+                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+                      </button>
+                    </div>
+                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
+                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
+                  </div>
+                  <div class="mv-property-card__body">
+                    {% if c.developer in developer_logos %}
+                    <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
+                    {% elif c.developer %}
+                    <p class="mv-property-card__developer">{{ c.developer }}</p>
+                    {% endif %}
+                    <p class="mv-property-card__name">{{ c.name }}</p>
+                    <p class="mv-property-card__meta">{{ c.area }}</p>
+                    {% if c.min_price %}
+                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+                    {% else %}
+                    <p class="mv-property-card__price">Price on request</p>
+                    {% endif %}
+                  </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
+        {% endif %}
     </div>
 </section>
+#}
+
 
 <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="mv-whatsapp-float" aria-label="Chat on WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
