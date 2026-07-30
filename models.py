@@ -1,40 +1,1023 @@
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-db = SQLAlchemy()
-class Compound(db.Model):
-    __tablename__ = "compounds"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    slug = db.Column(db.String(150), unique=True, nullable=False)  # used in the URL, e.g. /compound/silversands
-    developer = db.Column(db.String(150))
-    location = db.Column(db.String(150))  # top-level region, e.g. "New Cairo", "North Coast"
-    area = db.Column(db.String(150))  # sub-area within the location, e.g. "Mostakbal City", "Sidi Heneish"
-    location_detail = db.Column(db.String(255))  # e.g. "Kilo 247, International Coastal Road"
-    short_description = db.Column(db.String(500))
-    full_description = db.Column(db.Text)
-    min_price = db.Column(db.Numeric(14, 2))
-    max_price = db.Column(db.Numeric(14, 2))
-    currency = db.Column(db.String(10), default="EGP")
-    land_area_acres = db.Column(db.Numeric(10, 2))
-    delivery_year = db.Column(db.Integer)
-    cover_image_url = db.Column(db.String(500))
-    contact_phone = db.Column(db.String(50))       # for the "Call" button
-    contact_whatsapp = db.Column(db.String(50))     # for the "WhatsApp" button (digits only, e.g. 201234567890)
-    is_featured = db.Column(db.Boolean, default=False)
-    is_published = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    units = db.relationship("Unit", backref="compound", lazy=True, cascade="all, delete-orphan")
-    def price_range_display(self):
-        if self.min_price and self.max_price:
-            return f"{int(self.min_price):,} - {int(self.max_price):,} {self.currency}"
-        elif self.min_price:
-            return f"Starting {int(self.min_price):,} {self.currency}"
-        return "Price on request"
-    def bedrooms_range(self):
-        """Returns e.g. '2 - 5 Beds' based on available units, or None if no unit data."""
-        beds = [u.bedrooms for u in self.units if u.bedrooms]
-        if not beds:
-            return None
+{% extends "base.html" %}
+{% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
+{% block content %}
+<style>
+  /* ---------------------------------------------------------------
+     These rules extend style.css using the real brand variables
+     (--color-navy, --color-navy-dark, --color-gold, --color-cream,
+     --font-heading = Montserrat, --font-body = Jost). No new fonts
+     or colors are introduced — everything here is built on the
+     existing Meleven_CI tokens already defined in style.css.
+     --------------------------------------------------------------- */
+
+  .hero{
+    filter: contrast(1.12) saturate(1.15) brightness(0.98);
+    background-position: center 65% !important;
+    padding-top: 170px !important;
+    padding-bottom: 64px !important;
+  }
+  .hero-inner{ text-align: left; }
+  .hero-eyebrow{
+    font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--color-gold);
+    margin: 0 0 14px 0;
+  }
+  .hero-inner h1{
+    font-family: var(--font-heading); font-weight: 700;
+    font-size: clamp(28px, 5vw, 52px);
+    line-height: 1.2;
+    max-width: 720px;
+    color: var(--color-white);
+    margin: 0 0 18px 0;
+  }
+  .hero-accent{ color: var(--color-gold); }
+  .hero-subtitle{
+    font-family: var(--font-body);
+    font-size: clamp(14px, 2vw, 17px);
+    max-width: 540px;
+    color: #dbe0e8;
+    margin: 0 0 30px 0;
+  }
+  .hero-cta-row{ display: flex; gap: 14px; margin-bottom: 40px; flex-wrap: wrap; }
+  .hero-cta{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-body); font-weight: 600; font-size: 14px;
+    padding: 13px 26px; border-radius: 4px; text-decoration: none;
+    transition: background .2s ease, color .2s ease;
+  }
+  .hero-cta--primary{ background: var(--color-gold); color: var(--color-navy-dark); border: 1px solid var(--color-gold); }
+  .hero-cta--primary:hover{ background: #b98d63; }
+  .hero-cta--outline{ background: transparent; color: var(--color-white); border: 1px solid rgba(255,255,255,.5); }
+  .hero-cta--outline:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  @media (max-width: 640px){
+    .hero{ padding-top: 120px !important; padding-bottom: 36px !important; }
+    .hero-inner{ text-align: center; }
+    .hero-inner h1{ font-size: 22px; max-width: 100%; }
+    .hero-subtitle{ font-size: 13.5px; margin-left: auto; margin-right: auto; }
+    .hero-eyebrow{ font-size: 11px; }
+    .hero-cta-row{ justify-content: center; margin-bottom: 24px; }
+    .hero-search{ display: flex; justify-content: center; }
+  }
+  @media (max-width: 480px){
+    .hero{ padding-top: 110px !important; padding-bottom: 32px !important; }
+    .hero-inner h1{ font-size: 20px; }
+    .hero-subtitle{ font-size: 13px; }
+  }
+  .hero-search{ margin-top: 4px; }
+  .hero-search .search-form{
+    display: flex; align-items: stretch;
+    background: rgba(255,255,255,.97);
+    border-radius: 10px;
+    max-width: 900px;
+    margin: 0;
+    box-shadow: 0 14px 34px rgba(10,33,68,.28);
+    overflow: hidden;
+  }
+  .hero-search__field{
+    flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    min-width: 0; padding: 10px 18px; border-right: 1px solid #ececec;
+    text-align: left;
+  }
+  .hero-search__label{
+    font-family: var(--font-body); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted);
+  }
+  .hero-search select,
+  .hero-search input[type="text"],
+  .hero-search input[type="number"]{
+    border: none; background: transparent; appearance: none;
+    font-family: var(--font-body); font-size: 14px; color: var(--color-text);
+    padding: 2px 0; cursor: pointer; width: 100%;
+  }
+  .hero-search input[type="text"],
+  .hero-search input[type="number"]{ cursor: text; }
+  .hero-search input::placeholder{ color: #a9adb4; }
+  .hero-search__budget-row{ display: flex; gap: 6px; }
+  .hero-search__budget-row input{ min-width: 0; }
+  .hero-search button{
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--color-gold); color: var(--color-navy-dark); border: none;
+    padding: 0 26px; font-family: var(--font-body); font-weight: 600; font-size: 14px;
+    cursor: pointer; white-space: nowrap; transition: background .2s ease; flex-shrink: 0;
+  }
+  .hero-search button:hover{ background: #b98d63; }
+  .hero-search button svg{ width: 16px; height: 16px; flex-shrink: 0; }
+
+  @media (max-width: 640px){
+    .hero-search{ margin-top: 0; }
+    .hero-search .search-form{
+      display: grid; grid-template-columns: 1fr 1fr; border-radius: 10px;
+      max-width: 340px; margin: 0 auto;
+    }
+    .hero-search__field{
+      border-right: 1px solid #ececec; border-bottom: 1px solid #ececec;
+      padding: 6px 10px; gap: 0;
+    }
+    .hero-search__label{ font-size: 9px; }
+    .hero-search select,
+    .hero-search input[type="text"],
+    .hero-search input[type="number"]{ font-size: 12.5px; }
+    .hero-search__field:nth-child(2n){ border-right: none; }
+    .hero-search__field:nth-last-child(1){ border-bottom: none; }
+    .hero-search__field:nth-last-child(2){ border-bottom: none; }
+    .hero-search button{
+      grid-column: 1 / -1; width: 100%; padding: 10px; font-size: 13px;
+      border-radius: 0 0 10px 10px;
+    }
+  }
+
+  /* ---------- Hero stats row ---------- */
+  .hero-stats{ background: var(--color-navy-dark); padding: 0 0 28px 0; }
+  .hero-stats__grid{
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+    border-top: 1px solid rgba(255,255,255,.12); padding-top: 22px;
+  }
+  .hero-stat{ text-align: center; }
+  .hero-stat__number{
+    font-family: var(--font-heading); font-weight: 700; font-size: clamp(22px, 3vw, 30px);
+    color: var(--color-gold); margin: 0 0 4px 0;
+  }
+  .hero-stat__label{
+    font-family: var(--font-body); font-size: 12px; color: #c7cedb; margin: 0;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  @media (max-width: 640px){
+    .hero-stats{ padding-bottom: 20px; }
+    .hero-stats__grid{ grid-template-columns: repeat(2, 1fr); gap: 16px; padding-top: 16px; }
+    .hero-stat__number{ font-size: 20px; }
+    .hero-stat__label{ font-size: 10.5px; }
+  }
+
+  .mv-section{ padding: 40px 0; }
+  .section{ padding: 40px 0; }
+  .mv-section--dark{ background: var(--color-navy-dark); }
+  .mv-section__head{
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .mv-eyebrow{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
+  .mv-title{
+    font-family: var(--font-heading); font-weight: 700; font-size: 26px;
+    color: var(--color-navy); text-transform: uppercase; letter-spacing: .3px; margin: 0;
+  }
+  .mv-section--dark .mv-title{ color: var(--color-white); }
+  .mv-viewall{
+    font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--color-text-muted);
+    text-decoration: none; white-space: nowrap;
+  }
+  .mv-section--dark .mv-viewall{ color: #b7bdc8; }
+  .mv-viewall:hover{ color: var(--color-gold); }
+
+  /* ---------- "View all areas" — inline expand (no floating popup) ---------- */
+  .mv-areas-expand{
+    display: flex; flex-direction: column; align-items: center; margin-top: 18px;
+  }
+  .mv-areas-toggle{
+    order: 0;
+    display: flex; align-items: center; gap: 6px;
+    background: none; cursor: pointer;
+    font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy);
+    border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
+  }
+  .mv-areas-toggle:hover{ background: var(--color-navy); color: var(--color-white); }
+  .mv-areas-toggle:disabled{
+    cursor: default; opacity: .4; border-color: #999; color: #999; background: none;
+  }
+  .mv-areas-toggle__arrow{ display: inline-block; transition: transform .2s ease; }
+  .mv-areas-expand.is-open .mv-areas-toggle__arrow{ transform: rotate(180deg); }
+  /* When open, swap order so the button ends up below the revealed cards
+     instead of staying sandwiched between the two rows. */
+  .mv-areas-expand.is-open .mv-areas-toggle{ order: 2; margin-top: 18px; }
+  .mv-areas-more{
+    order: 1;
+    display: none; flex-wrap: wrap; gap: 14px; justify-content: center;
+    width: 100%;
+  }
+  .mv-areas-expand.is-open .mv-areas-more{ display: flex; }
+  .mv-area-card--small{ width: 160px; height: 110px; }
+
+  /* ---------------------------------------------------------------
+     Mobile type-scale rebalance — headings across the page (section
+     titles, mv-titles) were staying at full desktop size on small
+     screens, making them feel oversized next to the card text below
+     them. This brings the whole hierarchy down a notch on mobile.
+     --------------------------------------------------------------- */
+  @media (max-width: 640px){
+    .page-title{ font-size: 24px; }
+    .section-title{ font-size: 19px; margin-bottom: 18px; }
+    .mv-section{ padding: 36px 0; }
+    .mv-section__head{ margin-bottom: 16px; }
+    .mv-eyebrow{ font-size: 10.5px; }
+    .mv-title{ font-size: 19px; }
+    .mv-viewall{ font-size: 12.5px; }
+    .cta-inner h2{ font-size: 22px; }
+  }
+
+  /* ---------- Generic horizontal-scroll row (New Launches / Featured / Latest) ---------- */
+  .mv-hscroll .card-grid,
+  .mv-launches{
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
+    scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-hscroll .card-grid::-webkit-scrollbar,
+  .mv-launches::-webkit-scrollbar,
+  .mv-unit-scroll::-webkit-scrollbar,
+  .mv-property-grid::-webkit-scrollbar,
+  .mv-areas-scroll::-webkit-scrollbar{ height: 4px; }
+  .mv-hscroll .card-grid::-webkit-scrollbar-thumb,
+  .mv-launches::-webkit-scrollbar-thumb,
+  .mv-unit-scroll::-webkit-scrollbar-thumb,
+  .mv-property-grid::-webkit-scrollbar-thumb,
+  .mv-areas-scroll::-webkit-scrollbar-thumb{ background: #e8e5dd; border-radius: 4px; }
+  .mv-hscroll .card-grid > *{ flex: 0 0 auto !important; width: min(78vw, 280px); scroll-snap-align: start; }
+
+  /* ---------- New Launches: dark navy photo cards ---------- */
+  .mv-launch-card{
+    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(72vw, 270px);
+    aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; background: var(--color-navy);
+    color: var(--color-white); text-decoration: none; display: block;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .mv-launch-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(0,0,0,.35); }
+  .mv-launch-card__img{
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scale(1.02); transition: transform .4s ease;
+  }
+  .mv-launch-card:hover .mv-launch-card__img{ transform: scale(1.08); }
+  .mv-launch-card__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,33,68,0) 35%, rgba(10,33,68,.95) 100%);
+  }
+  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 20px; }
+  .mv-launch-card__badges{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .mv-launch-card__tag{
+    display: inline-block; font-family: var(--font-body); font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--color-navy-dark); background: var(--color-gold);
+    padding: 4px 9px; border-radius: 4px;
+  }
+  .mv-launch-card__name{
+    font-family: var(--font-heading); font-size: 20px; font-weight: 700; text-transform: uppercase;
+    margin: 0 0 3px 0;
+  }
+  .mv-launch-card__developer{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
+  .mv-launch-card__meta{ font-family: var(--font-body); font-size: 13px; color: #c7cedb; margin: 0 0 10px 0; }
+  .mv-launch-card__price{ font-family: var(--font-body); font-size: 14px; color: #c7cedb; margin: 0; }
+  .mv-launch-card__price span{ font-size: 16px; font-weight: 700; color: var(--color-gold); }
+
+  /* ---------- Delivery badge (used on media, over the image) ---------- */
+  .mv-delivery-badge{
+    display: inline-block; font-family: var(--font-body); font-size: 11px; font-weight: 700;
+    letter-spacing: .04em; color: var(--color-white); background: rgba(10,33,68,.75);
+    padding: 4px 10px; border-radius: 4px; backdrop-filter: blur(2px);
+  }
+  .mv-delivery-badge--onmedia{
+    position: absolute; top: 14px; left: 14px; z-index: 2;
+  }
+
+  /* ---------- Favorite / Compare floating icon buttons ---------- */
+  .mv-card-icons{
+    position: absolute; top: 14px; right: 14px; z-index: 2;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .mv-icon-btn{
+    width: 34px; height: 34px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,.9); color: var(--color-navy);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .2s ease, color .2s ease, transform .15s ease;
+  }
+  .mv-icon-btn svg{ width: 17px; height: 17px; }
+  .mv-icon-btn:hover{ transform: scale(1.08); }
+  .mv-fav-btn.is-active{ background: var(--color-gold); color: var(--color-navy-dark); }
+  .mv-fav-btn.is-active svg{ fill: currentColor; }
+  .mv-compare-btn.is-active{ background: var(--color-navy); color: var(--color-white); }
+
+  /* ---------- Featured / Latest: luxury property cards (light background) ---------- */
+  .mv-title--light{ color: var(--color-navy); }
+  .mv-property-grid{
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
+    scroll-snap-type: x mandatory; gap: 22px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-property-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: min(70vw, 260px);
+    background: var(--color-white); border: 1px solid #eee; border-radius: 10px;
+    overflow: hidden; text-decoration: none; display: block;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .mv-property-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(16,35,59,.16); }
+  .mv-property-card__media{ position: relative; width: 100%; height: 170px; background: #ddd; overflow: hidden; }
+  .mv-property-card__media img{
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .4s ease;
+  }
+  .mv-property-card:hover .mv-property-card__media img{ transform: scale(1.08); }
+  .mv-property-card__body{ padding: 18px 20px 22px; }
+  .mv-property-card__developer{
+    font-family: var(--font-body); font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
+  .mv-property-card__name{
+    font-family: var(--font-heading); font-size: 19px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 4px 0;
+  }
+  .mv-property-card__meta{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0 0 12px 0; }
+  .mv-property-card__price{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0; }
+  .mv-property-card__price span{ font-size: 16px; font-weight: 700; color: var(--color-navy); }
+
+  /* ---------- Top Areas: horizontal-scroll photo cards ---------- */
+  .mv-areas-scroll{
+    display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+    justify-content: center;
+  }
+  @media (max-width: 900px){
+    /* On narrow screens the cards are more likely to overflow, so left-align
+       instead of centering — centering + overflow-x can clip the first
+       card behind the edge in some mobile browsers. */
+    .mv-areas-scroll{ justify-content: flex-start; }
+  }
+  .mv-area-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: 160px; height: 110px;
+    border-radius: 8px; overflow: hidden; position: relative; text-decoration: none;
+    background-color: var(--color-navy); background-size: cover; background-position: center;
+  }
+  .mv-area-card__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,33,68,0) 45%, rgba(10,33,68,.88) 100%);
+  }
+  .mv-area-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; }
+  .mv-area-card__name{
+    font-family: var(--font-heading); font-size: 14px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-white); margin: 0 0 2px 0;
+  }
+  .mv-area-card__count{ font-family: var(--font-body); font-size: 11px; color: #d7dbe2; margin: 0; }
+
+  /* ---------- Recommended Units: horizontal-scroll cards ---------- */
+  .mv-unit-scroll{
+    display: flex; flex-wrap: nowrap; gap: 18px; overflow-x: auto;
+    scroll-snap-type: x mandatory; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+  }
+  .mv-unit-card{
+    scroll-snap-align: start; flex: 0 0 auto; width: min(72vw, 250px);
+    background: var(--color-white); border: 1px solid #e8e5dd; border-radius: 10px;
+    overflow: hidden; text-decoration: none; display: block;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .mv-unit-card:hover{ transform: translateY(-4px); box-shadow: 0 10px 24px rgba(16,35,59,.12); }
+  .mv-unit-card__thumb{ width: 100%; height: 140px; object-fit: cover; background: #ddd; display: block; }
+  .mv-unit-card__body{ padding: 14px 16px 18px 16px; }
+  .mv-unit-card__compound{
+    font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 0 0 4px 0;
+  }
+  .mv-unit-card__type{
+    font-family: var(--font-heading); font-size: 16px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 6px 0;
+  }
+  .mv-unit-card__facts{ font-family: var(--font-body); font-size: 13px; color: var(--color-text-muted); margin: 0 0 10px 0; }
+  .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
+  .mv-unit-card__price{ font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-gold); margin: 0; }
+  /* ---------- Why Meleven + Investment Calculator ---------- */
+  .mv-why-grid{
+    display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; align-items: start;
+  }
+  @media (max-width: 900px){ .mv-why-grid{ grid-template-columns: 1fr; } }
+  .mv-why-features{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+  @media (max-width: 640px){ .mv-why-features{ grid-template-columns: 1fr; gap: 20px; } }
+  .mv-why-feature__icon{
+    width: 44px; height: 44px; border-radius: 8px; background: rgba(198,157,122,.15);
+    color: var(--color-gold); display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+  }
+  .mv-why-feature__icon svg{ width: 22px; height: 22px; }
+  .mv-why-feature__title{
+    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-white); margin: 0 0 6px 0;
+  }
+  .mv-why-feature__text{ font-family: var(--font-body); font-size: 13.5px; color: #c7cedb; margin: 0; line-height: 1.5; }
+
+  .mv-calc-card{
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px; padding: 26px;
+  }
+  .mv-calc-card__title{
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 20px 0;
+  }
+  .mv-calc-label{
+    display: block; font-family: var(--font-body); font-size: 11.5px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; color: #b7bdc8; margin-bottom: 6px;
+  }
+  .mv-calc-budget-display{
+    width: 100%; background: none; border: none; color: var(--color-white);
+    font-family: var(--font-heading); font-size: 24px; font-weight: 700; padding: 0 0 8px 0;
+  }
+  .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); }
+  .mv-calc-select{
+    width: 100%; padding: 10px 12px; margin-top: 4px; border-radius: 6px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
+    color: var(--color-white); font-family: var(--font-body); font-size: 14px;
+  }
+  .mv-calc-results{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin: 22px 0 18px 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12);
+  }
+  .mv-calc-results__label{ font-family: var(--font-body); font-size: 11.5px; color: #b7bdc8; margin: 0 0 4px 0; }
+  .mv-calc-results__value{ font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: var(--color-white); margin: 0; }
+  .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; }
+  .mv-calc-disclaimer{ font-family: var(--font-body); font-size: 11px; color: #8891a0; margin: 12px 0 0 0; line-height: 1.4; }
+
+  /* ---------- AI Property Match (uses existing /compounds filters) ---------- */
+  .mv-match-form{
+    display: flex; flex-wrap: wrap; align-items: end; gap: 16px;
+    background: var(--color-cream); border-radius: 10px; padding: 24px;
+  }
+  .mv-match-field{ flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 6px; }
+  .mv-match-field input{
+    padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+    font-family: var(--font-body); font-size: 14px; background: var(--color-white);
+  }
+  .mv-match-submit{ flex-shrink: 0; white-space: nowrap; }
+
+  /* ---------- Developers showcase ---------- */
+  .mv-developers-row{
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px;
+  }
+  .mv-developer-pill{
+    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .03em;
+    color: var(--color-white); border: 1px solid rgba(255,255,255,.25); border-radius: 20px;
+    padding: 9px 20px; text-decoration: none; transition: border-color .2s ease, color .2s ease;
+  }
+  .mv-developer-pill:hover{ border-color: var(--color-gold); color: var(--color-gold); }
+  /* ---------- Phase 4: Luxury CTA + Consultation form ---------- */
+  .mv-luxury-cta{ background: var(--color-cream); }
+  .mv-luxury-cta__grid{
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center;
+  }
+  @media (max-width: 900px){ .mv-luxury-cta__grid{ grid-template-columns: 1fr; } }
+  .mv-luxury-cta__intro .mv-title{ color: var(--color-navy); }
+  .hero-cta--whatsapp{
+    display: inline-flex; margin-top: 24px;
+    background: #25D366; color: var(--color-white); border: 1px solid #25D366;
+  }
+  .hero-cta--whatsapp:hover{ background: #1ebe5b; }
+
+  .mv-consult-form-card{
+    background: var(--color-white); border: 1px solid #eee; border-radius: 10px;
+    padding: 28px; box-shadow: 0 14px 34px rgba(16,35,59,.08);
+  }
+  .mv-consult-form-card__title{
+    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 18px 0;
+  }
+  .mv-consult-form{ display: flex; flex-direction: column; gap: 12px; }
+  .mv-consult-form input,
+  .mv-consult-form textarea{
+    padding: 11px 14px; border: 1px solid #ddd; border-radius: 6px;
+    font-family: var(--font-body); font-size: 14px; resize: vertical;
+  }
+  .mv-consult-form__submit{ border: none; cursor: pointer; margin-top: 4px; }
+
+  .mv-whatsapp-float{
+    position: fixed; bottom: 22px; right: 22px; z-index: 50;
+    width: 56px; height: 56px; border-radius: 50%; background: #25D366; color: var(--color-white);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25); transition: transform .2s ease;
+  }
+  .mv-whatsapp-float:hover{ transform: scale(1.08); }
+
+  /* ---------------------------------------------------------------
+     Mobile compression — the page was running very long on phones.
+     This tightens vertical rhythm across the newer Phase 1-4 sections
+     without touching their desktop layout.
+     --------------------------------------------------------------- */
+  @media (max-width: 640px){
+    .mv-property-card__media{ height: 150px; }
+    .mv-calc-card{ padding: 18px; }
+    .mv-why-section{ padding-top: 32px; padding-bottom: 32px; }
+    .mv-luxury-cta{ padding-top: 8px; }
+    .mv-luxury-cta__grid{ gap: 28px; }
+    .mv-match-form{ padding: 16px; gap: 12px; flex-direction: column; align-items: stretch; }
+    .mv-match-field{ min-width: 0; }
+    .mv-match-submit{ width: 100%; text-align: center; }
+    .mv-developers-section{ padding-top: 28px; padding-bottom: 28px; }
+    .mv-developers-row{ gap: 8px; }
+    .mv-developer-pill{ padding: 7px 14px; font-size: 12px; }
+    .mv-consult-form-card{ padding: 20px; }
+  }
+</style>
+
+<section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
+    <div class="container hero-inner">
+        <p class="hero-eyebrow">Curating Egypt's Finest Real Estate</p>
+        <h1>Exclusive Opportunities.<br>Trusted Advice.<br><span class="hero-accent">Exceptional Investments.</span></h1>
+        <p class="hero-subtitle">Meleven Consultancy — a boutique real estate advisory with 12 years of experience helping clients find, evaluate, and invest in Egypt's best properties.</p>
+        <div class="hero-cta-row">
+            <a href="{{ url_for('compounds') }}" class="hero-cta hero-cta--primary">Explore Projects →</a>
+            <a href="{{ url_for('contact') }}" class="hero-cta hero-cta--outline">Book Consultation</a>
+        </div>
+        <div class="hero-search">
+            <form action="{{ url_for('compounds') }}" method="get" class="search-form">
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Location</span>
+                    <input type="text" name="area" list="hero-area-list" placeholder="All areas">
+                    <datalist id="hero-area-list">
+                        {% for a in all_area_names %}
+                        <option value="{{ a }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Developer</span>
+                    <input type="text" name="developer" list="hero-developer-list" placeholder="All developers">
+                    <datalist id="hero-developer-list">
+                        {% for d in all_developer_names %}
+                        <option value="{{ d }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field">
+                    <span class="hero-search__label">Compound</span>
+                    <input type="text" name="q" list="hero-compound-list" placeholder="Search by name">
+                    <datalist id="hero-compound-list">
+                        {% for c in all_compound_names %}
+                        <option value="{{ c }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="hero-search__field hero-search__field--budget">
+                    <span class="hero-search__label">Budget (EGP)</span>
+                    <div class="hero-search__budget-row">
+                        <input type="number" name="min_price" placeholder="Min">
+                        <input type="number" name="max_price" placeholder="Max">
+                    </div>
+                </div>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    Search
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="hero-stats">
+  <div class="container hero-stats__grid">
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="12">0</p>
+      <p class="hero-stat__label">Years of Experience</p>
+    </div>
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="{{ all_compound_names|length }}">0</p>
+      <p class="hero-stat__label">Projects</p>
+    </div>
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="{{ all_developer_names|length }}">0</p>
+      <p class="hero-stat__label">Developers</p>
+    </div>
+    <div class="hero-stat">
+      <p class="hero-stat__number" data-count="500" data-suffix="+">0</p>
+      <p class="hero-stat__label">Happy Clients</p>
+    </div>
+  </div>
+</section>
+
+{% if new_launches %}
+<section class="mv-section mv-section--dark">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Just Announced</p>
+        <h2 class="mv-title">New Launches</h2>
+      </div>
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
+    </div>
+
+    <div class="mv-hscroll">
+      <div class="mv-launches">
+        {% for c in new_launches %}
+        <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+          <div class="mv-card-icons">
+            <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+            </button>
+            <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+            </button>
+          </div>
+          {% if c.cover_image_url %}
+            <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
+          {% endif %}
+          <div class="mv-launch-card__scrim"></div>
+          <div class="mv-launch-card__body">
+            <div class="mv-launch-card__badges">
+              <span class="mv-launch-card__tag">New Launch</span>
+              {% if c.delivery_year %}<span class="mv-delivery-badge">Delivery {{ c.delivery_year }}</span>{% endif %}
+            </div>
+            <p class="mv-launch-card__name">{{ c.name }}</p>
+            {% if c.developer %}<p class="mv-launch-card__developer">{{ c.developer }}</p>{% endif %}
+            <p class="mv-launch-card__meta">{{ c.area }}</p>
+            {% if c.min_price %}
+            <p class="mv-launch-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+            {% else %}
+            <p class="mv-launch-card__price">Price on request</p>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if featured %}
+<section class="section">
+    <div class="container">
+        <div class="mv-section__head">
+          <div>
+            <p class="mv-eyebrow">Handpicked</p>
+            <h2 class="mv-title mv-title--light">Featured Compounds</h2>
+          </div>
+          <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
+        </div>
+        <div class="mv-hscroll">
+            <div class="mv-property-grid">
+                {% for c in featured %}
+                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+                  <div class="mv-property-card__media">
+                    <div class="mv-card-icons">
+                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+                      </button>
+                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+                      </button>
+                    </div>
+                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
+                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
+                  </div>
+                  <div class="mv-property-card__body">
+                    {% if c.developer %}<p class="mv-property-card__developer">{{ c.developer }}</p>{% endif %}
+                    <p class="mv-property-card__name">{{ c.name }}</p>
+                    <p class="mv-property-card__meta">{{ c.area }}</p>
+                    {% if c.min_price %}
+                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+                    {% else %}
+                    <p class="mv-property-card__price">Price on request</p>
+                    {% endif %}
+                  </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if top_areas %}
+<section class="mv-section area-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Explore by Location</p>
+        <h2 class="mv-title">Top Areas</h2>
+      </div>
+    </div>
+
+    <div class="mv-areas-scroll">
+      {% for area in top_areas %}
+      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ area.name }}</p>
+          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="mv-areas-expand" id="areas-expand">
+      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+        View all areas <span class="mv-areas-toggle__arrow">▾</span>
+      </button>
+
+      <div class="mv-areas-more" id="areas-more">
+        {% for loc in locations_menu %}
+        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+          <div class="mv-area-card__scrim"></div>
+          <div class="mv-area-card__body">
+            <p class="mv-area-card__name">{{ loc.name }}</p>
+            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+    <div class="container">
+        <div class="mv-section__head">
+          <div>
+            <p class="mv-eyebrow">Fresh on the Market</p>
+            <h2 class="mv-title mv-title--light">Latest Listings</h2>
+          </div>
+        </div>
+        {% if latest %}
+        <div class="mv-hscroll">
+            <div class="mv-property-grid">
+                {% for c in latest %}
+                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
+                  <div class="mv-property-card__media">
+                    <div class="mv-card-icons">
+                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
+                      </button>
+                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
+                      </button>
+                    </div>
+                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
+                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
+                  </div>
+                  <div class="mv-property-card__body">
+                    {% if c.developer %}<p class="mv-property-card__developer">{{ c.developer }}</p>{% endif %}
+                    <p class="mv-property-card__name">{{ c.name }}</p>
+                    <p class="mv-property-card__meta">{{ c.area }}</p>
+                    {% if c.min_price %}
+                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+                    {% else %}
+                    <p class="mv-property-card__price">Price on request</p>
+                    {% endif %}
+                  </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% if recommended_units %}
+<section class="mv-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Handpicked for You</p>
+        <h2 class="mv-title">Recommended Units</h2>
+      </div>
+      <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
+    </div>
+
+    <div class="mv-unit-scroll">
+      {% for u in recommended_units %}
+      <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
+        <img class="mv-unit-card__thumb"
+             src="{{ u.image_url or u.compound.cover_image_url or '' }}"
+             alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
+        <div class="mv-unit-card__body">
+          <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
+          <p class="mv-unit-card__type">{{ u.unit_type }}</p>
+          <p class="mv-unit-card__facts">
+            {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
+            {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
+            {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
+          </p>
+          <p class="mv-unit-card__price">
+            {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
+          </p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="mv-section mv-section--dark mv-why-section">
+  <div class="container mv-why-grid">
+    <div class="mv-why-intro">
+      <p class="mv-eyebrow">Why Meleven?</p>
+      <h2 class="mv-title">More Than<br>a Property Portal</h2>
+      <div class="hero-rule" style="margin:18px 0 0 0;"></div>
+      <div class="mv-why-features">
+        <div class="mv-why-feature">
+          <div class="mv-why-feature__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+          </div>
+          <p class="mv-why-feature__title">Curated Properties</p>
+          <p class="mv-why-feature__text">Only the finest projects from Egypt's most trusted developers.</p>
+        </div>
+        <div class="mv-why-feature">
+          <div class="mv-why-feature__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          </div>
+          <p class="mv-why-feature__title">Investment Focused</p>
+          <p class="mv-why-feature__text">Expert advice to help you make smart, profitable decisions.</p>
+        </div>
+        <div class="mv-why-feature">
+          <div class="mv-why-feature__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>
+          </div>
+          <p class="mv-why-feature__title">Global Standards</p>
+          <p class="mv-why-feature__text">International-level service backed by local market expertise.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mv-calc-card">
+      <p class="mv-calc-card__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
+        Investment Calculator
+      </p>
+      <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
+      <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
+      <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
+
+      <label class="mv-calc-label" for="calc-downpayment" style="margin-top:16px;">Down Payment</label>
+      <select id="calc-downpayment" class="mv-calc-select">
+        <option value="0.10">10%</option>
+        <option value="0.15">15%</option>
+        <option value="0.20" selected>20%</option>
+        <option value="0.30">30%</option>
+      </select>
+
+      <div class="mv-calc-results">
+        <div>
+          <p class="mv-calc-results__label">Estimated Monthly Payment</p>
+          <p class="mv-calc-results__value" id="calc-monthly">From EGP 33,333</p>
+        </div>
+        <div>
+          <p class="mv-calc-results__label">Properties Available</p>
+          <p class="mv-calc-results__value" id="calc-count">{{ all_compound_names|length }}</p>
+        </div>
+      </div>
+      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">View Matching Properties</a>
+      <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section mv-match-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Not Sure Where to Start?</p>
+        <h2 class="mv-title mv-title--light">Find Your Match</h2>
+      </div>
+    </div>
+    <form action="{{ url_for('compounds') }}" method="get" class="mv-match-form">
+      <div class="mv-match-field">
+        <span class="hero-search__label">Preferred Location</span>
+        <input type="text" name="area" list="hero-area-list" placeholder="Any area">
+      </div>
+      <div class="mv-match-field">
+        <span class="hero-search__label">Max Budget (EGP)</span>
+        <input type="number" name="max_price" placeholder="e.g. 15,000,000">
+      </div>
+      <div class="mv-match-field">
+        <span class="hero-search__label">Preferred Developer</span>
+        <input type="text" name="developer" list="hero-developer-list" placeholder="Any developer">
+      </div>
+      <button type="submit" class="hero-cta hero-cta--primary mv-match-submit">Match Me With Properties →</button>
+    </form>
+  </div>
+</section>
+
+{% if all_developer_names %}
+<section class="mv-section mv-developers-section">
+  <div class="container">
+    <p class="mv-eyebrow" style="text-align:center;">Partnering With Industry Leaders</p>
+    <div class="mv-developers-row">
+      {% for d in all_developer_names %}
+      <a class="mv-developer-pill" href="{{ url_for('compounds', developer=d) }}">{{ d }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section mv-luxury-cta">
+    <div class="container mv-luxury-cta__grid">
+        <div class="mv-luxury-cta__intro">
+            <p class="mv-eyebrow">Book a Consultation</p>
+            <h2 class="mv-title">Looking For<br>The Right Property?</h2>
+            <p class="hero-subtitle" style="color:var(--color-text-muted); margin-top:16px;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
+            <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp">
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
+                Chat on WhatsApp
+            </a>
+        </div>
+
+        <div class="mv-consult-form-card">
+            <p class="mv-consult-form-card__title">Get in Touch</p>
+            <form action="{{ url_for('contact') }}" method="post" class="mv-consult-form">
+                <input type="text" name="name" placeholder="Your Name" required>
+                <input type="text" name="phone" placeholder="Phone Number" required>
+                <input type="email" name="email" placeholder="Email (optional)">
+                <textarea name="message" rows="3" placeholder="Tell us what you're looking for..."></textarea>
+                <button type="submit" class="hero-cta hero-cta--primary mv-consult-form__submit">Request a Callback</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="mv-whatsapp-float" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
+</a>
+
+
+
+<script>
+  (function(){
+    var statEls = document.querySelectorAll('.hero-stat__number');
+    if (!statEls.length) return;
+    var animated = false;
+    function animateStats(){
+      if (animated) return;
+      animated = true;
+      statEls.forEach(function(el){
+        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+        var suffix = el.getAttribute('data-suffix') || '';
+        var duration = 1200;
+        var startTime = null;
+        function step(ts){
+          if (!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / duration, 1);
+          el.textContent = Math.floor(progress * target) + suffix;
+          if (progress < 1) requestAnimationFrame(step);
+          else el.textContent = target + suffix;
+        }
+        requestAnimationFrame(step);
+      });
+    }
+    var statsSection = document.querySelector('.hero-stats');
+    if (statsSection && 'IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if (entry.isIntersecting) { animateStats(); observer.disconnect(); }
+        });
+      }, { threshold: 0.3 });
+      observer.observe(statsSection);
+    } else {
+      animateStats();
+    }
+  })();
+</script>
+
+<script>
+  (function(){
+    var slider = document.getElementById('calc-budget');
+    var budgetDisplay = document.getElementById('calc-budget-display');
+    var downpaymentSelect = document.getElementById('calc-downpayment');
+    var monthlyOut = document.getElementById('calc-monthly');
+    var ctaLink = document.getElementById('calc-cta');
+    if (!slider) return;
+
+    var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
+
+    function formatEGP(n){
+      return Math.round(n).toLocaleString('en-US');
+    }
+
+    function recalculate(){
+      var budget = parseInt(slider.value, 10);
+      var downpaymentRate = parseFloat(downpaymentSelect.value);
+      var financedAmount = budget * (1 - downpaymentRate);
+      var monthly = financedAmount / INSTALLMENT_MONTHS;
+
+      budgetDisplay.value = formatEGP(budget);
+      monthlyOut.textContent = 'From EGP ' + formatEGP(monthly);
+
+      if (ctaLink) {
+        var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
+        url.searchParams.set('max_price', budget);
+        ctaLink.href = url.pathname + url.search;
+      }
+    }
+
+    if (ctaLink && !ctaLink.getAttribute('data-base-href')) {
+      ctaLink.setAttribute('data-base-href', ctaLink.getAttribute('href'));
+    }
+
+    slider.addEventListener('input', recalculate);
+    downpaymentSelect.addEventListener('change', recalculate);
+    recalculate();
+  })();
+</script>
+{% endblock %}            return None
         lo, hi = min(beds), max(beds)
         return f"{lo} Bed" if lo == hi else f"{lo} - {hi} Beds"
     def bathrooms_range(self):
