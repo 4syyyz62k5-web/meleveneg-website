@@ -1,82 +1,228 @@
-{% extends "admin/base.html" %}
-{% block title %}{{ "Edit" if compound else "New" }} Compound — Meleven Admin{% endblock %}
+{% extends "base.html" %}
+{% block title %}Properties — Meleven Consultancy{% endblock %}
 {% block content %}
-<div class="admin-container narrow-admin">
-    <h1>{{ "Edit Compound" if compound else "New Compound" }}</h1>
-    <form method="post" class="admin-form" enctype="multipart/form-data">
-        <label>Name *</label>
-        <input type="text" name="name" value="{{ compound.name if compound else '' }}" required>
-        {% if not compound %}
-        <label>URL Slug (leave blank to auto-generate from the name)</label>
-        <input type="text" name="slug" placeholder="e.g. silversands">
-        {% endif %}
-        <label>Location (top-level region, e.g. New Cairo, North Coast)</label>
-        <input type="text" name="location" value="{{ compound.location if compound else '' }}" placeholder="e.g. New Cairo">
-        <label>Developer</label>
-        <input type="text" name="developer" value="{{ compound.developer if compound else '' }}">
-        <label>Area (sub-area within the location)</label>
-        <input type="text" name="area" value="{{ compound.area if compound else '' }}" placeholder="e.g. Mostakbal City">
-        <label>Location Detail</label>
-        <input type="text" name="location_detail" value="{{ compound.location_detail if compound else '' }}" placeholder="e.g. Kilo 247, International Coastal Road">
-        <label>Short Description</label>
-        <textarea name="short_description" rows="2">{{ compound.short_description if compound else '' }}</textarea>
-        <label>Full Description</label>
-        <textarea name="full_description" rows="5">{{ compound.full_description if compound else '' }}</textarea>
-        <div class="admin-form-row">
-            <div>
-                <label>Min Price (EGP)</label>
-                <input type="number" name="min_price" value="{{ compound.min_price if compound else '' }}">
-            </div>
-            <div>
-                <label>Max Price (EGP)</label>
-                <input type="number" name="max_price" value="{{ compound.max_price if compound else '' }}">
-            </div>
-        </div>
-        <div class="admin-form-row">
-            <div>
-                <label>Land Area (acres)</label>
-                <input type="number" step="0.01" name="land_area_acres" value="{{ compound.land_area_acres if compound else '' }}">
-            </div>
-            <div>
-                <label>Delivery Year</label>
-                <input type="number" name="delivery_year" value="{{ compound.delivery_year if compound else '' }}">
-            </div>
-        </div>
+<style>
+    .browse-layout {
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+    }
+    .filter-sidebar {
+        width: 260px;
+        flex-shrink: 0;
+        background: var(--color-white);
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 20px;
+        position: sticky;
+        top: 20px;
+    }
+    .filter-sidebar h3 {
+        font-family: var(--font-heading);
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-navy);
+        margin: 0 0 12px;
+    }
+    .filter-group {
+        margin-bottom: 24px;
+    }
+    .filter-group:last-child {
+        margin-bottom: 0;
+    }
+    .filter-checkbox-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .filter-checkbox-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-body);
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .filter-price-row {
+        display: flex;
+        gap: 8px;
+    }
+    .filter-price-row input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: var(--font-body);
+    }
+    .filter-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: var(--font-body);
+    }
+    .filter-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .filter-actions button,
+    .filter-actions a {
+        text-align: center;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: var(--font-body);
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .filter-apply-btn {
+        background: var(--color-gold);
+        color: var(--color-navy-dark);
+        border: none;
+    }
+    .filter-reset-link {
+        background: transparent;
+        color: var(--color-navy);
+        border: 1px solid var(--color-navy);
+    }
+    .browse-content {
+        flex: 1;
+        min-width: 0;
+    }
+    .browse-count {
+        font-family: var(--font-body);
+        font-size: 14px;
+        color: var(--color-text-muted);
+        margin: -12px 0 20px 0;
+    }
 
-        <label>Cover Photo</label>
-        {% if compound and compound.cover_image_url %}
-        <p class="unit-payment-plan">Current photo: <a href="{{ compound.cover_image_url }}" target="_blank">view</a></p>
-        {% endif %}
-        <input type="file" name="cover_image_file" accept="image/*">
-        <label>Or Cover Image URL (used only if you don't upload a photo above)</label>
-        <input type="text" name="cover_image_url" value="{{ compound.cover_image_url if compound else '' }}" placeholder="https://...">
+    /* ---------------------------------------------------------------
+       Mobile: the filter sidebar becomes a collapsible <details> panel
+       instead of a permanently-open block, so it doesn't push the
+       actual listings down the page on small screens.
+       --------------------------------------------------------------- */
+    .filter-toggle-summary{
+        display: none;
+        cursor: pointer;
+        list-style: none;
+        font-family: var(--font-heading);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-size: 14px;
+        color: var(--color-navy);
+        padding: 12px 16px;
+        background: var(--color-white);
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .filter-toggle-summary::-webkit-details-marker{ display: none; }
+    .filter-toggle-summary::after{ content: "Filters ▾"; color: var(--color-gold); font-size: 13px; }
+    details[open] .filter-toggle-summary::after{ content: "Filters ▴"; }
 
-        <div class="admin-form-row">
-            <div>
-                <label>Contact Phone (for the Call button)</label>
-                <input type="text" name="contact_phone" value="{{ compound.contact_phone if compound else '' }}" placeholder="+201000000000">
-            </div>
-            <div>
-                <label>WhatsApp Number (digits only, country code first)</label>
-                <input type="text" name="contact_whatsapp" value="{{ compound.contact_whatsapp if compound else '' }}" placeholder="201000000000">
+    @media (max-width: 900px) {
+        .browse-layout {
+            flex-direction: column;
+        }
+        .filter-sidebar {
+            width: 100%;
+            position: static;
+            border: none;
+            padding: 0;
+        }
+        .filter-toggle-summary{ display: flex; }
+    }
+    @media (min-width: 901px){
+        .filter-drawer .filter-sidebar{ display: block !important; }
+    }
+</style>
+
+<section class="section">
+    <div class="container">
+        <h1 class="page-title">Browse Properties</h1>
+
+        <div class="browse-layout">
+            <details class="filter-drawer">
+                <summary class="filter-toggle-summary">Filter properties</summary>
+                <aside class="filter-sidebar">
+                    <form action="{{ url_for('compounds') }}" method="get">
+
+                        <div class="filter-group">
+                            <h3>Search</h3>
+                            <input type="text" name="q" value="{{ search_query }}" placeholder="Compound name" class="filter-select">
+                        </div>
+
+                        <div class="filter-group">
+                            <h3>Area</h3>
+                            <div class="filter-checkbox-list">
+                                {% for area in areas %}
+                                <label>
+                                    <input type="checkbox" name="area" value="{{ area }}"
+                                        {% if area in selected_areas %}checked{% endif %}>
+                                    {{ area }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <h3>Developer</h3>
+                            <select name="developer" class="filter-select">
+                                <option value="">All Developers</option>
+                                {% for dev in developers %}
+                                <option value="{{ dev }}" {% if dev == selected_developer %}selected{% endif %}>{{ dev }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <h3>Price Range (EGP)</h3>
+                            <div class="filter-price-row">
+                                <input type="number" name="min_price" placeholder="Min" value="{{ min_price }}">
+                                <input type="number" name="max_price" placeholder="Max" value="{{ max_price }}">
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <h3>Delivery Year</h3>
+                            <select name="delivery_year" class="filter-select">
+                                <option value="">Any</option>
+                                {% for year in delivery_years %}
+                                <option value="{{ year }}" {% if year|string == selected_delivery_year|string %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="submit" class="filter-apply-btn">Apply Filters</button>
+                            <a href="{{ url_for('compounds') }}" class="filter-reset-link">Reset All</a>
+                        </div>
+                    </form>
+                </aside>
+            </details>
+
+            <div class="browse-content">
+                {% if compounds %}
+                <p class="browse-count">{{ compounds|length }} propert{{ 'y' if compounds|length == 1 else 'ies' }} found</p>
+                <div class="card-grid">
+                    {% for c in compounds %}
+                        {% include "_compound_card.html" %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No properties found. Try adjusting your filters.</p>
+                {% endif %}
             </div>
         </div>
-        <label class="checkbox-label">
-            <input type="checkbox" name="is_featured" {% if compound and compound.is_featured %}checked{% endif %}>
-            Featured (shows in the homepage "Featured Compounds" row)
-        </label>
-        <label class="checkbox-label">
-            <input type="checkbox" name="is_launch" {% if compound and compound.is_launch %}checked{% endif %}>
-            Launch (marks the WHOLE compound as a launch — shortcut instead of flagging individual units on the Units page)
-        </label>
-        <label class="checkbox-label">
-            <input type="checkbox" name="is_published" {% if not compound or compound.is_published %}checked{% endif %}>
-            Published (visible on the live site)
-        </label>
-        <div class="admin-form-actions">
-            <button type="submit" class="btn-primary">{{ "Save Changes" if compound else "Create Compound" }}</button>
-            <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">Cancel</a>
-        </div>
-    </form>
-</div>
+    </div>
+</section>
 {% endblock %}
