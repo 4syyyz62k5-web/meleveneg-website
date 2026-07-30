@@ -66,6 +66,10 @@
             Featured (shows in the homepage "Featured Compounds" row)
         </label>
         <label class="checkbox-label">
+            <input type="checkbox" name="is_launch" {% if compound and compound.is_launch %}checked{% endif %}>
+            Launch (marks the WHOLE compound as a launch — shortcut instead of flagging individual units on the Units page)
+        </label>
+        <label class="checkbox-label">
             <input type="checkbox" name="is_published" {% if not compound or compound.is_published %}checked{% endif %}>
             Published (visible on the live site)
         </label>
