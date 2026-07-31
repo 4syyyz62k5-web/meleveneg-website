@@ -422,24 +422,25 @@
   .mv-unit-card__facts{ font-family: var(--font-body); font-size: 11.5px; color: var(--color-text-muted); margin: 0 0 8px 0; }
   .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
   .mv-unit-card__price{ font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--color-gold); margin: 0; }
-  /* ---------- Why Meleven + Investment Calculator ---------- */
-  .mv-why-grid{
-    display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; align-items: start;
-  }
-  @media (max-width: 900px){ .mv-why-grid{ grid-template-columns: 1fr; } }
-  .mv-why-features{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+  /* ---------- Why Meleven (standalone, increased visual weight, light bg) ---------- */
+  .mv-why-features{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 20px; }
   @media (max-width: 640px){ .mv-why-features{ grid-template-columns: 1fr; gap: 20px; } }
+  .mv-why-feature{
+    background: var(--color-white); border: 1px solid #e5e0d6; border-radius: 12px;
+    padding: 40px 30px; text-align: center; transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .mv-why-feature:hover{ transform: translateY(-4px); box-shadow: 0 16px 32px rgba(16,35,59,.08); }
   .mv-why-feature__icon{
-    width: 44px; height: 44px; border-radius: 8px; background: rgba(198,157,122,.15);
+    width: 60px; height: 60px; border-radius: 50%; background: rgba(198,157,122,.14);
     color: var(--color-gold); display: flex; align-items: center; justify-content: center;
-    margin-bottom: 14px;
+    margin: 0 auto 20px auto;
   }
-  .mv-why-feature__icon svg{ width: 22px; height: 22px; }
+  .mv-why-feature__icon svg{ width: 26px; height: 26px; }
   .mv-why-feature__title{
-    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
-    color: var(--color-white); margin: 0 0 6px 0;
+    font-family: var(--font-heading); font-size: 17px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 10px 0;
   }
-  .mv-why-feature__text{ font-family: var(--font-body); font-size: 13.5px; color: #c7cedb; margin: 0; line-height: 1.5; }
+  .mv-why-feature__text{ font-family: var(--font-body); font-size: 14px; color: var(--color-text-muted); margin: 0; line-height: 1.6; }
 
   .mv-calc-card{
     background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
@@ -644,7 +645,7 @@
 
 
 {% if new_launches %}
-<section class="mv-section">
+<section class="mv-section mv-section--dark">
   <div class="container">
     <div class="mv-section__head">
       <div>
@@ -792,11 +793,11 @@
 {% endif %}
 
 
-<section class="section">
+<section class="section" style="background:var(--color-navy-dark);">
   <div class="container">
     <div style="text-align:center; max-width:560px; margin:0 auto 32px auto;">
       <p class="mv-eyebrow">Plan Your Investment</p>
-      <h2 class="mv-title">Investment Calculator</h2>
+      <h2 class="mv-title" style="color:var(--color-white);">Investment Calculator</h2>
     </div>
     <div class="mv-calc-card">
       <p class="mv-calc-card__title">
