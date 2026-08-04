@@ -470,10 +470,15 @@
   }
 
   .mv-calc-select{
-    width: 100%; padding: 10px 12px; margin-top: 4px; border-radius: 6px;
+    width: 100%; padding: 10px 34px 10px 12px; margin-top: 4px; border-radius: 6px;
     background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
     color: var(--color-white); font-family: var(--font-body); font-size: 14px;
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C69D7A' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;
+    cursor: pointer;
   }
+  .mv-calc-select option{ color: #111; background: #fff; }
   .mv-calc-results{
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
     margin: 22px 0 18px 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12);
@@ -859,7 +864,12 @@
       <div class="mv-calc-filters-row">
         <div class="mv-calc-filter">
           <label class="mv-calc-label" for="calc-area">Area</label>
-          <input type="text" id="calc-area" class="mv-calc-select mv-calc-select--input" list="hero-area-list" placeholder="Any area">
+          <select id="calc-area" class="mv-calc-select">
+            <option value="">Any area</option>
+            {% for a in all_area_names %}
+            <option value="{{ a }}">{{ a }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="mv-calc-filter">
           <label class="mv-calc-label" for="calc-type">Type</label>
@@ -1158,7 +1168,7 @@
 
     slider.addEventListener('input', recalculate);
     downpaymentSelect.addEventListener('change', recalculate);
-    if (areaInput) areaInput.addEventListener('input', recalculate);
+    if (areaInput) areaInput.addEventListener('change', recalculate);
     if (typeSelect) typeSelect.addEventListener('change', recalculate);
   })();
 </script>
