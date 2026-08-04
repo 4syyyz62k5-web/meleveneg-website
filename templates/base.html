@@ -64,6 +64,58 @@
   }
 
   /* ---------------------------------------------------------------
+     Mobile nav — hamburger toggle. The header is only two things on
+     phones: the logo and this button; .main-nav becomes a full-width
+     dropdown panel underneath, hidden until toggled open. Scoped
+     entirely to this file so it doesn't depend on style.css internals.
+     --------------------------------------------------------------- */
+  .nav-toggle{
+    display: none;
+    width: 40px; height: 40px;
+    background: none; border: none; cursor: pointer;
+    align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .nav-toggle span{
+    display: block; width: 22px; height: 2px; background: var(--color-white);
+    position: relative; transition: background .2s ease;
+  }
+  .nav-toggle span::before, .nav-toggle span::after{
+    content: ""; position: absolute; left: 0; width: 22px; height: 2px;
+    background: var(--color-white); transition: transform .2s ease, top .2s ease;
+  }
+  .nav-toggle span::before{ top: -7px; }
+  .nav-toggle span::after{ top: 7px; }
+  .nav-toggle.is-open span{ background: transparent; }
+  .nav-toggle.is-open span::before{ top: 0; transform: rotate(45deg); }
+  .nav-toggle.is-open span::after{ top: 0; transform: rotate(-45deg); }
+
+  @media (max-width: 860px){
+    .nav-toggle{ display: flex; }
+    .main-nav{
+      display: none;
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-navy-dark);
+      flex-direction: column;
+      padding: 8px 24px 20px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.3);
+    }
+    .main-nav.is-open{ display: flex; }
+    .main-nav a{
+      padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.08);
+      width: 100%;
+    }
+    .main-nav a:last-child{ border-bottom: none; }
+    .nav-cta{ margin-left: 0 !important; margin-top: 10px; text-align: center; }
+    /* On the solid-navy pages (About/Contact/Properties) the header isn't
+       absolutely positioned, so the dropdown just needs to sit right below
+       the header bar rather than overlapping page content underneath it. */
+    body:not(:has(.hero)):not(:has(.compound-hero)) .main-nav{
+      position: static; box-shadow: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------
      Skip-to-content link — invisible until keyboard-focused, lets
      keyboard/screen-reader users jump past the nav straight to the
      page content instead of tabbing through every header link first.
@@ -153,6 +205,42 @@
     .footer-col > summary{ cursor: default; }
     .footer-col-links{ display: flex !important; }
   }
+
+  /* ---------------------------------------------------------------
+     Compact footer columns on mobile — Areas / Developers / Quick
+     Links used to stack as three full-width accordions, making the
+     footer very tall. They now sit side by side as small always-open
+     columns instead, matching the desktop "no accordion" treatment
+     but at a much smaller size. Brand and "Get In Touch" stay full
+     width above/below since they hold more than a simple link list.
+     --------------------------------------------------------------- */
+  @media (max-width: 640px){
+    .footer-columns{
+      display: grid;
+      grid-template-columns: 1fr;
+      row-gap: 4px;
+    }
+    .footer-compact-row{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .footer-compact-row .footer-col{
+      border-bottom: none;
+    }
+    .footer-compact-row .footer-col > summary{
+      cursor: default;
+      padding: 10px 0 4px;
+    }
+    .footer-compact-row .footer-col > summary::after{ display: none; }
+    .footer-compact-row .footer-col-links{
+      display: flex !important;
+      padding-bottom: 6px;
+      gap: 2px;
+    }
+    .footer-compact-row .footer-col h4{ font-size: 12px; }
+    .footer-compact-row .footer-col-links a{ font-size: 11.5px; padding: 2px 0; line-height: 1.4; }
+  }
 </style>
 {% block extra_head %}{% endblock %}
 </head>
@@ -163,7 +251,10 @@
         <a href="{{ url_for('home') }}" class="brand">
             <img src="{{ url_for('static', filename='img/logo-header.png') }}" alt="Meleven Real Estate" width="160" height="40" decoding="async">
         </a>
-        <nav class="main-nav" aria-label="Main navigation">
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="main-nav">
+            <span></span>
+        </button>
+        <nav class="main-nav" id="main-nav" aria-label="Main navigation">
             <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="is-active" aria-current="page"{% endif %}>Home</a>
             <a href="{{ url_for('compounds') }}" {% if request.endpoint == 'compounds' %}class="is-active" aria-current="page"{% endif %}>Properties</a>
             <a href="{{ url_for('sell_property') }}" {% if request.endpoint == 'sell_property' %}class="is-active" aria-current="page"{% endif %}>Sell</a>
@@ -193,38 +284,40 @@
             <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
         </div>
 
-        {% if footer_areas %}
-        <details class="footer-col">
-            <summary><h4>Areas</h4></summary>
-            <div class="footer-col-links">
-                {% for area in footer_areas %}
-                <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
-                {% endfor %}
-            </div>
-        </details>
-        {% endif %}
+        <div class="footer-compact-row">
+            {% if footer_areas %}
+            <details class="footer-col" open>
+                <summary><h4>Areas</h4></summary>
+                <div class="footer-col-links">
+                    {% for area in footer_areas %}
+                    <a href="{{ url_for('compounds', area=area.name) }}">{{ area.name }}</a>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
 
-        {% if footer_developers %}
-        <details class="footer-col">
-            <summary><h4>Developers</h4></summary>
-            <div class="footer-col-links">
-                {% for dev in footer_developers %}
-                <a href="{{ url_for('compounds', developer=dev.name) }}">{{ dev.name }}</a>
-                {% endfor %}
-            </div>
-        </details>
-        {% endif %}
+            {% if footer_developers %}
+            <details class="footer-col" open>
+                <summary><h4>Developers</h4></summary>
+                <div class="footer-col-links">
+                    {% for dev in footer_developers %}
+                    <a href="{{ url_for('compounds', developer=dev.name) }}">{{ dev.name }}</a>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
 
-        <details class="footer-col">
-            <summary><h4>Quick Links</h4></summary>
-            <div class="footer-col-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                <a href="{{ url_for('compounds') }}">Properties</a>
-                <a href="{{ url_for('sell_property') }}">Sell</a>
-                <a href="{{ url_for('about') }}">About Us</a>
-                <a href="{{ url_for('contact') }}">Contact</a>
-            </div>
-        </details>
+            <details class="footer-col" open>
+                <summary><h4>Quick Links</h4></summary>
+                <div class="footer-col-links">
+                    <a href="{{ url_for('home') }}">Home</a>
+                    <a href="{{ url_for('compounds') }}">Properties</a>
+                    <a href="{{ url_for('sell_property') }}">Sell</a>
+                    <a href="{{ url_for('about') }}">About Us</a>
+                    <a href="{{ url_for('contact') }}">Contact</a>
+                </div>
+            </details>
+        </div>
 
         <details class="footer-col" open>
             <summary><h4>Get In Touch</h4></summary>
@@ -275,5 +368,26 @@
     </div>
 </footer>
 {% block extra_scripts %}{% endblock %}
+<script>
+  (function(){
+    var toggle = document.getElementById('nav-toggle');
+    var nav = document.getElementById('main-nav');
+    if (!toggle || !nav) return;
+    toggle.addEventListener('click', function(){
+      var isOpen = nav.classList.toggle('is-open');
+      toggle.classList.toggle('is-open', isOpen);
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    // Close the menu after tapping a link, so navigating doesn't leave
+    // the dropdown open behind the new page.
+    nav.querySelectorAll('a').forEach(function(link){
+      link.addEventListener('click', function(){
+        nav.classList.remove('is-open');
+        toggle.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  })();
+</script>
 </body>
 </html>
