@@ -698,6 +698,50 @@
 {% endif %}
 
 
+{% if top_areas %}
+<section class="mv-section area-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Explore by Location</p>
+        <h2 class="mv-title">Top Areas</h2>
+      </div>
+    </div>
+
+    <div class="mv-areas-scroll">
+      {% for area in top_areas %}
+      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+        <div class="mv-area-card__scrim"></div>
+        <div class="mv-area-card__body">
+          <p class="mv-area-card__name">{{ area.name }}</p>
+          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="mv-areas-expand" id="areas-expand">
+      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+        View all areas <span class="mv-areas-toggle__arrow">▾</span>
+      </button>
+
+      <div class="mv-areas-more" id="areas-more">
+        {% for loc in locations_menu %}
+        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+          <div class="mv-area-card__scrim"></div>
+          <div class="mv-area-card__body">
+            <p class="mv-area-card__name">{{ loc.name }}</p>
+            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+
 {% if featured %}
 <section class="section">
     <div class="container">
@@ -793,6 +837,33 @@
 {% endif %}
 
 
+<section class="section mv-match-section">
+  <div class="container">
+    <div class="mv-section__head">
+      <div>
+        <p class="mv-eyebrow">Not Sure Where to Start?</p>
+        <h2 class="mv-title mv-title--light">Find Your Match</h2>
+      </div>
+    </div>
+    <form action="{{ url_for('compounds') }}" method="get" class="mv-match-form">
+      <div class="mv-match-field">
+        <span class="hero-search__label">Preferred Location</span>
+        <input type="text" name="area" list="hero-area-list" placeholder="Any area">
+      </div>
+      <div class="mv-match-field">
+        <span class="hero-search__label">Max Budget (EGP)</span>
+        <input type="number" name="max_price" placeholder="e.g. 15,000,000">
+      </div>
+      <div class="mv-match-field">
+        <span class="hero-search__label">Preferred Developer</span>
+        <input type="text" name="developer" list="hero-developer-list" placeholder="Any developer">
+      </div>
+      <button type="submit" class="hero-cta hero-cta--primary mv-match-submit">Match Me With Properties →</button>
+    </form>
+  </div>
+</section>
+
+
 <section class="section" style="background:var(--color-navy-dark);">
   <div class="container">
     <div style="text-align:center; max-width:560px; margin:0 auto 32px auto;">
@@ -831,76 +902,6 @@
     </div>
   </div>
 </section>
-
-<section class="section mv-match-section">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Not Sure Where to Start?</p>
-        <h2 class="mv-title mv-title--light">Find Your Match</h2>
-      </div>
-    </div>
-    <form action="{{ url_for('compounds') }}" method="get" class="mv-match-form">
-      <div class="mv-match-field">
-        <span class="hero-search__label">Preferred Location</span>
-        <input type="text" name="area" list="hero-area-list" placeholder="Any area">
-      </div>
-      <div class="mv-match-field">
-        <span class="hero-search__label">Max Budget (EGP)</span>
-        <input type="number" name="max_price" placeholder="e.g. 15,000,000">
-      </div>
-      <div class="mv-match-field">
-        <span class="hero-search__label">Preferred Developer</span>
-        <input type="text" name="developer" list="hero-developer-list" placeholder="Any developer">
-      </div>
-      <button type="submit" class="hero-cta hero-cta--primary mv-match-submit">Match Me With Properties →</button>
-    </form>
-  </div>
-</section>
-
-
-{% if top_areas %}
-<section class="mv-section area-section">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Explore by Location</p>
-        <h2 class="mv-title">Top Areas</h2>
-      </div>
-    </div>
-
-    <div class="mv-areas-scroll">
-      {% for area in top_areas %}
-      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-        <div class="mv-area-card__scrim"></div>
-        <div class="mv-area-card__body">
-          <p class="mv-area-card__name">{{ area.name }}</p>
-          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-
-    <div class="mv-areas-expand" id="areas-expand">
-      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
-        View all areas <span class="mv-areas-toggle__arrow">▾</span>
-      </button>
-
-      <div class="mv-areas-more" id="areas-more">
-        {% for loc in locations_menu %}
-        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-          <div class="mv-area-card__scrim"></div>
-          <div class="mv-area-card__body">
-            <p class="mv-area-card__name">{{ loc.name }}</p>
-            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
 
 
 {% if all_developer_names %}
