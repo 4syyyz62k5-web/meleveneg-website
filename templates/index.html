@@ -580,13 +580,18 @@
 
     /* Why Meleven — feature cards were staying full desktop size and
        stacking to a very tall section on phones; shrink padding/icon so
-       three cards read as a compact list instead. */
-    .mv-why-feature{ padding: 22px 20px; }
-    .mv-why-feature__icon{ width: 44px; height: 44px; margin-bottom: 14px; }
-    .mv-why-feature__icon svg{ width: 20px; height: 20px; }
-    .mv-why-feature__title{ font-size: 15px; margin-bottom: 6px; }
-    .mv-why-feature__text{ font-size: 13px; }
-    .mv-why-features{ gap: 14px; margin-top: 14px; }
+       three cards read as a compact list instead. Side-by-side columns
+       were considered, but at phone widths each card would be too narrow
+       for the icon + title + description to stay readable, so this goes
+       as compact as possible while keeping the stacked layout instead. */
+    .mv-why-section{ padding-top: 40px !important; padding-bottom: 40px !important; }
+    .mv-why-header{ margin-bottom: 20px !important; }
+    .mv-why-feature{ padding: 16px 18px; }
+    .mv-why-feature__icon{ width: 36px; height: 36px; margin-bottom: 10px; }
+    .mv-why-feature__icon svg{ width: 17px; height: 17px; }
+    .mv-why-feature__title{ font-size: 14px; margin-bottom: 4px; }
+    .mv-why-feature__text{ font-size: 12.5px; line-height: 1.45; }
+    .mv-why-features{ gap: 10px; margin-top: 10px; }
   }
 </style>
 
@@ -950,9 +955,9 @@
 {% endif %}
 
 
-<section class="section" style="background:var(--color-cream);">
+<section class="section mv-why-section" style="background:var(--color-cream);">
   <div class="container">
-    <div style="text-align:center; max-width:640px; margin:0 auto 40px auto;">
+    <div class="mv-why-header" style="text-align:center; max-width:640px; margin:0 auto 40px auto;">
       <p class="mv-eyebrow">Why Meleven?</p>
       <h2 class="mv-title">More Than a Property Portal</h2>
       <div class="hero-rule" style="margin:18px auto 0;"></div>
