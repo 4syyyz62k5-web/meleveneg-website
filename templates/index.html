@@ -561,8 +561,13 @@
      --------------------------------------------------------------- */
   @media (max-width: 640px){
     .mv-property-card__media{ height: 120px; }
-    .mv-calc-card{ padding: 18px; }
-    .mv-why-section{ padding-top: 32px; padding-bottom: 32px; }
+    .mv-calc-card{ padding: 16px; }
+    .mv-calc-filters-row{ gap: 10px; margin-bottom: 2px; }
+    .mv-calc-select{ padding: 8px 30px 8px 10px; font-size: 13px; }
+    .mv-calc-budget-display{ font-size: 19px; padding-bottom: 4px; }
+    .mv-calc-results{ margin: 14px 0 12px 0; padding-top: 12px; gap: 10px; }
+    .mv-calc-results__value{ font-size: 15px; }
+    .mv-calc-cta{ padding: 12px 20px; font-size: 13px; }
     .mv-luxury-cta{ padding-top: 8px; }
     .mv-luxury-cta__grid{ gap: 28px; }
     .mv-match-form{ padding: 16px; gap: 12px; flex-direction: column; align-items: stretch; }
@@ -572,6 +577,16 @@
     .mv-developers-row{ gap: 8px; }
     .mv-developer-pill{ padding: 7px 14px; font-size: 12px; }
     .mv-consult-form-card{ padding: 20px; }
+
+    /* Why Meleven — feature cards were staying full desktop size and
+       stacking to a very tall section on phones; shrink padding/icon so
+       three cards read as a compact list instead. */
+    .mv-why-feature{ padding: 22px 20px; }
+    .mv-why-feature__icon{ width: 44px; height: 44px; margin-bottom: 14px; }
+    .mv-why-feature__icon svg{ width: 20px; height: 20px; }
+    .mv-why-feature__title{ font-size: 15px; margin-bottom: 6px; }
+    .mv-why-feature__text{ font-size: 13px; }
+    .mv-why-features{ gap: 14px; margin-top: 14px; }
   }
 </style>
 
