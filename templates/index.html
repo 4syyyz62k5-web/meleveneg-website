@@ -483,31 +483,6 @@
   .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; }
   .mv-calc-disclaimer{ font-family: var(--font-body); font-size: 11px; color: #8891a0; margin: 12px 0 0 0; line-height: 1.4; }
 
-  /* ---------- Find Your Match + Investment Calculator: side by side ---------- */
-  .mv-match-calc-section{ overflow: hidden; }
-  .mv-match-calc-grid{
-    display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; min-height: 1px;
-  }
-  .mv-match-calc-col{ display: flex; }
-  .mv-match-calc-col--match{ background: var(--color-cream); }
-  .mv-match-calc-col--calc{ background: var(--color-navy-dark); }
-  .mv-match-calc-col__inner{
-    padding: 80px 56px; width: 100%; box-sizing: border-box;
-    display: flex; flex-direction: column; justify-content: center;
-  }
-  .mv-match-calc-col--calc .mv-match-calc-col__inner .mv-title{ margin-bottom: 24px; }
-  .mv-match-calc-col--match .mv-match-calc-col__inner .mv-title{ margin-bottom: 24px; }
-  .mv-match-form--stacked{
-    display: flex; flex-direction: column; gap: 16px;
-    background: none; padding: 0; border-radius: 0;
-  }
-  .mv-match-form--stacked .mv-match-field{ min-width: 0; }
-  .mv-match-form--stacked .mv-match-submit{ width: 100%; }
-  @media (max-width: 900px){
-    .mv-match-calc-grid{ grid-template-columns: 1fr; }
-    .mv-match-calc-col__inner{ padding: 48px 24px; }
-  }
-
   .mv-match-form{
     display: flex; flex-wrap: wrap; align-items: end; gap: 16px;
     background: var(--color-cream); border-radius: 10px; padding: 24px;
@@ -870,86 +845,61 @@
 {% endif %}
 
 
-<section class="mv-match-calc-section">
-  <div class="mv-match-calc-grid">
-    <div class="mv-match-calc-col mv-match-calc-col--match">
-      <div class="mv-match-calc-col__inner">
-        <p class="mv-eyebrow">Not Sure Where to Start?</p>
-        <h2 class="mv-title mv-title--light">Find Your Match</h2>
-        <form action="{{ url_for('compounds') }}" method="get" class="mv-match-form mv-match-form--stacked">
-          <div class="mv-match-field">
-            <span class="hero-search__label">Preferred Location</span>
-            <input type="text" name="area" list="hero-area-list" placeholder="Any area">
-          </div>
-          <div class="mv-match-field">
-            <span class="hero-search__label">Max Budget (EGP)</span>
-            <input type="number" name="max_price" placeholder="e.g. 15,000,000">
-          </div>
-          <div class="mv-match-field">
-            <span class="hero-search__label">Preferred Developer</span>
-            <input type="text" name="developer" list="hero-developer-list" placeholder="Any developer">
-          </div>
-          <button type="submit" class="hero-cta hero-cta--primary mv-match-submit">Match Me With Properties →</button>
-        </form>
-      </div>
+<section class="section" style="background:var(--color-navy-dark);">
+  <div class="container">
+    <div style="text-align:center; max-width:560px; margin:0 auto 32px auto;">
+      <p class="mv-eyebrow">Plan Your Investment</p>
+      <h2 class="mv-title" style="color:var(--color-white);">Investment Calculator</h2>
     </div>
-
-    <div class="mv-match-calc-col mv-match-calc-col--calc">
-      <div class="mv-match-calc-col__inner">
-        <p class="mv-eyebrow">Plan Your Investment</p>
-        <h2 class="mv-title" style="color:var(--color-white);">Investment Calculator</h2>
-        <div class="mv-calc-card">
-          <p class="mv-calc-card__title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
-            Investment Calculator
-          </p>
-          <div class="mv-calc-filters-row">
-            <div class="mv-calc-filter">
-              <label class="mv-calc-label" for="calc-area">Area</label>
-              <input type="text" id="calc-area" class="mv-calc-select mv-calc-select--input" list="hero-area-list" placeholder="Any area">
-            </div>
-            <div class="mv-calc-filter">
-              <label class="mv-calc-label" for="calc-developer">Developer</label>
-              <input type="text" id="calc-developer" class="mv-calc-select mv-calc-select--input" list="hero-developer-list" placeholder="Any developer">
-            </div>
-          </div>
-
-          <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
-          <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
-          <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
-
-          <label class="mv-calc-label" for="calc-downpayment" style="margin-top:16px;">Down Payment</label>
-          <select id="calc-downpayment" class="mv-calc-select">
-            <option value="0.10">10%</option>
-            <option value="0.15">15%</option>
-            <option value="0.20" selected>20%</option>
-            <option value="0.30">30%</option>
+    <div class="mv-calc-card">
+      <p class="mv-calc-card__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
+        Investment Calculator
+      </p>
+      <div class="mv-calc-filters-row">
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-area">Area</label>
+          <input type="text" id="calc-area" class="mv-calc-select mv-calc-select--input" list="hero-area-list" placeholder="Any area">
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-type">Type</label>
+          <select id="calc-type" class="mv-calc-select">
+            <option value="">Any type</option>
+            {% for t in all_unit_types %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
           </select>
-
-          <label class="mv-calc-label" for="calc-sort" style="margin-top:16px;">Sort Matching Properties By</label>
-          <select id="calc-sort" class="mv-calc-select">
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-            <option value="newest" selected>Newest First</option>
-          </select>
-
-          <div class="mv-calc-results">
-            <div>
-              <p class="mv-calc-results__label">Estimated Monthly Payment</p>
-              <p class="mv-calc-results__value" id="calc-monthly">From EGP 33,333</p>
-            </div>
-            <div>
-              <p class="mv-calc-results__label">Properties Available</p>
-              <p class="mv-calc-results__value" id="calc-count">{{ initial_calc_count }}</p>
-            </div>
-          </div>
-          <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">View Matching Properties</a>
-          <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
         </div>
       </div>
+
+      <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
+      <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
+      <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
+
+      <label class="mv-calc-label" for="calc-downpayment" style="margin-top:16px;">Down Payment</label>
+      <select id="calc-downpayment" class="mv-calc-select">
+        <option value="0.10">10%</option>
+        <option value="0.15">15%</option>
+        <option value="0.20" selected>20%</option>
+        <option value="0.30">30%</option>
+      </select>
+
+      <div class="mv-calc-results">
+        <div>
+          <p class="mv-calc-results__label">Estimated Monthly Payment</p>
+          <p class="mv-calc-results__value" id="calc-monthly">From EGP 33,333</p>
+        </div>
+        <div>
+          <p class="mv-calc-results__label">Properties Available</p>
+          <p class="mv-calc-results__value" id="calc-count">{{ initial_calc_count }}</p>
+        </div>
+      </div>
+      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">View Matching Properties</a>
+      <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
     </div>
   </div>
 </section>
+
 
 
 
@@ -1141,8 +1091,7 @@
     var monthlyOut = document.getElementById('calc-monthly');
     var ctaLink = document.getElementById('calc-cta');
     var areaInput = document.getElementById('calc-area');
-    var developerInput = document.getElementById('calc-developer');
-    var sortSelect = document.getElementById('calc-sort');
+    var typeSelect = document.getElementById('calc-type');
     if (!slider) return;
 
     var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
@@ -1153,8 +1102,8 @@
       return Math.round(n).toLocaleString('en-US');
     }
 
-    // Debounce so dragging the slider (or typing an area/developer) doesn't
-    // fire a request on every keystroke — only once movement/typing pauses.
+    // Debounce so dragging the slider (or typing an area) doesn't fire a
+    // request on every keystroke — only once movement/typing pauses.
     function debounce(fn, wait){
       var t;
       return function(){
@@ -1164,11 +1113,11 @@
       };
     }
 
-    function fetchLiveCount(budget, area, developer){
+    function fetchLiveCount(budget, area, unitType){
       var thisToken = ++countFetchToken;
       var params = new URLSearchParams({ max_price: budget });
       if (area) params.set('area', area);
-      if (developer) params.set('developer', developer);
+      if (unitType) params.set('unit_type', unitType);
       fetch('/api/properties-count?' + params.toString())
         .then(function(res){ return res.json(); })
         .then(function(data){
@@ -1186,19 +1135,17 @@
       var financedAmount = budget * (1 - downpaymentRate);
       var monthly = financedAmount / INSTALLMENT_MONTHS;
       var area = areaInput ? areaInput.value.trim() : '';
-      var developer = developerInput ? developerInput.value.trim() : '';
-      var sort = sortSelect ? sortSelect.value : '';
+      var unitType = typeSelect ? typeSelect.value : '';
 
       budgetDisplay.value = formatEGP(budget);
       monthlyOut.textContent = 'From EGP ' + formatEGP(monthly);
-      debouncedFetch(budget, area, developer);
+      debouncedFetch(budget, area, unitType);
 
       if (ctaLink) {
         var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
         url.searchParams.set('max_price', budget);
         if (area) url.searchParams.set('area', area);
-        if (developer) url.searchParams.set('developer', developer);
-        if (sort) url.searchParams.set('sort', sort);
+        if (unitType) url.searchParams.set('unit_type', unitType);
         ctaLink.href = url.pathname + url.search;
       }
     }
@@ -1210,8 +1157,7 @@
     slider.addEventListener('input', recalculate);
     downpaymentSelect.addEventListener('change', recalculate);
     if (areaInput) areaInput.addEventListener('input', recalculate);
-    if (developerInput) developerInput.addEventListener('input', recalculate);
-    if (sortSelect) sortSelect.addEventListener('change', recalculate);
+    if (typeSelect) typeSelect.addEventListener('change', recalculate);
   })();
 </script>
 {% endblock %}
