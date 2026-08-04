@@ -1,1175 +1,916 @@
-{% extends "base.html" %}
-{% block title %}Meleven Consultancy — Real Estate Experts in Egypt{% endblock %}
-{% block content %}
-<style>
-  /* ---------------------------------------------------------------
-     These rules extend style.css using the real brand variables
-     (--color-navy, --color-navy-dark, --color-gold, --color-cream,
-     --font-heading = Montserrat, --font-body = Jost). No new fonts
-     or colors are introduced — everything here is built on the
-     existing Meleven_CI tokens already defined in style.css.
-     --------------------------------------------------------------- */
+import re
+import csv
+import io
+import os
+import uuid
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify
+from werkzeug.utils import secure_filename
+from config import Config
+from models import db, Compound, Unit, Lead, Developer
 
-  .hero{
-    filter: contrast(1.12) saturate(1.15) brightness(0.98);
-    background-position: center 65% !important;
-    padding-top: 120px !important;
-    padding-bottom: 44px !important;
-  }
-  .hero-inner{ text-align: left; }
-  .hero-eyebrow{
-    font-family: var(--font-body); font-size: 13px; font-weight: 600;
-    letter-spacing: .16em; text-transform: uppercase; color: var(--color-gold);
-    margin: 0 0 14px 0;
-  }
-  .hero-inner h1{
-    font-family: var(--font-heading); font-weight: 700;
-    font-size: clamp(26px, 4vw, 42px);
-    line-height: 1.2;
-    max-width: 650px;
-    color: var(--color-white);
-    margin: 0 0 14px 0;
-  }
-  .hero-accent{ color: var(--color-gold); }
-  .hero-subtitle{
-    font-family: var(--font-body);
-    font-size: clamp(14px, 2vw, 17px);
-    max-width: 540px;
-    color: #dbe0e8;
-    margin: 0 0 24px 0;
-  }
-  .hero-cta-row{ display: flex; gap: 14px; margin-bottom: 40px; flex-wrap: wrap; }
-  .hero-cta{
-    display: inline-flex; align-items: center; gap: 6px;
-    font-family: var(--font-body); font-weight: 600; font-size: 14px;
-    padding: 13px 26px; border-radius: 4px; text-decoration: none;
-    transition: background .2s ease, color .2s ease;
-  }
-  .hero-cta--primary{ background: var(--color-gold); color: var(--color-navy-dark); border: 1px solid var(--color-gold); }
-  .hero-cta--primary:hover{ background: #b98d63; }
-  .hero-cta--outline{ background: transparent; color: var(--color-white); border: 1px solid rgba(255,255,255,.5); }
-  .hero-cta--outline:hover{ border-color: var(--color-gold); color: var(--color-gold); }
-  @media (max-width: 640px){
-    .hero{ padding-top: 100px !important; padding-bottom: 28px !important; }
-    .hero-inner{ text-align: center; }
-    .hero-inner h1{ font-size: 22px; max-width: 100%; }
-    .hero-subtitle{ font-size: 13.5px; margin-left: auto; margin-right: auto; }
-    .hero-eyebrow{ font-size: 11px; }
-    .hero-cta-row{ justify-content: center; margin-bottom: 24px; }
-    .hero-search{ display: flex; justify-content: center; }
-  }
-  @media (max-width: 480px){
-    .hero{ padding-top: 90px !important; padding-bottom: 24px !important; }
-    .hero-inner h1{ font-size: 20px; }
-    .hero-subtitle{ font-size: 13px; }
-  }
-  .hero-search{ margin-top: 4px; }
-  .floating-search-wrap{
-    position: relative; z-index: 5; margin-top: -46px; margin-bottom: 40px;
-  }
-  @media (max-width: 640px){
-    .floating-search-wrap{ margin-top: -18px; margin-bottom: 28px; }
-  }
-  .hero-search .search-form{
-    display: flex; align-items: stretch;
-    background: rgba(255,255,255,.97);
-    border-radius: 10px;
-    max-width: 900px;
-    margin: 0;
-    box-shadow: 0 14px 34px rgba(10,33,68,.28);
-    overflow: hidden;
-  }
-  .hero-search__field{
-    flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px;
-    min-width: 0; padding: 10px 18px; border-right: 1px solid #ececec;
-    text-align: left;
-  }
-  .hero-search__label{
-    font-family: var(--font-body); font-size: 10.5px; font-weight: 600;
-    letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted);
-  }
-  .hero-search select,
-  .hero-search input[type="text"],
-  .hero-search input[type="number"]{
-    border: none; background: transparent; appearance: none;
-    font-family: var(--font-body); font-size: 14px; color: var(--color-text);
-    padding: 2px 0; cursor: pointer; width: 100%;
-  }
-  .hero-search input[type="text"],
-  .hero-search input[type="number"]{ cursor: text; }
-  .hero-search input::placeholder{ color: #a9adb4; }
-  .hero-search__budget-row{ display: flex; gap: 6px; }
-  .hero-search__budget-row input{ min-width: 0; }
-  .hero-search button{
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    background: var(--color-gold); color: var(--color-navy-dark); border: none;
-    padding: 0 26px; font-family: var(--font-body); font-weight: 600; font-size: 14px;
-    cursor: pointer; white-space: nowrap; transition: background .2s ease; flex-shrink: 0;
-  }
-  .hero-search button:hover{ background: #b98d63; }
-  .hero-search button svg{ width: 16px; height: 16px; flex-shrink: 0; }
-
-  @media (max-width: 640px){
-    .hero-search{ margin-top: 0; }
-    .hero-search .search-form{
-      display: grid; grid-template-columns: 1fr 1fr; border-radius: 10px;
-      max-width: 340px; margin: 0 auto;
-    }
-    .hero-search__field{
-      border-right: 1px solid #ececec; border-bottom: 1px solid #ececec;
-      padding: 6px 10px; gap: 0;
-    }
-    .hero-search__label{ font-size: 9px; }
-    .hero-search select,
-    .hero-search input[type="text"],
-    .hero-search input[type="number"]{ font-size: 12.5px; }
-    .hero-search__field:nth-child(2n){ border-right: none; }
-    .hero-search__field:nth-last-child(1){ border-bottom: none; }
-    .hero-search__field:nth-last-child(2){ border-bottom: none; }
-    .hero-search button{
-      grid-column: 1 / -1; width: 100%; padding: 10px; font-size: 13px;
-      border-radius: 0 0 10px 10px;
-    }
-  }
-
-  /* ---------- Hero stats row ---------- */
-  .hero-stats{ background: var(--color-navy-dark); padding: 0 0 28px 0; }
-  .hero-stats__grid{
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
-    border-top: 1px solid rgba(255,255,255,.12); padding-top: 22px;
-  }
-  .hero-stat{ text-align: center; }
-  .hero-stat__number{
-    font-family: var(--font-heading); font-weight: 700; font-size: clamp(22px, 3vw, 30px);
-    color: var(--color-gold); margin: 0 0 4px 0;
-  }
-  .hero-stat__label{
-    font-family: var(--font-body); font-size: 12px; color: #c7cedb; margin: 0;
-    text-transform: uppercase; letter-spacing: .04em;
-  }
-  @media (max-width: 640px){
-    .hero-stats{ padding-bottom: 20px; }
-    .hero-stats__grid{ grid-template-columns: repeat(2, 1fr); gap: 16px; padding-top: 16px; }
-    .hero-stat__number{ font-size: 20px; }
-    .hero-stat__label{ font-size: 10.5px; }
-  }
-
-  .mv-section{ padding: 100px 0; }
-  .section{ padding: 100px 0; }
-  .mv-section--dark{ background: var(--color-navy-dark); }
-  .mv-section__head{
-    display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
-    margin-bottom: 24px;
-  }
-  .mv-eyebrow{
-    font-family: var(--font-body); font-size: 12px; font-weight: 600;
-    letter-spacing: .14em; text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
-  }
-  .mv-title{
-    font-family: var(--font-heading); font-weight: 700; font-size: 26px;
-    color: var(--color-navy); text-transform: uppercase; letter-spacing: .3px; margin: 0;
-  }
-  .mv-section--dark .mv-title{ color: var(--color-white); }
-  .mv-viewall{
-    font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--color-text-muted);
-    text-decoration: none; white-space: nowrap;
-  }
-  .mv-section--dark .mv-viewall{ color: #b7bdc8; }
-  .mv-viewall:hover{ color: var(--color-gold); }
-  .mv-viewall--underline{
-    display: inline-block; margin-top: 10px; color: var(--color-navy);
-    font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--color-navy);
-    padding-bottom: 2px;
-  }
-  .mv-viewall--underline:hover{ color: var(--color-gold); border-color: var(--color-gold); }
-
-  /* ---------- Prev/Next carousel arrows ---------- */
-  .mv-carousel-arrows{ display: flex; gap: 10px; flex-shrink: 0; }
-  .mv-arrow-btn{
-    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--color-gold);
-    background: none; color: var(--color-gold); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s ease, color .2s ease;
-  }
-  .mv-arrow-btn svg{ width: 16px; height: 16px; }
-  .mv-arrow-btn:hover{ background: var(--color-gold); color: var(--color-navy-dark); }
-
-  /* ---------- Location pin badge (over the card image) ---------- */
-  .mv-location-badge{
-    position: absolute; bottom: 10px; left: 10px; z-index: 2;
-    display: inline-flex; align-items: center; gap: 4px;
-    font-family: var(--font-body); font-size: 10.5px; font-weight: 600; letter-spacing: .03em;
-    color: var(--color-white); text-transform: uppercase;
-  }
-  .mv-location-badge svg{ width: 12px; height: 12px; }
-
-  /* ---------- "View all areas" — inline expand (no floating popup) ---------- */
-  .mv-areas-expand{
-    display: flex; flex-direction: column; align-items: center; margin-top: 18px;
-  }
-  .mv-areas-toggle{
-    order: 0;
-    display: flex; align-items: center; gap: 6px;
-    background: none; cursor: pointer;
-    font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
-    letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy);
-    border: 1px solid var(--color-navy); border-radius: 20px; padding: 9px 22px;
-  }
-  .mv-areas-toggle:hover{ background: var(--color-navy); color: var(--color-white); }
-  .mv-areas-toggle:disabled{
-    cursor: default; opacity: .4; border-color: #999; color: #999; background: none;
-  }
-  .mv-areas-toggle__arrow{ display: inline-block; transition: transform .2s ease; }
-  .mv-areas-expand.is-open .mv-areas-toggle__arrow{ transform: rotate(180deg); }
-  /* When open, swap order so the button ends up below the revealed cards
-     instead of staying sandwiched between the two rows. */
-  .mv-areas-expand.is-open .mv-areas-toggle{ order: 2; margin-top: 18px; }
-  .mv-areas-more{
-    order: 1;
-    display: none; flex-wrap: wrap; gap: 14px; justify-content: center;
-    width: 100%;
-  }
-  .mv-areas-expand.is-open .mv-areas-more{ display: flex; }
-  .mv-area-card--small{ width: 160px; height: 110px; }
-
-  /* ---------------------------------------------------------------
-     Mobile type-scale rebalance — headings across the page (section
-     titles, mv-titles) were staying at full desktop size on small
-     screens, making them feel oversized next to the card text below
-     them. This brings the whole hierarchy down a notch on mobile.
-     --------------------------------------------------------------- */
-  @media (max-width: 640px){
-    .page-title{ font-size: 24px; }
-    .section-title{ font-size: 19px; margin-bottom: 18px; }
-    .mv-section{ padding: 72px 0; }
-    .section{ padding: 72px 0; }
-    .mv-section__head{ margin-bottom: 16px; }
-    .mv-eyebrow{ font-size: 10.5px; }
-    .mv-title{ font-size: 19px; }
-    .mv-viewall{ font-size: 12.5px; }
-    .cta-inner h2{ font-size: 22px; }
-  }
-
-  /* ---------- Generic horizontal-scroll row (New Launches / Featured / Latest) ---------- */
-  .mv-hscroll .card-grid,
-  .mv-launches{
-    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
-    scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
-  }
-  .mv-hscroll .card-grid::-webkit-scrollbar,
-  .mv-launches::-webkit-scrollbar,
-  .mv-unit-scroll::-webkit-scrollbar,
-  .mv-property-grid::-webkit-scrollbar,
-  .mv-areas-scroll::-webkit-scrollbar{ height: 4px; }
-  .mv-hscroll .card-grid::-webkit-scrollbar-thumb,
-  .mv-launches::-webkit-scrollbar-thumb,
-  .mv-unit-scroll::-webkit-scrollbar-thumb,
-  .mv-property-grid::-webkit-scrollbar-thumb,
-  .mv-areas-scroll::-webkit-scrollbar-thumb{ background: #e8e5dd; border-radius: 4px; }
-  .mv-hscroll .card-grid > *{ flex: 0 0 auto !important; width: min(78vw, 280px); scroll-snap-align: start; }
-
-  /* ---------- New Launches: dark navy photo cards ---------- */
-  .mv-launch-card{
-    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(62vw, 225px);
-    aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; background: var(--color-navy);
-    color: var(--color-white); text-decoration: none; display: block;
-    transition: transform .25s ease, box-shadow .25s ease;
-  }
-  .mv-launch-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(0,0,0,.35); }
-  .mv-launch-card__img{
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-    transform: scale(1.02); transition: transform .4s ease;
-  }
-  .mv-launch-card:hover .mv-launch-card__img{ transform: scale(1.08); }
-  .mv-launch-card__scrim{
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(10,33,68,0) 35%, rgba(10,33,68,.95) 100%);
-  }
-  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 14px; }
-  .mv-launch-card__badges{ display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
-  .mv-launch-card__tag{
-    display: inline-block; font-family: var(--font-body); font-size: 9.5px; font-weight: 700;
-    letter-spacing: .06em; text-transform: uppercase; color: var(--color-navy-dark); background: var(--color-gold);
-    padding: 3px 7px; border-radius: 4px;
-  }
-  .mv-launch-card__name{
-    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
-    margin: 0 0 2px 0;
-  }
-  .mv-launch-card__developer{
-    font-family: var(--font-body); font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
-    text-transform: uppercase; color: var(--color-gold); margin: 0 0 4px 0;
-  }
-  .mv-launch-card__developer-logo{ height: 16px; max-width: 70px; object-fit: contain; margin: 0 0 6px 0; display: block; }
-  .mv-launch-card__meta{ font-family: var(--font-body); font-size: 11px; color: #c7cedb; margin: 0 0 6px 0; }
-  .mv-launch-card__price{ font-family: var(--font-body); font-size: 12px; color: #c7cedb; margin: 0; }
-  .mv-launch-card__price span{ font-size: 14px; font-weight: 700; color: var(--color-gold); }
-
-  /* ---------- Delivery badge (used on media, over the image) ---------- */
-  .mv-delivery-badge{
-    display: inline-block; font-family: var(--font-body); font-size: 9.5px; font-weight: 700;
-    letter-spacing: .04em; color: var(--color-white); background: rgba(10,33,68,.75);
-    padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(2px);
-  }
-  .mv-delivery-badge--onmedia{
-    position: absolute; top: 10px; left: 10px; z-index: 2;
-  }
-
-  /* ---------- Favorite / Compare floating icon buttons ---------- */
-  .mv-card-icons{
-    position: absolute; top: 10px; right: 10px; z-index: 2;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .mv-icon-btn{
-    width: 28px; height: 28px; border-radius: 50%; border: none;
-    background: rgba(255,255,255,.9); color: var(--color-navy);
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-    transition: background .2s ease, color .2s ease, transform .15s ease;
-  }
-  .mv-icon-btn svg{ width: 14px; height: 14px; }
-  .mv-icon-btn:hover{ transform: scale(1.08); }
-  .mv-fav-btn.is-active{ background: var(--color-gold); color: var(--color-navy-dark); }
-  .mv-fav-btn.is-active svg{ fill: currentColor; }
-  .mv-compare-btn.is-active{ background: var(--color-navy); color: var(--color-white); }
-
-  /* ---------- Featured / Latest: luxury property cards (light background) ---------- */
-  .mv-title--light{ color: var(--color-navy); }
-  .mv-property-grid{
-    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
-    scroll-snap-type: x mandatory; gap: 16px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
-  }
-  .mv-property-card{
-    scroll-snap-align: start; flex: 0 0 auto; width: min(58vw, 215px);
-    background: var(--color-white); border: 1px solid #eee; border-radius: 10px;
-    overflow: hidden; text-decoration: none; display: block;
-    transition: transform .2s ease, box-shadow .2s ease;
-  }
-  .mv-property-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(16,35,59,.16); }
-  .mv-property-card__media{ position: relative; width: 100%; height: 135px; background: #ddd; overflow: hidden; }
-  .mv-property-card__media::after{
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,.45) 100%);
-  }
-  .mv-property-card__media img{
-    width: 100%; height: 100%; object-fit: cover; display: block;
-    transition: transform .4s ease;
-  }
-  .mv-property-card:hover .mv-property-card__media img{ transform: scale(1.08); }
-  .mv-property-card__body{ padding: 12px 14px 16px; }
-  .mv-property-card__developer{
-    font-family: var(--font-body); font-size: 10px; font-weight: 700; letter-spacing: .05em;
-    text-transform: uppercase; color: var(--color-gold); margin: 0 0 4px 0;
-  }
-  .mv-property-card__developer-logo{ height: 15px; max-width: 70px; object-fit: contain; margin: 0 0 6px 0; display: block; }
-  .mv-property-card__name{
-    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
-    color: var(--color-navy); margin: 0 0 3px 0;
-  }
-  .mv-property-card__meta{ font-family: var(--font-body); font-size: 11.5px; color: var(--color-text-muted); margin: 0 0 8px 0; }
-  .mv-property-card__price{ font-family: var(--font-body); font-size: 11.5px; color: var(--color-text-muted); margin: 0; }
-  .mv-property-card__price span{ font-size: 14px; font-weight: 700; color: var(--color-navy); }
-
-  /* ---------- Top Areas: horizontal-scroll photo cards ---------- */
-  .mv-areas-scroll{
-    display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
-    padding-bottom: 10px; -webkit-overflow-scrolling: touch;
-    justify-content: center;
-  }
-  @media (max-width: 900px){
-    /* On narrow screens the cards are more likely to overflow, so left-align
-       instead of centering — centering + overflow-x can clip the first
-       card behind the edge in some mobile browsers. */
-    .mv-areas-scroll{ justify-content: flex-start; }
-  }
-  .mv-area-card{
-    scroll-snap-align: start; flex: 0 0 auto; width: 160px; height: 110px;
-    border-radius: 8px; overflow: hidden; position: relative; text-decoration: none;
-    background-color: var(--color-navy); background-size: cover; background-position: center;
-  }
-  .mv-area-card__scrim{
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(10,33,68,0) 45%, rgba(10,33,68,.88) 100%);
-  }
-  .mv-area-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; }
-  .mv-area-card__name{
-    font-family: var(--font-heading); font-size: 14px; font-weight: 700; text-transform: uppercase;
-    color: var(--color-white); margin: 0 0 2px 0;
-  }
-  .mv-area-card__count{ font-family: var(--font-body); font-size: 11px; color: #d7dbe2; margin: 0; }
-
-  /* ---------- Recommended Units: horizontal-scroll cards ---------- */
-  .mv-unit-scroll{
-    display: flex; flex-wrap: nowrap; gap: 18px; overflow-x: auto;
-    scroll-snap-type: x mandatory; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
-  }
-  .mv-unit-card{
-    scroll-snap-align: start; flex: 0 0 auto; width: min(60vw, 210px);
-    background: var(--color-white); border: 1px solid #e8e5dd; border-radius: 10px;
-    overflow: hidden; text-decoration: none; display: block;
-    transition: transform .15s ease, box-shadow .15s ease;
-  }
-  .mv-unit-card:hover{ transform: translateY(-4px); box-shadow: 0 10px 24px rgba(16,35,59,.12); }
-  .mv-unit-card__thumb{ width: 100%; height: 110px; object-fit: cover; background: #ddd; display: block; }
-  .mv-unit-card__body{ padding: 12px 14px 16px 14px; }
-  .mv-unit-card__compound{
-    font-family: var(--font-body); font-size: 10px; font-weight: 600; letter-spacing: .04em;
-    text-transform: uppercase; color: var(--color-text-muted); margin: 0 0 3px 0;
-  }
-  .mv-unit-card__type{
-    font-family: var(--font-heading); font-size: 14px; font-weight: 700; text-transform: uppercase;
-    color: var(--color-navy); margin: 0 0 5px 0;
-  }
-  .mv-unit-card__facts{ font-family: var(--font-body); font-size: 11.5px; color: var(--color-text-muted); margin: 0 0 8px 0; }
-  .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
-  .mv-unit-card__price{ font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--color-gold); margin: 0; }
-  /* ---------- Why Meleven (standalone, increased visual weight, light bg) ---------- */
-  .mv-why-features{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 20px; }
-  @media (max-width: 640px){ .mv-why-features{ grid-template-columns: 1fr; gap: 20px; } }
-  .mv-why-feature{
-    background: var(--color-white); border: 1px solid #e5e0d6; border-radius: 12px;
-    padding: 40px 30px; text-align: center; transition: transform .2s ease, box-shadow .2s ease;
-  }
-  .mv-why-feature:hover{ transform: translateY(-4px); box-shadow: 0 16px 32px rgba(16,35,59,.08); }
-  .mv-why-feature__icon{
-    width: 60px; height: 60px; border-radius: 50%; background: rgba(198,157,122,.14);
-    color: var(--color-gold); display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px auto;
-  }
-  .mv-why-feature__icon svg{ width: 26px; height: 26px; }
-  .mv-why-feature__title{
-    font-family: var(--font-heading); font-size: 17px; font-weight: 700; text-transform: uppercase;
-    color: var(--color-navy); margin: 0 0 10px 0;
-  }
-  .mv-why-feature__text{ font-family: var(--font-body); font-size: 14px; color: var(--color-text-muted); margin: 0; line-height: 1.6; }
-
-  .mv-calc-card{
-    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 10px; padding: 26px;
-  }
-  .mv-calc-card__title{
-    display: flex; align-items: center; gap: 8px;
-    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--color-gold); margin: 0 0 20px 0;
-  }
-  .mv-calc-label{
-    display: block; font-family: var(--font-body); font-size: 11.5px; font-weight: 600;
-    letter-spacing: .04em; text-transform: uppercase; color: #b7bdc8; margin-bottom: 6px;
-  }
-  .mv-calc-budget-display{
-    width: 100%; background: none; border: none; color: var(--color-white);
-    font-family: var(--font-heading); font-size: 24px; font-weight: 700; padding: 0 0 8px 0;
-  }
-  .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); }
-  .mv-calc-select{
-    width: 100%; padding: 10px 12px; margin-top: 4px; border-radius: 6px;
-    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
-    color: var(--color-white); font-family: var(--font-body); font-size: 14px;
-  }
-  .mv-calc-results{
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    margin: 22px 0 18px 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12);
-  }
-  .mv-calc-results__label{ font-family: var(--font-body); font-size: 11.5px; color: #b7bdc8; margin: 0 0 4px 0; }
-  .mv-calc-results__value{ font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: var(--color-white); margin: 0; }
-  .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; }
-  .mv-calc-disclaimer{ font-family: var(--font-body); font-size: 11px; color: #8891a0; margin: 12px 0 0 0; line-height: 1.4; }
-
-  /* ---------- Find Your Match + Investment Calculator: side by side ---------- */
-  .mv-match-calc-section{ overflow: hidden; }
-  .mv-match-calc-grid{
-    display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; min-height: 1px;
-  }
-  .mv-match-calc-col{ display: flex; }
-  .mv-match-calc-col--match{ background: var(--color-cream); }
-  .mv-match-calc-col--calc{ background: var(--color-navy-dark); }
-  .mv-match-calc-col__inner{
-    padding: 80px 56px; width: 100%; box-sizing: border-box;
-    display: flex; flex-direction: column; justify-content: center;
-  }
-  .mv-match-calc-col--calc .mv-match-calc-col__inner .mv-title{ margin-bottom: 24px; }
-  .mv-match-calc-col--match .mv-match-calc-col__inner .mv-title{ margin-bottom: 24px; }
-  .mv-match-form--stacked{
-    display: flex; flex-direction: column; gap: 16px;
-    background: none; padding: 0; border-radius: 0;
-  }
-  .mv-match-form--stacked .mv-match-field{ min-width: 0; }
-  .mv-match-form--stacked .mv-match-submit{ width: 100%; }
-  @media (max-width: 900px){
-    .mv-match-calc-grid{ grid-template-columns: 1fr; }
-    .mv-match-calc-col__inner{ padding: 48px 24px; }
-  }
-
-  .mv-match-form{
-    display: flex; flex-wrap: wrap; align-items: end; gap: 16px;
-    background: var(--color-cream); border-radius: 10px; padding: 24px;
-  }
-  .mv-match-field{ flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 6px; }
-  .mv-match-field input{
-    padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
-    font-family: var(--font-body); font-size: 14px; background: var(--color-white);
-  }
-  .mv-match-submit{ flex-shrink: 0; white-space: nowrap; }
-
-  /* ---------- Developers showcase ---------- */
-  .mv-developers-row{
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px;
-  }
-  .mv-developer-pill{
-    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .03em;
-    color: var(--color-navy); border: 1px solid #ddd; border-radius: 20px;
-    padding: 9px 20px; text-decoration: none; transition: border-color .2s ease, color .2s ease;
-  }
-  .mv-developer-pill:hover{ border-color: var(--color-gold); color: var(--color-gold); }
-  .mv-developer-logo-pill{
-    display: flex; align-items: center; justify-content: center;
-    border: 1px solid #ddd; border-radius: 20px;
-    padding: 9px 24px; height: 38px; box-sizing: border-box;
-    transition: border-color .2s ease, background .2s ease;
-  }
-  .mv-developer-logo-pill:hover{ border-color: var(--color-gold); background: var(--color-cream); }
-  .mv-developer-logo-pill img{ height: 100%; max-width: 110px; object-fit: contain; }
-  /* ---------- Phase 4: Luxury CTA + Consultation form ---------- */
-  .mv-luxury-cta{ background: var(--color-cream); }
-  .mv-luxury-cta__grid{
-    display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center;
-  }
-  @media (max-width: 900px){ .mv-luxury-cta__grid{ grid-template-columns: 1fr; } }
-  .mv-luxury-cta__intro .mv-title{ color: var(--color-navy); }
-  .hero-cta--whatsapp{
-    display: inline-flex; margin-top: 24px;
-    background: #25D366; color: var(--color-white); border: 1px solid #25D366;
-  }
-  .hero-cta--whatsapp:hover{ background: #1ebe5b; }
-
-  .mv-consult-form-card{
-    background: var(--color-white); border: 1px solid #eee; border-radius: 10px;
-    padding: 28px; box-shadow: 0 14px 34px rgba(16,35,59,.08);
-  }
-  .mv-consult-form-card__title{
-    font-family: var(--font-heading); font-size: 15px; font-weight: 700; text-transform: uppercase;
-    color: var(--color-navy); margin: 0 0 18px 0;
-  }
-  .mv-consult-form{ display: flex; flex-direction: column; gap: 12px; }
-  .mv-consult-form input,
-  .mv-consult-form textarea{
-    padding: 11px 14px; border: 1px solid #ddd; border-radius: 6px;
-    font-family: var(--font-body); font-size: 14px; resize: vertical;
-  }
-  .mv-consult-form__submit{ border: none; cursor: pointer; margin-top: 4px; }
-
-  .mv-whatsapp-float{
-    position: fixed; bottom: 22px; right: 22px; z-index: 50;
-    width: 56px; height: 56px; border-radius: 50%; background: #25D366; color: var(--color-white);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 20px rgba(0,0,0,.25); transition: transform .2s ease;
-  }
-  .mv-whatsapp-float:hover{ transform: scale(1.08); }
-
-  /* ---------------------------------------------------------------
-     Mobile compression — the page was running very long on phones.
-     This tightens vertical rhythm across the newer Phase 1-4 sections
-     without touching their desktop layout.
-     --------------------------------------------------------------- */
-  @media (max-width: 640px){
-    .mv-property-card__media{ height: 120px; }
-    .mv-calc-card{ padding: 18px; }
-    .mv-why-section{ padding-top: 32px; padding-bottom: 32px; }
-    .mv-luxury-cta{ padding-top: 8px; }
-    .mv-luxury-cta__grid{ gap: 28px; }
-    .mv-match-form{ padding: 16px; gap: 12px; flex-direction: column; align-items: stretch; }
-    .mv-match-field{ min-width: 0; }
-    .mv-match-submit{ width: 100%; text-align: center; }
-    .mv-developers-section{ padding-top: 28px; padding-bottom: 28px; }
-    .mv-developers-row{ gap: 8px; }
-    .mv-developer-pill{ padding: 7px 14px; font-size: 12px; }
-    .mv-consult-form-card{ padding: 20px; }
-  }
-</style>
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
 
-<section class="hero" style="background-image: linear-gradient(180deg, rgba(10,33,68,0.45) 0%, rgba(10,33,68,0.6) 50%, rgba(10,33,68,0.92) 100%), url('{{ url_for('static', filename='img/hero-cover.jpg') }}'); background-size: cover; background-position: center;">
-    <div class="container hero-inner">
-        <p class="hero-eyebrow">Curating Egypt's Finest Real Estate</p>
-        <h1>Exclusive Opportunities, Trusted Advice.<br><span class="hero-accent">Exceptional Investments.</span></h1>
-        <div class="hero-cta-row">
-            <a href="{{ url_for('compounds') }}" class="hero-cta hero-cta--primary">Explore Projects →</a>
-            <a href="{{ url_for('contact') }}" class="hero-cta hero-cta--outline">Book Consultation</a>
-        </div>
-    </div>
-</section>
-
-<div class="floating-search-wrap">
-    <div class="container">
-        <div class="hero-search">
-            <form action="{{ url_for('compounds') }}" method="get" class="search-form">
-                <div class="hero-search__field">
-                    <span class="hero-search__label">Location</span>
-                    <input type="text" name="area" list="hero-area-list" placeholder="All areas">
-                    <datalist id="hero-area-list">
-                        {% for a in all_area_names %}
-                        <option value="{{ a }}"></option>
-                        {% endfor %}
-                    </datalist>
-                </div>
-                <div class="hero-search__field">
-                    <span class="hero-search__label">Developer</span>
-                    <input type="text" name="developer" list="hero-developer-list" placeholder="All developers">
-                    <datalist id="hero-developer-list">
-                        {% for d in all_developer_names %}
-                        <option value="{{ d }}"></option>
-                        {% endfor %}
-                    </datalist>
-                </div>
-                <div class="hero-search__field">
-                    <span class="hero-search__label">Compound</span>
-                    <input type="text" name="q" list="hero-compound-list" placeholder="Search by name">
-                    <datalist id="hero-compound-list">
-                        {% for c in all_compound_names %}
-                        <option value="{{ c }}"></option>
-                        {% endfor %}
-                    </datalist>
-                </div>
-                <div class="hero-search__field hero-search__field--budget">
-                    <span class="hero-search__label">Budget (EGP)</span>
-                    <div class="hero-search__budget-row">
-                        <input type="number" name="min_price" placeholder="Min">
-                        <input type="number" name="max_price" placeholder="Max">
-                    </div>
-                </div>
-                <button type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                    Search
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
+def slugify(text):
+    text = (text or "").lower().strip()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-") or "compound"
 
 
-<section class="hero-stats">
-  <div class="container hero-stats__grid">
-    <div class="hero-stat">
-      <p class="hero-stat__number" data-count="12">0</p>
-      <p class="hero-stat__label">Years of Experience</p>
-    </div>
-    <div class="hero-stat">
-      <p class="hero-stat__number" data-count="{{ all_compound_names|length }}">0</p>
-      <p class="hero-stat__label">Projects</p>
-    </div>
-    <div class="hero-stat">
-      <p class="hero-stat__number" data-count="{{ all_developer_names|length }}">0</p>
-      <p class="hero-stat__label">Developers</p>
-    </div>
-    <div class="hero-stat">
-      <p class="hero-stat__number" data-count="500" data-suffix="+">0</p>
-      <p class="hero-stat__label">Happy Clients</p>
-    </div>
-  </div>
-</section>
+def allowed_image(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 
-{% if new_launches %}
-<section class="mv-section mv-section--dark">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Just Announced</p>
-        <h2 class="mv-title">New Launches</h2>
-      </div>
-      <a class="mv-viewall" href="{{ url_for('compounds') }}">View all compounds →</a>
-    </div>
-
-    <div class="mv-hscroll">
-      <div class="mv-launches">
-        {% for c in new_launches %}
-        <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
-          <div class="mv-card-icons">
-            <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
-            </button>
-            <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
-            </button>
-          </div>
-          {% if c.cover_image_url %}
-            <img class="mv-launch-card__img" src="{{ c.cover_image_url }}" alt="{{ c.name }}" loading="lazy">
-          {% endif %}
-          <div class="mv-launch-card__scrim"></div>
-          <div class="mv-launch-card__body">
-            <div class="mv-launch-card__badges">
-              <span class="mv-launch-card__tag">New Launch</span>
-              {% if c.delivery_year %}<span class="mv-delivery-badge">Delivery {{ c.delivery_year }}</span>{% endif %}
-            </div>
-            <p class="mv-launch-card__name">{{ c.name }}</p>
-            {% if c.developer in developer_logos %}
-            <img class="mv-launch-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-            {% elif c.developer %}
-            <p class="mv-launch-card__developer">{{ c.developer }}</p>
-            {% endif %}
-            <p class="mv-launch-card__meta">{{ c.area }}</p>
-            {% if c.min_price %}
-            <p class="mv-launch-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
-            {% else %}
-            <p class="mv-launch-card__price">Price on request</p>
-            {% endif %}
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
+def save_uploaded_image(file_storage, upload_folder):
+    """Saves an uploaded image with a unique filename. Returns the filename, or None if no valid file was given."""
+    if not file_storage or file_storage.filename == "":
+        return None
+    if not allowed_image(file_storage.filename):
+        return None
+    os.makedirs(upload_folder, exist_ok=True)
+    ext = secure_filename(file_storage.filename).rsplit(".", 1)[1].lower()
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    file_storage.save(os.path.join(upload_folder, unique_name))
+    return unique_name
 
 
-{% if top_areas %}
-<section class="mv-section area-section">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Explore by Location</p>
-        <h2 class="mv-title">Top Areas</h2>
-      </div>
-    </div>
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    db.init_app(app)
 
-    <div class="mv-areas-scroll">
-      {% for area in top_areas %}
-      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-        <div class="mv-area-card__scrim"></div>
-        <div class="mv-area-card__body">
-          <p class="mv-area-card__name">{{ area.name }}</p>
-          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
+    with app.app_context():
+        db.create_all()
 
-    <div class="mv-areas-expand" id="areas-expand">
-      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
-        View all areas <span class="mv-areas-toggle__arrow">▾</span>
-      </button>
+        # ---------------------------------------------------------------
+        # One-time, self-healing migration: `db.create_all()` only creates
+        # brand-new tables, it never adds a column to a table that already
+        # exists. Since there's no direct database shell access in this
+        # workflow, this checks whether the `location` column is already on
+        # the `compounds` table and adds it automatically if it's missing.
+        # Safe to leave in permanently — once the column exists, this is a
+        # no-op on every future restart.
+        # ---------------------------------------------------------------
+        inspector = db.inspect(db.engine)
+        existing_columns = [col["name"] for col in inspector.get_columns("compounds")]
+        if "location" not in existing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE compounds ADD COLUMN location VARCHAR(150)"))
+                connection.commit()
 
-      <div class="mv-areas-more" id="areas-more">
-        {% for loc in locations_menu %}
-        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-          <div class="mv-area-card__scrim"></div>
-          <div class="mv-area-card__body">
-            <p class="mv-area-card__name">{{ loc.name }}</p>
-            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
+        if "is_launch" not in existing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE compounds ADD COLUMN is_launch BOOLEAN DEFAULT FALSE"))
+                connection.commit()
 
+        existing_unit_columns = [col["name"] for col in inspector.get_columns("units")]
+        if "is_launch" not in existing_unit_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE units ADD COLUMN is_launch BOOLEAN DEFAULT FALSE"))
+                connection.commit()
 
-{% if featured %}
-<section class="section">
-    <div class="container">
-        <div class="mv-section__head">
-          <div>
-            <p class="mv-eyebrow">Featured Projects</p>
-            <h2 class="mv-title mv-title--light">Handpicked Premium Projects</h2>
-            <a class="mv-viewall mv-viewall--underline" href="{{ url_for('compounds') }}">View All Projects</a>
-          </div>
-          <div class="mv-carousel-arrows">
-            <button type="button" class="mv-arrow-btn" aria-label="Previous" onclick="document.getElementById('featured-grid').scrollBy({left:-260, behavior:'smooth'})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <button type="button" class="mv-arrow-btn" aria-label="Next" onclick="document.getElementById('featured-grid').scrollBy({left:260, behavior:'smooth'})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="mv-hscroll">
-            <div class="mv-property-grid" id="featured-grid">
-                {% for c in featured %}
-                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
-                  <div class="mv-property-card__media">
-                    {% if c.area %}
-                    <span class="mv-location-badge">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>
-                      {{ c.area }}
-                    </span>
-                    {% endif %}
-                    <div class="mv-card-icons">
-                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
-                      </button>
-                    </div>
-                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
-                  </div>
-                  <div class="mv-property-card__body">
-                    <p class="mv-property-card__name">{{ c.name }}</p>
-                    {% if c.developer in developer_logos %}
-                    <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-                    {% elif c.developer %}
-                    <p class="mv-property-card__developer">{{ c.developer }}</p>
-                    {% endif %}
-                    {% if c.min_price %}
-                    <p class="mv-property-card__price">From <span>EGP {{ "{:,.0f}".format(c.min_price) }}</span></p>
-                    {% else %}
-                    <p class="mv-property-card__price">Price on request</p>
-                    {% endif %}
-                  </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</section>
-{% endif %}
-
-
-{% if recommended_units %}
-<section class="mv-section">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Handpicked for You</p>
-        <h2 class="mv-title">Recommended Units</h2>
-      </div>
-      <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
-    </div>
-
-    <div class="mv-unit-scroll">
-      {% for u in recommended_units %}
-      <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
-        <img class="mv-unit-card__thumb"
-             src="{{ u.image_url or u.compound.cover_image_url or '' }}"
-             alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
-        <div class="mv-unit-card__body">
-          <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
-          <p class="mv-unit-card__type">{{ u.unit_type }}</p>
-          <p class="mv-unit-card__facts">
-            {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
-            {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
-            {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
-          </p>
-          <p class="mv-unit-card__price">
-            {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
-          </p>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-
-<section class="mv-match-calc-section">
-  <div class="mv-match-calc-grid">
-    <div class="mv-match-calc-col mv-match-calc-col--match">
-      <div class="mv-match-calc-col__inner">
-        <p class="mv-eyebrow">Not Sure Where to Start?</p>
-        <h2 class="mv-title mv-title--light">Find Your Match</h2>
-        <form action="{{ url_for('compounds') }}" method="get" class="mv-match-form mv-match-form--stacked">
-          <div class="mv-match-field">
-            <span class="hero-search__label">Preferred Location</span>
-            <input type="text" name="area" list="hero-area-list" placeholder="Any area">
-          </div>
-          <div class="mv-match-field">
-            <span class="hero-search__label">Max Budget (EGP)</span>
-            <input type="number" name="max_price" placeholder="e.g. 15,000,000">
-          </div>
-          <div class="mv-match-field">
-            <span class="hero-search__label">Preferred Developer</span>
-            <input type="text" name="developer" list="hero-developer-list" placeholder="Any developer">
-          </div>
-          <button type="submit" class="hero-cta hero-cta--primary mv-match-submit">Match Me With Properties →</button>
-        </form>
-      </div>
-    </div>
-
-    <div class="mv-match-calc-col mv-match-calc-col--calc">
-      <div class="mv-match-calc-col__inner">
-        <p class="mv-eyebrow">Plan Your Investment</p>
-        <h2 class="mv-title" style="color:var(--color-white);">Investment Calculator</h2>
-        <div class="mv-calc-card">
-          <p class="mv-calc-card__title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
-            Investment Calculator
-          </p>
-          <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
-          <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
-          <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
-
-          <label class="mv-calc-label" for="calc-downpayment" style="margin-top:16px;">Down Payment</label>
-          <select id="calc-downpayment" class="mv-calc-select">
-            <option value="0.10">10%</option>
-            <option value="0.15">15%</option>
-            <option value="0.20" selected>20%</option>
-            <option value="0.30">30%</option>
-          </select>
-
-          <div class="mv-calc-results">
-            <div>
-              <p class="mv-calc-results__label">Estimated Monthly Payment</p>
-              <p class="mv-calc-results__value" id="calc-monthly">From EGP 33,333</p>
-            </div>
-            <div>
-              <p class="mv-calc-results__label">Properties Available</p>
-              <p class="mv-calc-results__value" id="calc-count">{{ initial_calc_count }}</p>
-            </div>
-          </div>
-          <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">View Matching Properties</a>
-          <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-
-{% if all_developer_names %}
-<section class="mv-section mv-developers-section">
-  <div class="container">
-    <p class="mv-eyebrow" style="text-align:center;">Partnering With Industry Leaders</p>
-    <div class="mv-developers-row">
-      {% for d in all_developer_names %}
-      {% if d in developer_logos %}
-      <a class="mv-developer-logo-pill" href="{{ url_for('compounds', developer=d) }}">
-        <img src="{{ developer_logos[d] }}" alt="{{ d }}">
-      </a>
-      {% else %}
-      <a class="mv-developer-pill" href="{{ url_for('compounds', developer=d) }}">{{ d }}</a>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-
-<section class="section" style="background:var(--color-cream);">
-  <div class="container">
-    <div style="text-align:center; max-width:640px; margin:0 auto 40px auto;">
-      <p class="mv-eyebrow">Why Meleven?</p>
-      <h2 class="mv-title">More Than a Property Portal</h2>
-      <div class="hero-rule" style="margin:18px auto 0;"></div>
-    </div>
-    <div class="mv-why-features">
-      <div class="mv-why-feature">
-        <div class="mv-why-feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
-        </div>
-        <p class="mv-why-feature__title">Curated Properties</p>
-        <p class="mv-why-feature__text">Only the finest projects from Egypt's most trusted developers.</p>
-      </div>
-      <div class="mv-why-feature">
-        <div class="mv-why-feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
-        </div>
-        <p class="mv-why-feature__title">Investment Focused</p>
-        <p class="mv-why-feature__text">Expert advice to help you make smart, profitable decisions.</p>
-      </div>
-      <div class="mv-why-feature">
-        <div class="mv-why-feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>
-        </div>
-        <p class="mv-why-feature__title">Global Standards</p>
-        <p class="mv-why-feature__text">International-level service backed by local market expertise.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" style="background:var(--color-navy-dark); text-align:center;">
-  <div class="container narrow">
-    <p class="mv-eyebrow">Book a Consultation</p>
-    <h2 class="mv-title" style="color:var(--color-white);">Looking For The Right Property?</h2>
-    <p class="hero-subtitle" style="color:#dbe0e8; margin:16px auto 0; text-align:center;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
-    <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp" style="margin-top:24px;">
-        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
-        Chat on WhatsApp
-    </a>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container narrow">
-    <div class="mv-consult-form-card" style="max-width:480px; margin:0 auto;">
-      <p class="mv-consult-form-card__title" style="text-align:center;">Get in Touch</p>
-      <form action="{{ url_for('contact') }}" method="post" class="mv-consult-form">
-        <input type="text" name="name" placeholder="Your Name" required>
-        <input type="text" name="phone" placeholder="Phone Number" required>
-        <input type="email" name="email" placeholder="Email (optional)">
-        <textarea name="message" rows="3" placeholder="Tell us what you're looking for..."></textarea>
-        <button type="submit" class="hero-cta hero-cta--primary mv-consult-form__submit">Request a Callback</button>
-      </form>
-    </div>
-  </div>
-</section>
-
-{# ---------------------------------------------------------------
-   Latest Listings — temporarily hidden until all projects/compounds
-   are fully populated. Delete the two comment-wrapper lines below
-   (the ones starting and ending this block) to bring it back.
-   --------------------------------------------------------------- #}
-{#
-<section class="section">
-    <div class="container">
-        <div class="mv-section__head">
-          <div>
-            <p class="mv-eyebrow">Fresh on the Market</p>
-            <h2 class="mv-title mv-title--light">Latest Listings</h2>
-          </div>
-        </div>
-        {% if latest %}
-        <div class="mv-hscroll">
-            <div class="mv-property-grid">
-                {% for c in latest %}
-                <a class="mv-property-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
-                  <div class="mv-property-card__media">
-                    <div class="mv-card-icons">
-                      <button type="button" class="mv-icon-btn mv-fav-btn" aria-label="Save" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.1C.4 8.6 2 5 5.6 5c2 0 3.4 1 4.4 2.4C11 6 12.4 5 14.4 5 18 5 19.6 8.6 18 11.9 15.5 16.4 8 21 8 21z"/></svg>
-                      </button>
-                      <button type="button" class="mv-icon-btn mv-compare-btn" aria-label="Compare" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('is-active');">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18M3 8h5M16 8h5M3 16h5M16 16h5"/></svg>
-                      </button>
-                    </div>
-                    {% if c.delivery_year %}<span class="mv-delivery-badge mv-delivery-badge--onmedia">Delivery {{ c.delivery_year }}</span>{% endif %}
-                    <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
-                  </div>
-                  <div class="mv-property-card__body">
-                    {% if c.developer in developer_logos %}
-                    <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-                    {% elif c.developer %}
-                    <p class="mv-property-card__developer">{{ c.developer }}</p>
-                    {% endif %}
-                    <p class="mv-property-card__name">{{ c.name }}</p>
-                    <p class="mv-property-card__meta">{{ c.area }}</p>
-                    {% if c.min_price %}
-                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
-                    {% else %}
-                    <p class="mv-property-card__price">Price on request</p>
-                    {% endif %}
-                  </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-        {% else %}
-        <p class="empty-state">No properties added yet. Add compounds from the database to see them here.</p>
-        {% endif %}
-    </div>
-</section>
-#}
-
-
-<a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="mv-whatsapp-float" aria-label="Chat on WhatsApp">
-  <svg viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
-</a>
-
-
-
-<script>
-  (function(){
-    var statEls = document.querySelectorAll('.hero-stat__number');
-    if (!statEls.length) return;
-    var animated = false;
-    function animateStats(){
-      if (animated) return;
-      animated = true;
-      statEls.forEach(function(el){
-        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
-        var suffix = el.getAttribute('data-suffix') || '';
-        var duration = 1200;
-        var startTime = null;
-        function step(ts){
-          if (!startTime) startTime = ts;
-          var progress = Math.min((ts - startTime) / duration, 1);
-          el.textContent = Math.floor(progress * target) + suffix;
-          if (progress < 1) requestAnimationFrame(step);
-          else el.textContent = target + suffix;
+        # ---------------------------------------------------------------
+        # Backfill: any existing compound that doesn't have `location` set
+        # yet gets one assigned automatically based on its current `area`,
+        # grouping sub-areas under the top-level regions the site uses
+        # (New Cairo, North Coast, West Cairo, Ain Sokhna, New Capital,
+        # Alexandria). This runs on every startup but only touches rows
+        # where location is still empty, so it's safe to leave in place —
+        # it will pick up newly imported compounds automatically too.
+        # ---------------------------------------------------------------
+        AREA_TO_LOCATION = {
+            "New Cairo": "New Cairo",
+            "Mostakbal City": "New Cairo",
+            "New Heliopolis": "New Cairo",
+            "North Coast": "North Coast",
+            "North Coast-Sahel": "North Coast",
+            "Ras El Hekma": "North Coast",
+            "Sidi Abdel Rahman": "North Coast",
+            "Al Dabaa": "North Coast",
+            "New Zayed": "West Cairo",
+            "El Sheikh Zayed": "West Cairo",
+            "6th of October City": "West Cairo",
+            "6th Settlement": "West Cairo",
+            "October Gardens": "West Cairo",
+            "Ain Sokhna": "Ain Sokhna",
+            "New Capital City": "New Capital",
+            "Alexandria": "Alexandria",
         }
-        requestAnimationFrame(step);
-      });
-    }
-    var statsSection = document.querySelector('.hero-stats');
-    if (statsSection && 'IntersectionObserver' in window) {
-      var observer = new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          if (entry.isIntersecting) { animateStats(); observer.disconnect(); }
-        });
-      }, { threshold: 0.3 });
-      observer.observe(statsSection);
-    } else {
-      animateStats();
-    }
-  })();
-</script>
+        unmatched_compounds = Compound.query.filter(
+            db.or_(Compound.location.is_(None), Compound.location == "")
+        ).all()
+        for c in unmatched_compounds:
+            mapped = AREA_TO_LOCATION.get((c.area or "").strip())
+            if mapped:
+                c.location = mapped
+        if unmatched_compounds:
+            db.session.commit()
 
-<script>
-  (function(){
-    var slider = document.getElementById('calc-budget');
-    var budgetDisplay = document.getElementById('calc-budget-display');
-    var downpaymentSelect = document.getElementById('calc-downpayment');
-    var monthlyOut = document.getElementById('calc-monthly');
-    var ctaLink = document.getElementById('calc-cta');
-    if (!slider) return;
+    @app.context_processor
+    def inject_footer_areas():
+        rows = db.session.query(Compound.area, db.func.count(Compound.id)).filter(
+            Compound.is_published == True, Compound.area.isnot(None)
+        ).group_by(Compound.area).order_by(Compound.area.asc()).all()
 
-    var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
-    var countOut = document.getElementById('calc-count');
-    var countFetchToken = 0; // guards against an older, slower request overwriting a newer one
+        dev_rows = db.session.query(Compound.developer, db.func.count(Compound.id)).filter(
+            Compound.is_published == True, Compound.developer.isnot(None)
+        ).group_by(Compound.developer).order_by(Compound.developer.asc()).all()
 
-    function formatEGP(n){
-      return Math.round(n).toLocaleString('en-US');
-    }
+        return {
+            "footer_areas": [{"name": r[0], "count": r[1]} for r in rows],
+            "footer_developers": [{"name": r[0], "count": r[1]} for r in dev_rows],
+        }
 
-    // Debounce so dragging the slider doesn't fire a request on every
-    // single pixel of movement — only once movement pauses briefly.
-    function debounce(fn, wait){
-      var t;
-      return function(){
-        clearTimeout(t);
-        var args = arguments;
-        t = setTimeout(function(){ fn.apply(null, args); }, wait);
-      };
-    }
+    # ---------- Uploaded file serving ----------
 
-    function fetchLiveCount(budget){
-      var thisToken = ++countFetchToken;
-      fetch('/api/properties-count?max_price=' + encodeURIComponent(budget))
-        .then(function(res){ return res.json(); })
-        .then(function(data){
-          if (thisToken !== countFetchToken) return; // a newer request already landed
-          if (countOut) countOut.textContent = data.count;
+    @app.route("/uploads/<path:filename>")
+    def uploaded_file(filename):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+    # ---------- Public pages ----------
+
+    @app.route("/")
+    def home():
+        featured = Compound.query.filter_by(is_featured=True, is_published=True).limit(6).all()
+        latest = Compound.query.filter_by(is_published=True).order_by(Compound.created_at.desc()).limit(8).all()
+
+        area_rows = db.session.query(
+            Compound.area, db.func.count(Compound.id)
+        ).filter(Compound.is_published == True, Compound.area.isnot(None)).group_by(Compound.area).order_by(Compound.area).all()
+
+        top_areas = []
+        for area_name, count in area_rows:
+            # Grab one compound in this area that has a cover image, to represent it visually
+            sample = (
+                Compound.query
+                .filter(
+                    Compound.area == area_name,
+                    Compound.is_published == True,
+                    Compound.cover_image_url.isnot(None),
+                    Compound.cover_image_url != "",
+                )
+                .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                .first()
+            )
+            top_areas.append({
+                "name": area_name,
+                "count": count,
+                "cover_image_url": sample.cover_image_url if sample else None,
+            })
+
+        # Show at most this many as folder cards; anything beyond that is
+        # only reachable via the "View all areas" dropdown so the two lists
+        # never repeat each other.
+        CARD_LIMIT = 6
+        all_locations_sorted = top_areas
+        top_areas = all_locations_sorted[:CARD_LIMIT]
+
+        # "New Launches" — compounds flagged directly (Compound.is_launch) OR
+        # with at least one unit explicitly flagged (Unit.is_launch), most
+        # recently added first. Falls back to the old "soonest delivery
+        # year" sort if nothing has been flagged yet, so the section never
+        # sits empty while launch flags are still being set in the admin.
+        new_launches = (
+            Compound.query
+            .outerjoin(Unit, Unit.compound_id == Compound.id)
+            .filter(
+                Compound.is_published == True,
+                db.or_(Compound.is_launch == True, Unit.is_launch == True),
+            )
+            .distinct()
+            .order_by(Compound.created_at.desc())
+            .limit(8)
+            .all()
+        )
+        if not new_launches:
+            new_launches = (
+                Compound.query
+                .filter(Compound.is_published == True)
+                .order_by(Compound.delivery_year.asc().nullslast(), Compound.created_at.desc())
+                .limit(8)
+                .all()
+            )
+
+        # "Recommended Units" — most recently added available units across published compounds
+        # (Unit has no created_at column, so we use id as a proxy for insertion order)
+        recommended_units = (
+            Unit.query
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Unit.is_available == True, Compound.is_published == True)
+            .order_by(Unit.id.desc())
+            .limit(10)
+            .all()
+        )
+
+        # Names for the hero search bar's compound autocomplete (datalist)
+        all_compound_names = [
+            row[0] for row in
+            db.session.query(Compound.name).filter(Compound.is_published == True).order_by(Compound.name.asc()).all()
+        ]
+
+        # Always pulled fresh from the DB, so a newly added area shows up
+        # in the hero search dropdown without any code changes. Distinct
+        # `location` values are folded in too, so typing a top-level region
+        # like "New Cairo" is offered right alongside its sub-areas.
+        all_location_names = {
+            row[0] for row in
+            db.session.query(Compound.location).filter(Compound.is_published == True).distinct().all()
+            if row[0]
+        }
+        all_area_names = sorted({a["name"] for a in all_locations_sorted} | all_location_names)
+
+        # Developer names get the same predictive-search treatment
+        all_developer_names = sorted({
+            row[0] for row in
+            db.session.query(Compound.developer).filter(Compound.is_published == True).distinct().all()
+            if row[0]
         })
-        .catch(function(){ /* leave the last known count on screen if the request fails */ });
-    }
 
-    var debouncedFetch = debounce(fetchLiveCount, 250);
+        # Only the locations NOT already shown as a folder card above — the
+        # dropdown exists purely to reach the "rest" of them, so it never
+        # repeats what's already visible in the scroll row.
+        locations_menu = [
+            {"name": a["name"], "count": a["count"], "cover_image_url": a["cover_image_url"]}
+            for a in all_locations_sorted[CARD_LIMIT:]
+        ]
 
-    function recalculate(){
-      var budget = parseInt(slider.value, 10);
-      var downpaymentRate = parseFloat(downpaymentSelect.value);
-      var financedAmount = budget * (1 - downpaymentRate);
-      var monthly = financedAmount / INSTALLMENT_MONTHS;
+        # Developer name -> logo URL, so property cards can show a real logo
+        # instead of just the developer's name when one has been uploaded.
+        developer_logos = {
+            d.name: d.logo_url
+            for d in Developer.query.filter(Developer.logo_url.isnot(None), Developer.logo_url != "").all()
+        }
 
-      budgetDisplay.value = formatEGP(budget);
-      monthlyOut.textContent = 'From EGP ' + formatEGP(monthly);
-      debouncedFetch(budget);
+        # Initial "Properties Available" figure shown before the calculator's
+        # JS has run its first live lookup — matches the default 5,000,000
+        # EGP slider value so the number on first paint is already correct
+        # rather than flashing from the old "total compounds" placeholder.
+        initial_calc_count = (
+            Unit.query
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None), Unit.price <= 5000000)
+            .count()
+        )
 
-      if (ctaLink) {
-        var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
-        url.searchParams.set('max_price', budget);
-        ctaLink.href = url.pathname + url.search;
-      }
-    }
+        return render_template(
+            "index.html",
+            featured=featured,
+            latest=latest,
+            top_areas=top_areas,
+            new_launches=new_launches,
+            recommended_units=recommended_units,
+            all_compound_names=all_compound_names,
+            all_area_names=all_area_names,
+            all_developer_names=all_developer_names,
+            locations_menu=locations_menu,
+            developer_logos=developer_logos,
+            initial_calc_count=initial_calc_count,
+        )
 
-    if (ctaLink && !ctaLink.getAttribute('data-base-href')) {
-      ctaLink.setAttribute('data-base-href', ctaLink.getAttribute('href'));
-    }
+    # ---------- Investment calculator: live matching-properties count ----------
 
-    slider.addEventListener('input', recalculate);
-    downpaymentSelect.addEventListener('change', recalculate);
-  })();
-</script>
-{% endblock %}
+    @app.route("/api/properties-count")
+    def api_properties_count():
+        """
+        Returns how many published, available units actually fit within a
+        given budget — used by the homepage Investment Calculator so
+        "Properties Available" reflects the real inventory instead of a
+        static total compound count.
+        """
+        max_price = request.args.get("max_price", type=int)
+
+        query = (
+            Unit.query
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None))
+        )
+        if max_price:
+            query = query.filter(Unit.price <= max_price)
+
+        count = query.count()
+        return jsonify({"count": count})
+
+    @app.route("/locations")
+    def locations():
+        # Group by the top-level `location` column (e.g. "New Cairo", "North
+        # Coast"). Compounds that don't have `location` set yet fall back to
+        # their `area` value, so nothing silently disappears from this page
+        # while any stragglers are still being backfilled.
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
+
+        rows = (
+            db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
+            .filter(Compound.is_published == True, location_expr.isnot(None))
+            .group_by("location_name")
+            .order_by("location_name")
+            .all()
+        )
+
+        location_list = []
+        for location_name, count in rows:
+            sample = (
+                Compound.query
+                .filter(
+                    location_expr == location_name,
+                    Compound.is_published == True,
+                    Compound.cover_image_url.isnot(None),
+                    Compound.cover_image_url != "",
+                )
+                .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                .first()
+            )
+            # Sub-areas within this location (e.g. New Cairo -> Mostakbal City, New Heliopolis)
+            sub_area_rows = (
+                db.session.query(Compound.area, db.func.count(Compound.id))
+                .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
+                .group_by(Compound.area)
+                .order_by(Compound.area.asc())
+                .all()
+            )
+            location_list.append({
+                "name": location_name,
+                "count": count,
+                "cover_image_url": sample.cover_image_url if sample else None,
+                "sub_areas": [{"name": r[0], "count": r[1]} for r in sub_area_rows],
+            })
+
+        return render_template("locations.html", locations=location_list)
+
+    @app.route("/compounds")
+    def compounds():
+        # Filters can be multi-select (areas) or single-value (developer, delivery_year, price range)
+        selected_areas = request.args.getlist("area")
+        selected_developer = request.args.get("developer", "").strip()
+        min_price = request.args.get("min_price", "").strip()
+        max_price = request.args.get("max_price", "").strip()
+        delivery_year = request.args.get("delivery_year", "").strip()
+        search_query = request.args.get("q", "").strip()
+
+        query = Compound.query.filter_by(is_published=True)
+
+        if search_query:
+            query = query.filter(Compound.name.ilike(f"%{search_query}%"))
+
+        if selected_areas:
+            area_filters = []
+            for a in selected_areas:
+                if not a:
+                    continue
+                # Matching against both `area` and `location` means typing a
+                # top-level region (e.g. "New Cairo") also returns compounds
+                # whose sub-area is "Mostakbal City" or "New Heliopolis",
+                # without needing a separate locations page.
+                area_filters.append(Compound.area.ilike(f"%{a}%"))
+                area_filters.append(Compound.location.ilike(f"%{a}%"))
+            if area_filters:
+                query = query.filter(db.or_(*area_filters))
+
+        if selected_developer:
+            query = query.filter(Compound.developer.ilike(f"%{selected_developer}%"))
+
+        if delivery_year:
+            query = query.filter(Compound.delivery_year == delivery_year)
+
+        if min_price:
+            try:
+                query = query.filter(Compound.max_price >= int(min_price))
+            except ValueError:
+                pass
+
+        if max_price:
+            try:
+                query = query.filter(Compound.min_price <= int(max_price))
+            except ValueError:
+                pass
+
+        all_compounds = query.order_by(Compound.name.asc()).all()
+
+        # Options for the filter sidebar
+        areas = sorted({row[0] for row in db.session.query(Compound.area).distinct() if row[0]})
+        developers = sorted({row[0] for row in db.session.query(Compound.developer).distinct() if row[0]})
+        delivery_years = sorted(
+            {row[0] for row in db.session.query(Compound.delivery_year).distinct() if row[0]}
+        )
+
+        return render_template(
+            "compounds.html",
+            compounds=all_compounds,
+            areas=areas,
+            developers=developers,
+            delivery_years=delivery_years,
+            selected_areas=selected_areas,
+            selected_developer=selected_developer,
+            min_price=min_price,
+            max_price=max_price,
+            selected_delivery_year=delivery_year,
+            search_query=search_query,
+        )
+
+    @app.route("/compound/<slug>")
+    def compound_detail(slug):
+        compound = Compound.query.filter_by(slug=slug, is_published=True).first_or_404()
+        return render_template("compound_detail.html", compound=compound)
+
+    @app.route("/about")
+    def about():
+        return render_template("about.html")
+
+    @app.route("/sell", methods=["GET", "POST"])
+    def sell_property():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            phone = request.form.get("phone", "").strip()
+            email = request.form.get("email", "").strip()
+            location = request.form.get("location", "").strip()
+            compound_name = request.form.get("compound_name", "").strip()
+            property_type = request.form.get("property_type", "").strip()
+
+            message_parts = []
+            if property_type:
+                message_parts.append(f"Property Type: {property_type}")
+            if location:
+                message_parts.append(f"Location: {location}")
+            if compound_name:
+                message_parts.append(f"Compound: {compound_name}")
+            message = " | ".join(message_parts)
+
+            lead = Lead(
+                name=name,
+                phone=phone,
+                email=email,
+                message=message,
+                source_page="sell_property",
+            )
+            db.session.add(lead)
+            db.session.commit()
+            flash("Thanks! One of our agents will call you shortly to help sell your property.", "success")
+            return redirect(url_for("sell_property"))
+
+        return render_template("sell.html")
+
+    @app.route("/contact", methods=["GET", "POST"])
+    def contact():
+        if request.method == "POST":
+            lead = Lead(
+                name=request.form.get("name", "").strip(),
+                phone=request.form.get("phone", "").strip(),
+                email=request.form.get("email", "").strip(),
+                message=request.form.get("message", "").strip(),
+                source_page="contact_page",
+            )
+            db.session.add(lead)
+            db.session.commit()
+            flash("Thanks for reaching out! Our team at Meleven will contact you shortly.", "success")
+            return redirect(url_for("contact"))
+
+        return render_template("contact.html")
+
+    @app.route("/compound/<slug>/interested", methods=["POST"])
+    def compound_interested(slug):
+        compound = Compound.query.filter_by(slug=slug).first_or_404()
+        lead = Lead(
+            name=request.form.get("name", "").strip(),
+            phone=request.form.get("phone", "").strip(),
+            email=request.form.get("email", "").strip(),
+            message=request.form.get("message", "").strip(),
+            compound_id=compound.id,
+            source_page=f"compound:{slug}",
+        )
+        db.session.add(lead)
+        db.session.commit()
+        flash("Thanks for your interest! Our team at Meleven will contact you shortly about this project.", "success")
+        return redirect(url_for("compound_detail", slug=slug))
+
+    # ---------- Admin auth ----------
+
+    def login_required(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if not session.get("admin_logged_in"):
+                return redirect(url_for("admin_login", next=request.path))
+            return f(*args, **kwargs)
+        return wrapper
+
+    @app.route("/admin/login", methods=["GET", "POST"])
+    def admin_login():
+        if request.method == "POST":
+            password = request.form.get("password", "")
+            if password == app.config["ADMIN_PASSWORD"]:
+                session["admin_logged_in"] = True
+                next_url = request.args.get("next") or url_for("admin_dashboard")
+                return redirect(next_url)
+            flash("Incorrect password.", "error")
+        return render_template("admin/login.html")
+
+    @app.route("/admin/logout")
+    def admin_logout():
+        session.pop("admin_logged_in", None)
+        return redirect(url_for("admin_login"))
+
+    # ---------- Admin: compounds ----------
+
+    @app.route("/admin")
+    @login_required
+    def admin_dashboard():
+        all_compounds = Compound.query.order_by(Compound.created_at.desc()).all()
+        return render_template("admin/dashboard.html", compounds=all_compounds)
+
+    @app.route("/admin/leads")
+    @login_required
+    def admin_leads():
+        source_filter = request.args.get("source", "all")
+
+        query = Lead.query
+        if source_filter == "sell":
+            query = query.filter(Lead.source_page == "sell_property")
+        elif source_filter == "other":
+            query = query.filter(Lead.source_page != "sell_property")
+        # "all" -> no filter
+
+        all_leads = query.order_by(Lead.created_at.desc()).all()
+
+        sell_count = Lead.query.filter(Lead.source_page == "sell_property").count()
+        other_count = Lead.query.filter(Lead.source_page != "sell_property").count()
+
+        return render_template(
+            "admin/leads.html",
+            leads=all_leads,
+            source_filter=source_filter,
+            sell_count=sell_count,
+            other_count=other_count,
+        )
+
+    @app.route("/admin/leads/<int:lead_id>/delete", methods=["POST"])
+    @login_required
+    def admin_lead_delete(lead_id):
+        l = Lead.query.get_or_404(lead_id)
+        db.session.delete(l)
+        db.session.commit()
+        flash("Lead deleted.", "success")
+        return redirect(url_for("admin_leads"))
+
+    @app.route("/admin/compounds/new", methods=["GET", "POST"])
+    @login_required
+    def admin_compound_new():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            slug = request.form.get("slug", "").strip() or slugify(name)
+
+            # ensure slug uniqueness
+            base_slug, n = slug, 1
+            while Compound.query.filter_by(slug=slug).first():
+                n += 1
+                slug = f"{base_slug}-{n}"
+
+            cover_image_url = request.form.get("cover_image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                cover_image_url = url_for("uploaded_file", filename=uploaded_name)
+
+            c = Compound(
+                name=name,
+                slug=slug,
+                developer=request.form.get("developer", "").strip(),
+                location=request.form.get("location", "").strip(),
+                area=request.form.get("area", "").strip(),
+                location_detail=request.form.get("location_detail", "").strip(),
+                short_description=request.form.get("short_description", "").strip(),
+                full_description=request.form.get("full_description", "").strip(),
+                min_price=request.form.get("min_price") or None,
+                max_price=request.form.get("max_price") or None,
+                land_area_acres=request.form.get("land_area_acres") or None,
+                delivery_year=request.form.get("delivery_year") or None,
+                cover_image_url=cover_image_url,
+                contact_phone=request.form.get("contact_phone", "").strip(),
+                contact_whatsapp=request.form.get("contact_whatsapp", "").strip(),
+                is_featured=bool(request.form.get("is_featured")),
+                is_launch=bool(request.form.get("is_launch")),
+                is_published=bool(request.form.get("is_published")),
+            )
+            db.session.add(c)
+            db.session.commit()
+            flash("Compound created.", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        return render_template("admin/compound_form.html", compound=None)
+
+    @app.route("/admin/compounds/<int:compound_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_compound_edit(compound_id):
+        c = Compound.query.get_or_404(compound_id)
+        if request.method == "POST":
+            c.name = request.form.get("name", "").strip()
+
+            # Keep slug in sync when it's explicitly provided; otherwise leave the
+            # existing slug untouched so published links never break silently.
+            new_slug = request.form.get("slug", "").strip()
+            if new_slug and new_slug != c.slug:
+                base_slug, n = new_slug, 1
+                candidate = new_slug
+                while Compound.query.filter(Compound.slug == candidate, Compound.id != c.id).first():
+                    n += 1
+                    candidate = f"{base_slug}-{n}"
+                c.slug = candidate
+
+            c.developer = request.form.get("developer", "").strip()
+            c.location = request.form.get("location", "").strip()
+            c.area = request.form.get("area", "").strip()
+            c.location_detail = request.form.get("location_detail", "").strip()
+            c.short_description = request.form.get("short_description", "").strip()
+            c.full_description = request.form.get("full_description", "").strip()
+            c.min_price = request.form.get("min_price") or None
+            c.max_price = request.form.get("max_price") or None
+            c.land_area_acres = request.form.get("land_area_acres") or None
+            c.delivery_year = request.form.get("delivery_year") or None
+
+            cover_image_url = request.form.get("cover_image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                cover_image_url = url_for("uploaded_file", filename=uploaded_name)
+            c.cover_image_url = cover_image_url
+
+            c.contact_phone = request.form.get("contact_phone", "").strip()
+            c.contact_whatsapp = request.form.get("contact_whatsapp", "").strip()
+            c.is_featured = bool(request.form.get("is_featured"))
+            c.is_launch = bool(request.form.get("is_launch"))
+            c.is_published = bool(request.form.get("is_published"))
+            db.session.commit()
+            flash("Compound updated.", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        return render_template("admin/compound_form.html", compound=c)
+
+    @app.route("/admin/compounds/<int:compound_id>/delete", methods=["POST"])
+    @login_required
+    def admin_compound_delete(compound_id):
+        c = Compound.query.get_or_404(compound_id)
+        db.session.delete(c)
+        db.session.commit()
+        flash("Compound deleted.", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    # ---------- Admin: developer logos ----------
+
+    @app.route("/admin/developers")
+    @login_required
+    def admin_developers():
+        all_developers = Developer.query.order_by(Developer.name.asc()).all()
+        return render_template("admin/developers.html", developers=all_developers)
+
+    @app.route("/admin/developers/new", methods=["GET", "POST"])
+    @login_required
+    def admin_developer_new():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            if not name:
+                flash("Developer name is required.", "error")
+                return redirect(url_for("admin_developer_new"))
+            if Developer.query.filter(db.func.lower(Developer.name) == name.lower()).first():
+                flash(f"A developer named '{name}' already exists.", "error")
+                return redirect(url_for("admin_developer_new"))
+
+            logo_url = request.form.get("logo_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                logo_url = url_for("uploaded_file", filename=uploaded_name)
+
+            d = Developer(name=name, logo_url=logo_url)
+            db.session.add(d)
+            db.session.commit()
+            flash("Developer added.", "success")
+            return redirect(url_for("admin_developers"))
+
+        return render_template("admin/developer_form.html", developer=None)
+
+    @app.route("/admin/developers/<int:developer_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_developer_edit(developer_id):
+        d = Developer.query.get_or_404(developer_id)
+        if request.method == "POST":
+            new_name = request.form.get("name", "").strip()
+            if not new_name:
+                flash("Developer name is required.", "error")
+                return redirect(url_for("admin_developer_edit", developer_id=d.id))
+            duplicate = Developer.query.filter(
+                db.func.lower(Developer.name) == new_name.lower(), Developer.id != d.id
+            ).first()
+            if duplicate:
+                flash(f"A developer named '{new_name}' already exists.", "error")
+                return redirect(url_for("admin_developer_edit", developer_id=d.id))
+            d.name = new_name
+
+            logo_url = request.form.get("logo_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                logo_url = url_for("uploaded_file", filename=uploaded_name)
+            d.logo_url = logo_url
+
+            db.session.commit()
+            flash("Developer updated.", "success")
+            return redirect(url_for("admin_developers"))
+
+        return render_template("admin/developer_form.html", developer=d)
+
+    @app.route("/admin/developers/<int:developer_id>/delete", methods=["POST"])
+    @login_required
+    def admin_developer_delete(developer_id):
+        d = Developer.query.get_or_404(developer_id)
+        db.session.delete(d)
+        db.session.commit()
+        flash("Developer deleted.", "success")
+        return redirect(url_for("admin_developers"))
+
+    # ---------- Admin: units ----------
+
+    @app.route("/admin/compounds/<int:compound_id>/units", methods=["GET", "POST"])
+    @login_required
+    def admin_units(compound_id):
+        c = Compound.query.get_or_404(compound_id)
+        if request.method == "POST":
+            image_url = request.form.get("image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                image_url = url_for("uploaded_file", filename=uploaded_name)
+
+            u = Unit(
+                compound_id=c.id,
+                unit_type=request.form.get("unit_type", "").strip(),
+                phase=request.form.get("phase", "").strip(),
+                delivery_year=request.form.get("delivery_year") or None,
+                bedrooms=request.form.get("bedrooms") or None,
+                bathrooms=request.form.get("bathrooms") or None,
+                area_sqm=request.form.get("area_sqm") or None,
+                price=request.form.get("price") or None,
+                payment_plan=request.form.get("payment_plan", "").strip(),
+                image_url=image_url,
+                is_available=bool(request.form.get("is_available")),
+                is_launch=bool(request.form.get("is_launch")),
+            )
+            db.session.add(u)
+            db.session.commit()
+            flash("Unit added.", "success")
+            return redirect(url_for("admin_units", compound_id=c.id))
+
+        return render_template("admin/units.html", compound=c)
+
+    @app.route("/admin/units/<int:unit_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_unit_edit(unit_id):
+        u = Unit.query.get_or_404(unit_id)
+        if request.method == "POST":
+            u.unit_type = request.form.get("unit_type", "").strip()
+            u.phase = request.form.get("phase", "").strip()
+            u.delivery_year = request.form.get("delivery_year") or None
+            u.bedrooms = request.form.get("bedrooms") or None
+            u.bathrooms = request.form.get("bathrooms") or None
+            u.area_sqm = request.form.get("area_sqm") or None
+            u.price = request.form.get("price") or None
+            u.payment_plan = request.form.get("payment_plan", "").strip()
+
+            image_url = request.form.get("image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                image_url = url_for("uploaded_file", filename=uploaded_name)
+            u.image_url = image_url
+
+            u.is_available = bool(request.form.get("is_available"))
+            u.is_launch = bool(request.form.get("is_launch"))
+            db.session.commit()
+            flash("Unit updated.", "success")
+            return redirect(url_for("admin_units", compound_id=u.compound_id))
+
+        return render_template("admin/unit_form.html", unit=u)
+
+    @app.route("/admin/units/<int:unit_id>/delete", methods=["POST"])
+    @login_required
+    def admin_unit_delete(unit_id):
+        u = Unit.query.get_or_404(unit_id)
+        compound_id = u.compound_id
+        db.session.delete(u)
+        db.session.commit()
+        flash("Unit deleted.", "success")
+        return redirect(url_for("admin_units", compound_id=compound_id))
+
+    # ---------- Admin: bulk import ----------
+
+    def parse_bool(value):
+        return str(value).strip().lower() in ("1", "true", "yes", "y")
+
+    @app.route("/admin/import", methods=["GET"])
+    @login_required
+    def admin_import():
+        return render_template("admin/import.html")
+
+    @app.route("/admin/compounds/import", methods=["POST"])
+    @login_required
+    def admin_compounds_import():
+        file = request.files.get("csv_file")
+        if not file or file.filename == "":
+            flash("Please choose a CSV file.", "error")
+            return redirect(url_for("admin_import"))
+
+        stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
+        reader = csv.DictReader(stream)
+
+        created, skipped = 0, 0
+        for row in reader:
+            name = (row.get("name") or "").strip()
+            if not name:
+                skipped += 1
+                continue
+
+            slug = (row.get("slug") or "").strip() or slugify(name)
+            base_slug, n = slug, 1
+            while Compound.query.filter_by(slug=slug).first():
+                n += 1
+                slug = f"{base_slug}-{n}"
+
+            c = Compound(
+                name=name,
+                slug=slug,
+                developer=(row.get("developer") or "").strip(),
+                location=(row.get("location") or "").strip(),
+                area=(row.get("area") or "").strip(),
+                location_detail=(row.get("location_detail") or "").strip(),
+                short_description=(row.get("short_description") or "").strip(),
+                full_description=(row.get("full_description") or "").strip(),
+                min_price=row.get("min_price") or None,
+                max_price=row.get("max_price") or None,
+                land_area_acres=row.get("land_area_acres") or None,
+                delivery_year=row.get("delivery_year") or None,
+                cover_image_url=(row.get("cover_image_url") or "").strip(),
+                contact_phone=(row.get("contact_phone") or "").strip(),
+                contact_whatsapp=(row.get("contact_whatsapp") or "").strip(),
+                is_featured=parse_bool(row.get("is_featured")),
+                is_launch=parse_bool(row.get("is_launch")),
+                is_published=parse_bool(row.get("is_published", "true")),
+            )
+            db.session.add(c)
+
+            # Print the resolved slug back to the admin so bulk-imported
+            # compounds are easy to match up with a units CSV afterwards.
+            print(f"[compounds import] '{name}' -> slug='{slug}'")
+
+            created += 1
+
+        db.session.commit()
+        flash(f"Imported {created} compound(s). Skipped {skipped} row(s) without a name.", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/units/import", methods=["POST"])
+    @login_required
+    def admin_units_import():
+        file = request.files.get("csv_file")
+        if not file or file.filename == "":
+            flash("Please choose a CSV file.", "error")
+            return redirect(url_for("admin_import"))
+
+        stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
+        reader = csv.DictReader(stream)
+
+        created, skipped, unknown_slugs = 0, 0, []
+        for row in reader:
+            compound_slug = (row.get("compound_slug") or "").strip()
+            compound = Compound.query.filter_by(slug=compound_slug).first()
+            if not compound:
+                skipped += 1
+                if compound_slug not in unknown_slugs:
+                    unknown_slugs.append(compound_slug)
+                continue
+
+            u = Unit(
+                compound_id=compound.id,
+                unit_type=(row.get("unit_type") or "").strip(),
+                phase=(row.get("phase") or "").strip(),
+                delivery_year=row.get("delivery_year") or None,
+                bedrooms=row.get("bedrooms") or None,
+                bathrooms=row.get("bathrooms") or None,
+                area_sqm=row.get("area_sqm") or None,
+                price=row.get("price") or None,
+                payment_plan=(row.get("payment_plan") or "").strip(),
+                image_url=(row.get("image_url") or "").strip(),
+                is_available=parse_bool(row.get("is_available", "true")),
+                is_launch=parse_bool(row.get("is_launch")),
+            )
+            db.session.add(u)
+            created += 1
+
+        db.session.commit()
+
+        message = f"Imported {created} unit(s). Skipped {skipped} row(s) with unknown compound_slug."
+        if unknown_slugs:
+            # Surface exactly which slugs didn't match, instead of failing silently.
+            message += " Unknown slugs: " + ", ".join(unknown_slugs[:10])
+            if len(unknown_slugs) > 10:
+                message += f" (+{len(unknown_slugs) - 10} more)"
+        flash(message, "success" if created else "error")
+        return redirect(url_for("admin_dashboard"))
+
+    return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(debug=True)
