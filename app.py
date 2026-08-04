@@ -242,6 +242,17 @@ def create_app():
             for d in Developer.query.filter(Developer.logo_url.isnot(None), Developer.logo_url != "").all()
         }
 
+        # Distinct unit types across published, available units — powers the
+        # "Type" dropdown on the homepage Investment Calculator.
+        all_unit_types = sorted({
+            row[0] for row in
+            db.session.query(Unit.unit_type)
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Compound.is_published == True, Unit.unit_type.isnot(None), Unit.unit_type != "")
+            .distinct()
+            .all()
+        })
+
         # Initial "Properties Available" figure shown before the calculator's
         # JS has run its first live lookup — matches the default 5,000,000
         # EGP slider value so the number on first paint is already correct
@@ -265,6 +276,7 @@ def create_app():
             all_developer_names=all_developer_names,
             locations_menu=locations_menu,
             developer_logos=developer_logos,
+            all_unit_types=all_unit_types,
             initial_calc_count=initial_calc_count,
         )
 
@@ -274,13 +286,13 @@ def create_app():
     def api_properties_count():
         """
         Returns how many published, available units actually fit within a
-        given budget (and, optionally, a chosen area/developer) — used by
+        given budget (and, optionally, a chosen area/unit type) — used by
         the homepage Investment Calculator so "Properties Available"
         reflects the real, filtered inventory instead of a static total.
         """
         max_price = request.args.get("max_price", type=int)
         area = request.args.get("area", "").strip()
-        developer = request.args.get("developer", "").strip()
+        unit_type = request.args.get("unit_type", "").strip()
 
         query = (
             Unit.query
@@ -291,8 +303,8 @@ def create_app():
             query = query.filter(Unit.price <= max_price)
         if area:
             query = query.filter(db.or_(Compound.area.ilike(f"%{area}%"), Compound.location.ilike(f"%{area}%")))
-        if developer:
-            query = query.filter(Compound.developer.ilike(f"%{developer}%"))
+        if unit_type:
+            query = query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
 
         count = query.count()
         return jsonify({"count": count})
@@ -348,11 +360,11 @@ def create_app():
         # Filters can be multi-select (areas) or single-value (developer, delivery_year, price range)
         selected_areas = request.args.getlist("area")
         selected_developer = request.args.get("developer", "").strip()
+        selected_unit_type = request.args.get("unit_type", "").strip()
         min_price = request.args.get("min_price", "").strip()
         max_price = request.args.get("max_price", "").strip()
         delivery_year = request.args.get("delivery_year", "").strip()
         search_query = request.args.get("q", "").strip()
-        sort = request.args.get("sort", "").strip()
 
         query = Compound.query.filter_by(is_published=True)
 
@@ -376,6 +388,14 @@ def create_app():
         if selected_developer:
             query = query.filter(Compound.developer.ilike(f"%{selected_developer}%"))
 
+        if selected_unit_type:
+            query = (
+                query
+                .join(Unit, Unit.compound_id == Compound.id)
+                .filter(Unit.unit_type.ilike(f"%{selected_unit_type}%"))
+                .distinct()
+            )
+
         if delivery_year:
             query = query.filter(Compound.delivery_year == delivery_year)
 
@@ -391,14 +411,7 @@ def create_app():
             except ValueError:
                 pass
 
-        if sort == "price_asc":
-            all_compounds = query.order_by(Compound.min_price.asc().nullslast()).all()
-        elif sort == "price_desc":
-            all_compounds = query.order_by(Compound.min_price.desc().nullslast()).all()
-        elif sort == "newest":
-            all_compounds = query.order_by(Compound.created_at.desc()).all()
-        else:
-            all_compounds = query.order_by(Compound.name.asc()).all()
+        all_compounds = query.order_by(Compound.name.asc()).all()
 
         # Options for the filter sidebar
         areas = sorted({row[0] for row in db.session.query(Compound.area).distinct() if row[0]})
@@ -415,11 +428,11 @@ def create_app():
             delivery_years=delivery_years,
             selected_areas=selected_areas,
             selected_developer=selected_developer,
+            selected_unit_type=selected_unit_type,
             min_price=min_price,
             max_price=max_price,
             selected_delivery_year=delivery_year,
             search_query=search_query,
-            selected_sort=sort,
         )
 
     @app.route("/compound/<slug>")
