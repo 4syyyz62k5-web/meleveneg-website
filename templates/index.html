@@ -70,18 +70,20 @@
   @media (max-width: 640px){
     .floating-search-wrap{ margin-top: -18px; margin-bottom: 28px; }
   }
+  .hero-search{ width: 100%; }
   .hero-search .search-form{
     display: flex; align-items: stretch;
     background: rgba(255,255,255,.97);
     border-radius: 10px;
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
     margin: 0;
     box-shadow: 0 14px 34px rgba(10,33,68,.28);
     overflow: hidden;
   }
   .hero-search__field{
-    flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px;
-    min-width: 0; padding: 10px 18px; border-right: 1px solid #ececec;
+    flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    min-width: 130px; padding: 10px 18px; border-right: 1px solid #ececec;
     text-align: left;
   }
   .hero-search__label{
@@ -460,6 +462,13 @@
     font-family: var(--font-heading); font-size: 24px; font-weight: 700; padding: 0 0 8px 0;
   }
   .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); }
+  .mv-calc-filters-row{ display: flex; gap: 12px; margin-bottom: 4px; }
+  .mv-calc-filter{ flex: 1; min-width: 0; }
+  .mv-calc-select--input{ cursor: text; }
+  @media (max-width: 640px){
+    .mv-calc-filters-row{ flex-direction: column; gap: 12px; }
+  }
+
   .mv-calc-select{
     width: 100%; padding: 10px 12px; margin-top: 4px; border-radius: 6px;
     background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
@@ -894,6 +903,17 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
             Investment Calculator
           </p>
+          <div class="mv-calc-filters-row">
+            <div class="mv-calc-filter">
+              <label class="mv-calc-label" for="calc-area">Area</label>
+              <input type="text" id="calc-area" class="mv-calc-select mv-calc-select--input" list="hero-area-list" placeholder="Any area">
+            </div>
+            <div class="mv-calc-filter">
+              <label class="mv-calc-label" for="calc-developer">Developer</label>
+              <input type="text" id="calc-developer" class="mv-calc-select mv-calc-select--input" list="hero-developer-list" placeholder="Any developer">
+            </div>
+          </div>
+
           <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
           <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
           <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
@@ -904,6 +924,13 @@
             <option value="0.15">15%</option>
             <option value="0.20" selected>20%</option>
             <option value="0.30">30%</option>
+          </select>
+
+          <label class="mv-calc-label" for="calc-sort" style="margin-top:16px;">Sort Matching Properties By</label>
+          <select id="calc-sort" class="mv-calc-select">
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="newest" selected>Newest First</option>
           </select>
 
           <div class="mv-calc-results">
@@ -1113,6 +1140,9 @@
     var downpaymentSelect = document.getElementById('calc-downpayment');
     var monthlyOut = document.getElementById('calc-monthly');
     var ctaLink = document.getElementById('calc-cta');
+    var areaInput = document.getElementById('calc-area');
+    var developerInput = document.getElementById('calc-developer');
+    var sortSelect = document.getElementById('calc-sort');
     if (!slider) return;
 
     var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
@@ -1123,8 +1153,8 @@
       return Math.round(n).toLocaleString('en-US');
     }
 
-    // Debounce so dragging the slider doesn't fire a request on every
-    // single pixel of movement — only once movement pauses briefly.
+    // Debounce so dragging the slider (or typing an area/developer) doesn't
+    // fire a request on every keystroke — only once movement/typing pauses.
     function debounce(fn, wait){
       var t;
       return function(){
@@ -1134,9 +1164,12 @@
       };
     }
 
-    function fetchLiveCount(budget){
+    function fetchLiveCount(budget, area, developer){
       var thisToken = ++countFetchToken;
-      fetch('/api/properties-count?max_price=' + encodeURIComponent(budget))
+      var params = new URLSearchParams({ max_price: budget });
+      if (area) params.set('area', area);
+      if (developer) params.set('developer', developer);
+      fetch('/api/properties-count?' + params.toString())
         .then(function(res){ return res.json(); })
         .then(function(data){
           if (thisToken !== countFetchToken) return; // a newer request already landed
@@ -1152,14 +1185,20 @@
       var downpaymentRate = parseFloat(downpaymentSelect.value);
       var financedAmount = budget * (1 - downpaymentRate);
       var monthly = financedAmount / INSTALLMENT_MONTHS;
+      var area = areaInput ? areaInput.value.trim() : '';
+      var developer = developerInput ? developerInput.value.trim() : '';
+      var sort = sortSelect ? sortSelect.value : '';
 
       budgetDisplay.value = formatEGP(budget);
       monthlyOut.textContent = 'From EGP ' + formatEGP(monthly);
-      debouncedFetch(budget);
+      debouncedFetch(budget, area, developer);
 
       if (ctaLink) {
         var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
         url.searchParams.set('max_price', budget);
+        if (area) url.searchParams.set('area', area);
+        if (developer) url.searchParams.set('developer', developer);
+        if (sort) url.searchParams.set('sort', sort);
         ctaLink.href = url.pathname + url.search;
       }
     }
@@ -1170,6 +1209,9 @@
 
     slider.addEventListener('input', recalculate);
     downpaymentSelect.addEventListener('change', recalculate);
+    if (areaInput) areaInput.addEventListener('input', recalculate);
+    if (developerInput) developerInput.addEventListener('input', recalculate);
+    if (sortSelect) sortSelect.addEventListener('change', recalculate);
   })();
 </script>
 {% endblock %}
