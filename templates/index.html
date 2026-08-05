@@ -412,7 +412,11 @@
   .mv-areas-expand .mv-topareas-grid.mv-areas-more{ display: none; }
   .mv-areas-expand.is-open .mv-topareas-grid.mv-areas-more{ display: grid; }
   @media (max-width: 900px){
-    .mv-topareas-grid{ grid-template-columns: repeat(3, 1fr); gap: 16px 10px; }
+    .mv-topareas-grid{
+      display: flex; flex-wrap: wrap;
+      justify-content: space-between; gap: 20px 0;
+    }
+    .mv-topareas-item{ flex: 0 0 30%; }
   }
 
   /* ---------- Promo banner (single featured compound, full-bleed card) ---------- */
