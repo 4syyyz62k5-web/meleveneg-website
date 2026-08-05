@@ -412,7 +412,7 @@
   .mv-promo-section{ padding-top: 0; padding-bottom: 0; }
   .mv-promo-card{
     position: relative; border-radius: 14px; overflow: hidden;
-    min-height: 220px; display: flex; align-items: center;
+    min-height: 160px; display: flex; align-items: center;
     background-size: cover; background-position: center; text-decoration: none;
   }
   .mv-promo-card::before{
@@ -432,9 +432,12 @@
     text-transform: uppercase; padding: 12px 22px; border-radius: 4px;
   }
   @media (max-width: 640px){
-    .mv-promo-card__body{ padding: 26px 22px; max-width: 100%; }
-    .mv-promo-card::before{ background: linear-gradient(180deg, rgba(255,255,255,.97) 0%, rgba(255,255,255,.94) 55%, rgba(255,255,255,.2) 78%, rgba(255,255,255,0) 100%); }
-    .mv-promo-card{ min-height: 320px; align-items: flex-start; padding-top: 0; }
+    .mv-promo-card__body{ padding: 20px 18px; max-width: 100%; }
+    .mv-promo-card::before{ background: linear-gradient(90deg, rgba(255,255,255,.97) 0%, rgba(255,255,255,.94) 55%, rgba(255,255,255,.2) 82%, rgba(255,255,255,0) 100%); }
+    .mv-promo-card{ min-height: 170px; align-items: center; padding-top: 0; }
+    .mv-promo-card__eyebrow{ font-size: 17px; }
+    .mv-promo-card__tagline{ font-size: 12.5px; margin-bottom: 12px; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .mv-promo-card__cta{ padding: 9px 16px; font-size: 11.5px; }
   }
 
   /* ---------- Carousel dot pagination (New Launches / Featured) ---------- */
@@ -933,41 +936,7 @@
 {% endif %}
 
 
-{% if recommended_units %}
-<section class="mv-section">
-  <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Handpicked for You</p>
-        <h2 class="mv-title">Recommended Units</h2>
-      </div>
-      <a class="mv-viewall" href="{{ url_for('compounds') }}">Browse the market →</a>
-    </div>
 
-    <div class="mv-unit-scroll">
-      {% for u in recommended_units %}
-      <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound.slug) }}">
-        <img class="mv-unit-card__thumb"
-             src="{{ u.image_url or u.compound.cover_image_url or '' }}"
-             alt="{{ u.unit_type }} in {{ u.compound.name }}" loading="lazy">
-        <div class="mv-unit-card__body">
-          <p class="mv-unit-card__compound">{{ u.compound.name }}{% if u.phase %} · {{ u.phase }}{% endif %}</p>
-          <p class="mv-unit-card__type">{{ u.unit_type }}</p>
-          <p class="mv-unit-card__facts">
-            {% if u.bedrooms %}<span>{{ u.bedrooms }} Beds</span>{% endif %}
-            {% if u.bathrooms %}<span>{{ u.bathrooms }} Baths</span>{% endif %}
-            {% if u.area_sqm %}<span>{{ u.area_sqm }} m²</span>{% endif %}
-          </p>
-          <p class="mv-unit-card__price">
-            {% if u.price %}{{ "{:,.0f}".format(u.price) }} EGP{% else %}Price on request{% endif %}
-          </p>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
 
 
 <section class="section" style="background:var(--color-navy-dark);">
