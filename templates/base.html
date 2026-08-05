@@ -278,9 +278,6 @@
 <footer class="site-footer">
     <div class="container footer-columns">
         <div class="footer-col footer-brand-col">
-            <div class="brand brand-footer">
-                <img src="{{ url_for('static', filename='img/logo-white.png') }}" alt="Meleven Real Estate" width="160" height="40" loading="lazy" decoding="async">
-            </div>
             <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
         </div>
 
@@ -319,8 +316,7 @@
             </details>
         </div>
 
-        <details class="footer-col" open>
-            <summary><h4>Get In Touch</h4></summary>
+        <div class="footer-col">
             <div class="footer-col-links">
                 <p class="footer-contact-line">Cairo, Egypt</p>
                 <a href="{{ url_for('contact') }}" class="footer-cta-link">Speak with our team →</a>
@@ -346,7 +342,7 @@
                     </a>
                 </div>
             </div>
-        </details>
+        </div>
 
         <!--
           To add a new footer column later, just copy this block:
