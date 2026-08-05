@@ -765,6 +765,58 @@
 </section>
 
 
+{% if top_areas %}
+<section class="mv-section mv-topareas-section">
+  <div class="container">
+    <div class="mv-topareas-box" id="topareas-box">
+      <button type="button" class="mv-topareas-header" onclick="document.getElementById('topareas-box').classList.toggle('is-collapsed')">
+        <span>Top Areas</span>
+        <svg class="mv-topareas-header__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+      </button>
+
+      <div class="mv-topareas-body">
+        <div class="mv-topareas-grid">
+          {% for area in top_areas %}
+          {% set n = area.name|lower %}
+          <a class="mv-topareas-item" href="{{ url_for('compounds', area=area.name) }}">
+            <span class="mv-topareas-icon">
+              {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/><path d="M7 14V8a2 2 0 0 1 2-2h1V3l3 2v1h1a2 2 0 0 1 2 2v6"/></svg>
+              {% elif 'october' in n or 'zayed' in n %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
+              {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
+              {% endif %}
+            </span>
+            <span class="mv-topareas-name">{{ area.name }}</span>
+          </a>
+          {% endfor %}
+        </div>
+
+        {% if locations_menu %}
+        <div class="mv-areas-expand" id="areas-expand">
+          <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+            View all areas <span class="mv-areas-toggle__arrow">▾</span>
+          </button>
+          <div class="mv-topareas-grid mv-areas-more" id="areas-more">
+            {% for loc in locations_menu %}
+            <a class="mv-topareas-item" href="{{ url_for('compounds', area=loc.name) }}">
+              <span class="mv-topareas-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
+              </span>
+              <span class="mv-topareas-name">{{ loc.name }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+
 {% if new_launches %}
 <section class="mv-section mv-section--dark">
   <div class="container">
@@ -831,58 +883,6 @@
         <span class="mv-promo-card__cta">Explore Project</span>
       </div>
     </a>
-  </div>
-</section>
-{% endif %}
-
-
-{% if top_areas %}
-<section class="mv-section mv-topareas-section">
-  <div class="container">
-    <div class="mv-topareas-box" id="topareas-box">
-      <button type="button" class="mv-topareas-header" onclick="document.getElementById('topareas-box').classList.toggle('is-collapsed')">
-        <span>Top Areas</span>
-        <svg class="mv-topareas-header__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
-      </button>
-
-      <div class="mv-topareas-body">
-        <div class="mv-topareas-grid">
-          {% for area in top_areas %}
-          {% set n = area.name|lower %}
-          <a class="mv-topareas-item" href="{{ url_for('compounds', area=area.name) }}">
-            <span class="mv-topareas-icon">
-              {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/><path d="M7 14V8a2 2 0 0 1 2-2h1V3l3 2v1h1a2 2 0 0 1 2 2v6"/></svg>
-              {% elif 'october' in n or 'zayed' in n %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
-              {% else %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
-              {% endif %}
-            </span>
-            <span class="mv-topareas-name">{{ area.name }}</span>
-          </a>
-          {% endfor %}
-        </div>
-
-        {% if locations_menu %}
-        <div class="mv-areas-expand" id="areas-expand">
-          <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
-            View all areas <span class="mv-areas-toggle__arrow">▾</span>
-          </button>
-          <div class="mv-topareas-grid mv-areas-more" id="areas-more">
-            {% for loc in locations_menu %}
-            <a class="mv-topareas-item" href="{{ url_for('compounds', area=loc.name) }}">
-              <span class="mv-topareas-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
-              </span>
-              <span class="mv-topareas-name">{{ loc.name }}</span>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-      </div>
-    </div>
   </div>
 </section>
 {% endif %}
