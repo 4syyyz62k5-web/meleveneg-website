@@ -173,11 +173,7 @@
     text-align: center; padding: 40px 24px 8px;
     border-top: 1px solid rgba(255,255,255,.1);
   }
-  .footer-brand-center__mark{
-    font-family: var(--font-heading); font-weight: 700; font-size: 20px;
-    letter-spacing: 1.5px; color: var(--color-white); margin-bottom: 14px;
-  }
-  .footer-brand-center__mark span{ color: var(--color-gold); font-weight: 500; }
+  .footer-brand-center__logo{ height: 64px; width: auto; margin-bottom: 16px; }
   .footer-brand-center .footer-tagline{
     max-width: 480px; margin: 0 auto 20px; font-family: var(--font-body);
     font-size: 13px; color: #b7bdc8; line-height: 1.6;
@@ -215,6 +211,11 @@
     .footer-col > summary{ cursor: default; }
     .footer-col-links{ display: flex !important; }
   }
+
+  .footer-compact-row{
+    display: flex; gap: 32px;
+  }
+  .footer-compact-row .footer-col{ flex: 1; min-width: 0; }
 
   /* ---------------------------------------------------------------
      Compact footer columns on mobile — Areas / Developers / Quick
@@ -322,22 +323,6 @@
             </details>
         </div>
 
-        <div class="footer-col">
-            <div class="footer-col-links">
-                <p class="footer-contact-line">Cairo, Egypt</p>
-                <a href="{{ url_for('contact') }}" class="footer-cta-link">Speak with our team →</a>
-
-                <div class="footer-newsletter">
-                    <p>Get new launches in your inbox.</p>
-                    <form class="footer-newsletter-form" onsubmit="event.preventDefault(); var e=this.elements.email.value; if(e){ window.location.href='mailto:info@meleveneg.com?subject=Newsletter%20Signup&body=' + encodeURIComponent(e); }">
-                        <label for="newsletter-email" class="sr-only">Email address</label>
-                        <input type="email" id="newsletter-email" name="email" placeholder="Your email" required>
-                        <button type="submit">Join</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
         <!--
           To add a new footer column later, just copy this block:
 
@@ -355,7 +340,7 @@
     </div>
 
     <div class="container footer-brand-center">
-        <div class="footer-brand-center__mark">MELEVEN <span>CONSULTANCY</span></div>
+        <img src="{{ url_for('static', filename='img/meleven-consultancy-logo.png') }}" alt="Meleven Consultancy" class="footer-brand-center__logo">
         <p class="footer-tagline">12 years of real estate expertise in Egypt, helping clients find, evaluate, and invest in the right property.</p>
         <div class="footer-social-row">
             <a href="https://www.facebook.com/share/14j5jGfxjyF/?mibextid=wwXIfr" aria-label="Meleven on Facebook" target="_blank" rel="noopener">
