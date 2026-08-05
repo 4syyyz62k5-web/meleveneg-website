@@ -162,7 +162,7 @@ def create_app():
         # Show at most this many as folder cards; anything beyond that is
         # only reachable via the "View all areas" dropdown so the two lists
         # never repeat each other.
-        CARD_LIMIT = 6
+        CARD_LIMIT = 5
         all_locations_sorted = top_areas
         top_areas = all_locations_sorted[:CARD_LIMIT]
 
