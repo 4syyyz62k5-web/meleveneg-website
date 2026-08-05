@@ -256,7 +256,7 @@
   .mv-hscroll .card-grid,
   .mv-launches{
     display: flex !important; flex-wrap: nowrap !important; overflow-x: auto;
-    scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory; gap: 14px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
   }
   .mv-hscroll .card-grid::-webkit-scrollbar,
   .mv-launches::-webkit-scrollbar,
@@ -272,8 +272,8 @@
 
   /* ---------- New Launches: dark navy photo cards ---------- */
   .mv-launch-card{
-    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(62vw, 225px);
-    aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; background: var(--color-navy);
+    scroll-snap-align: start; position: relative; flex: 0 0 auto; width: min(46vw, 175px);
+    aspect-ratio: 3 / 3.6; border-radius: 10px; overflow: hidden; background: var(--color-navy);
     color: var(--color-white); text-decoration: none; display: block;
     transition: transform .25s ease, box-shadow .25s ease;
   }
@@ -287,7 +287,7 @@
     position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(10,33,68,0) 35%, rgba(10,33,68,.95) 100%);
   }
-  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 14px; }
+  .mv-launch-card__body{ position: absolute; left: 0; right: 0; bottom: 0; padding: 10px; }
   .mv-launch-card__badges{ display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
   .mv-launch-card__tag{
     display: inline-block; font-family: var(--font-body); font-size: 9.5px; font-weight: 700;
@@ -404,6 +404,13 @@
   }
   .mv-topareas-item:hover .mv-topareas-name{ color: var(--color-gold); }
   .mv-topareas-more{ margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
+  /* The generic .mv-topareas-grid{display:grid} rule above comes after the
+     older .mv-areas-more{display:none} rule in the stylesheet, so it was
+     winning the cascade and showing the "more areas" grid before the
+     toggle was ever clicked. This re-asserts hidden-by-default with a
+     more specific selector so collapse/expand actually works again. */
+  .mv-areas-expand .mv-topareas-grid.mv-areas-more{ display: none; }
+  .mv-areas-expand.is-open .mv-topareas-grid.mv-areas-more{ display: grid; }
   @media (max-width: 900px){
     .mv-topareas-grid{ grid-template-columns: repeat(3, 1fr); gap: 16px 10px; }
   }
