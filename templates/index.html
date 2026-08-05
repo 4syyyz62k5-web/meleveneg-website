@@ -374,18 +374,14 @@
   /* ---------- Top Areas: compact icon-grid box ---------- */
   .mv-topareas-section{ padding-top: 0; padding-bottom: 40px; }
   .mv-topareas-box{
-    background: var(--color-navy-dark); border: 1px solid rgba(255,255,255,.1);
-    border-radius: 14px; padding: 22px 26px;
+    background: var(--color-navy-dark);
+    padding: 26px 6vw;
   }
   .mv-topareas-header{
-    width: 100%; background: none; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; display: flex; align-items: center;
     font-family: var(--font-heading); font-weight: 700; font-size: 16px;
     color: var(--color-white); padding: 0 0 18px 0;
   }
-  .mv-topareas-header__chevron{ width: 18px; height: 18px; color: var(--color-gold); transition: transform .2s ease; }
-  .mv-topareas-box.is-collapsed .mv-topareas-header__chevron{ transform: rotate(180deg); }
-  .mv-topareas-box.is-collapsed .mv-topareas-body{ display: none; }
   .mv-topareas-grid{
     display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px;
   }
@@ -836,12 +832,10 @@
 
 {% if top_areas %}
 <section class="mv-section mv-topareas-section">
-  <div class="container">
     <div class="mv-topareas-box" id="topareas-box">
-      <button type="button" class="mv-topareas-header" onclick="document.getElementById('topareas-box').classList.toggle('is-collapsed')">
+      <div class="mv-topareas-header">
         <span>Top Areas</span>
-        <svg class="mv-topareas-header__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
-      </button>
+      </div>
 
       <div class="mv-topareas-body">
         <div class="mv-topareas-grid">
@@ -881,7 +875,6 @@
         {% endif %}
       </div>
     </div>
-  </div>
 </section>
 {% endif %}
 
