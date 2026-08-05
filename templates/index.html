@@ -371,7 +371,81 @@
   .mv-property-card__price{ font-family: var(--font-body); font-size: 11.5px; color: var(--color-text-muted); margin: 0; }
   .mv-property-card__price span{ font-size: 14px; font-weight: 700; color: var(--color-navy); }
 
-  /* ---------- Top Areas: horizontal-scroll photo cards ---------- */
+  /* ---------- Top Areas: compact icon-grid box ---------- */
+  .mv-topareas-section{ padding-top: 0; padding-bottom: 40px; }
+  .mv-topareas-box{
+    background: var(--color-navy-dark); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px; padding: 22px 26px;
+  }
+  .mv-topareas-header{
+    width: 100%; background: none; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-heading); font-weight: 700; font-size: 16px;
+    color: var(--color-white); padding: 0 0 18px 0;
+  }
+  .mv-topareas-header__chevron{ width: 18px; height: 18px; color: var(--color-gold); transition: transform .2s ease; }
+  .mv-topareas-box.is-collapsed .mv-topareas-header__chevron{ transform: rotate(180deg); }
+  .mv-topareas-box.is-collapsed .mv-topareas-body{ display: none; }
+  .mv-topareas-grid{
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px;
+  }
+  .mv-topareas-item{
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    text-decoration: none; gap: 10px;
+  }
+  .mv-topareas-icon{
+    width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
+    color: var(--color-gold);
+  }
+  .mv-topareas-icon svg{ width: 30px; height: 30px; }
+  .mv-topareas-name{
+    font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
+    color: #d7dbe2; line-height: 1.3;
+  }
+  .mv-topareas-item:hover .mv-topareas-name{ color: var(--color-gold); }
+  .mv-topareas-more{ margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
+  @media (max-width: 900px){
+    .mv-topareas-grid{ grid-template-columns: repeat(3, 1fr); gap: 16px 10px; }
+  }
+
+  /* ---------- Promo banner (single featured compound, full-bleed card) ---------- */
+  .mv-promo-section{ padding-top: 0; padding-bottom: 0; }
+  .mv-promo-card{
+    position: relative; border-radius: 14px; overflow: hidden;
+    min-height: 220px; display: flex; align-items: center;
+    background-size: cover; background-position: center; text-decoration: none;
+  }
+  .mv-promo-card::before{
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,.97) 0%, rgba(255,255,255,.94) 38%, rgba(255,255,255,.15) 62%, rgba(255,255,255,0) 78%);
+  }
+  .mv-promo-card__body{ position: relative; padding: 36px 40px; max-width: 420px; }
+  .mv-promo-card__eyebrow{
+    font-family: var(--font-heading); font-size: 22px; font-weight: 700; text-transform: uppercase;
+    color: var(--color-navy); margin: 0 0 2px 0; letter-spacing: .5px;
+  }
+  .mv-promo-card__sub{ font-family: var(--font-body); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--color-gold); margin: 0 0 16px 0; }
+  .mv-promo-card__tagline{ font-family: var(--font-body); font-size: 14.5px; color: var(--color-text-muted); line-height: 1.5; margin: 0 0 20px 0; }
+  .mv-promo-card__cta{
+    display: inline-block; background: var(--color-gold); color: var(--color-navy-dark);
+    font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: .04em;
+    text-transform: uppercase; padding: 12px 22px; border-radius: 4px;
+  }
+  @media (max-width: 640px){
+    .mv-promo-card__body{ padding: 26px 22px; max-width: 100%; }
+    .mv-promo-card::before{ background: linear-gradient(180deg, rgba(255,255,255,.97) 0%, rgba(255,255,255,.94) 55%, rgba(255,255,255,.2) 78%, rgba(255,255,255,0) 100%); }
+    .mv-promo-card{ min-height: 320px; align-items: flex-start; padding-top: 0; }
+  }
+
+  /* ---------- Carousel dot pagination (New Launches / Featured) ---------- */
+  .mv-dots{ display: flex; justify-content: center; gap: 7px; margin-top: 16px; }
+  .mv-dot{
+    width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.25);
+    border: none; padding: 0; cursor: pointer; transition: background .2s ease, width .2s ease;
+  }
+  .mv-dots--light .mv-dot{ background: #ddd6c8; }
+  .mv-dot.is-active{ background: var(--color-gold); width: 18px; border-radius: 4px; }
+
   .mv-areas-scroll{
     display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
     padding-bottom: 10px; -webkit-overflow-scrolling: touch;
@@ -689,7 +763,7 @@
     </div>
 
     <div class="mv-hscroll">
-      <div class="mv-launches">
+      <div class="mv-launches" id="launches-scroll">
         {% for c in new_launches %}
         <a class="mv-launch-card" href="{{ url_for('compound_detail', slug=c.slug) }}">
           <div class="mv-card-icons">
@@ -726,48 +800,73 @@
         {% endfor %}
       </div>
     </div>
+    <div class="mv-dots" id="launches-dots"></div>
+  </div>
+</section>
+{% endif %}
+
+
+{% if featured %}
+<section class="mv-promo-section">
+  <div class="container">
+    <a class="mv-promo-card" href="{{ url_for('compound_detail', slug=featured[0].slug) }}" style="background-image:url('{{ featured[0].cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+      <div class="mv-promo-card__body">
+        <p class="mv-promo-card__eyebrow">{{ featured[0].name }}</p>
+        <p class="mv-promo-card__sub">{{ featured[0].area }}</p>
+        <p class="mv-promo-card__tagline">{{ featured[0].short_description or 'Seaside living redefined. Where luxury meets nature.' }}</p>
+        <span class="mv-promo-card__cta">Explore Project</span>
+      </div>
+    </a>
   </div>
 </section>
 {% endif %}
 
 
 {% if top_areas %}
-<section class="mv-section area-section">
+<section class="mv-section mv-topareas-section">
   <div class="container">
-    <div class="mv-section__head">
-      <div>
-        <p class="mv-eyebrow">Explore by Location</p>
-        <h2 class="mv-title">Top Areas</h2>
-      </div>
-    </div>
-
-    <div class="mv-areas-scroll">
-      {% for area in top_areas %}
-      <a class="mv-area-card" href="{{ url_for('compounds', area=area.name) }}" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-        <div class="mv-area-card__scrim"></div>
-        <div class="mv-area-card__body">
-          <p class="mv-area-card__name">{{ area.name }}</p>
-          <p class="mv-area-card__count">{{ area.count }} Compound{{ 's' if area.count != 1 else '' }}</p>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-
-    <div class="mv-areas-expand" id="areas-expand">
-      <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
-        View all areas <span class="mv-areas-toggle__arrow">▾</span>
+    <div class="mv-topareas-box" id="topareas-box">
+      <button type="button" class="mv-topareas-header" onclick="document.getElementById('topareas-box').classList.toggle('is-collapsed')">
+        <span>Top Areas</span>
+        <svg class="mv-topareas-header__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
       </button>
 
-      <div class="mv-areas-more" id="areas-more">
-        {% for loc in locations_menu %}
-        <a class="mv-area-card mv-area-card--small" href="{{ url_for('compounds', area=loc.name) }}" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
-          <div class="mv-area-card__scrim"></div>
-          <div class="mv-area-card__body">
-            <p class="mv-area-card__name">{{ loc.name }}</p>
-            <p class="mv-area-card__count">{{ loc.count }} Compound{{ 's' if loc.count != 1 else '' }}</p>
+      <div class="mv-topareas-body">
+        <div class="mv-topareas-grid">
+          {% for area in top_areas %}
+          {% set n = area.name|lower %}
+          <a class="mv-topareas-item" href="{{ url_for('compounds', area=area.name) }}">
+            <span class="mv-topareas-icon">
+              {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/><path d="M7 14V8a2 2 0 0 1 2-2h1V3l3 2v1h1a2 2 0 0 1 2 2v6"/></svg>
+              {% elif 'october' in n or 'zayed' in n %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
+              {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
+              {% endif %}
+            </span>
+            <span class="mv-topareas-name">{{ area.name }}</span>
+          </a>
+          {% endfor %}
+        </div>
+
+        {% if locations_menu %}
+        <div class="mv-areas-expand" id="areas-expand">
+          <button type="button" class="mv-areas-toggle" onclick="document.getElementById('areas-expand').classList.toggle('is-open')">
+            View all areas <span class="mv-areas-toggle__arrow">▾</span>
+          </button>
+          <div class="mv-topareas-grid mv-areas-more" id="areas-more">
+            {% for loc in locations_menu %}
+            <a class="mv-topareas-item" href="{{ url_for('compounds', area=loc.name) }}">
+              <span class="mv-topareas-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
+              </span>
+              <span class="mv-topareas-name">{{ loc.name }}</span>
+            </a>
+            {% endfor %}
           </div>
-        </a>
-        {% endfor %}
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -828,6 +927,7 @@
                 {% endfor %}
             </div>
         </div>
+        <div class="mv-dots mv-dots--light" id="featured-dots"></div>
     </div>
 </section>
 {% endif %}
@@ -1190,6 +1290,50 @@
     downpaymentSelect.addEventListener('change', recalculate);
     if (areaInput) areaInput.addEventListener('change', recalculate);
     if (typeSelect) typeSelect.addEventListener('change', recalculate);
+  })();
+</script>
+
+<script>
+  // Generic dot-pagination for horizontal-scroll carousels (New Launches,
+  // Featured Projects). One dot per card; the dot for whichever card is
+  // most visible lights up, and clicking a dot scrolls that card into view.
+  (function(){
+    function initDots(scrollId, dotsId){
+      var scroller = document.getElementById(scrollId);
+      var dotsWrap = document.getElementById(dotsId);
+      if (!scroller || !dotsWrap) return;
+      var cards = Array.prototype.slice.call(scroller.children);
+      if (!cards.length) return;
+
+      cards.forEach(function(_, i){
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'mv-dot' + (i === 0 ? ' is-active' : '');
+        dot.setAttribute('aria-label', 'Go to item ' + (i + 1));
+        dot.addEventListener('click', function(){
+          cards[i].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        });
+        dotsWrap.appendChild(dot);
+      });
+      var dots = Array.prototype.slice.call(dotsWrap.children);
+
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries){
+          entries.forEach(function(entry){
+            var idx = cards.indexOf(entry.target);
+            if (idx === -1) return;
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+              dots.forEach(function(d){ d.classList.remove('is-active'); });
+              dots[idx].classList.add('is-active');
+            }
+          });
+        }, { root: scroller, threshold: [0.6] });
+        cards.forEach(function(c){ observer.observe(c); });
+      }
+    }
+
+    initDots('launches-scroll', 'launches-dots');
+    initDots('featured-grid', 'featured-dots');
   })();
 </script>
 {% endblock %}
