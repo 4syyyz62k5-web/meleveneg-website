@@ -51,17 +51,9 @@
   .hero-cta--outline:hover{ border-color: var(--color-gold); color: var(--color-gold); }
   @media (max-width: 640px){
     .hero{ padding-top: 100px !important; padding-bottom: 28px !important; }
-    .hero-inner{ text-align: center; }
-    .hero-inner h1{ font-size: 22px; max-width: 100%; }
-    .hero-subtitle{ font-size: 13.5px; margin-left: auto; margin-right: auto; }
-    .hero-eyebrow{ font-size: 11px; }
-    .hero-cta-row{ justify-content: center; margin-bottom: 24px; }
-    .hero-search{ display: flex; justify-content: center; }
   }
   @media (max-width: 480px){
     .hero{ padding-top: 90px !important; padding-bottom: 24px !important; }
-    .hero-inner h1{ font-size: 20px; }
-    .hero-subtitle{ font-size: 13px; }
   }
   .hero-search{ margin-top: 4px; }
   .floating-search-wrap{
@@ -439,11 +431,12 @@
     text-transform: uppercase; padding: 12px 22px; border-radius: 4px;
   }
   @media (max-width: 640px){
-    .mv-promo-card__body{ padding: 20px 6vw; max-width: 100%; }
+    .mv-promo-card__body{ padding: 14px 6vw; max-width: 100%; }
     .mv-promo-card::before{ background: linear-gradient(90deg, rgba(255,255,255,.97) 0%, rgba(255,255,255,.94) 55%, rgba(255,255,255,.2) 82%, rgba(255,255,255,0) 100%); }
-    .mv-promo-card{ min-height: 170px; align-items: center; padding-top: 0; }
-    .mv-promo-card__eyebrow{ font-size: 17px; }
-    .mv-promo-card__tagline{ font-size: 12.5px; margin-bottom: 12px; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .mv-promo-card{ min-height: 135px; align-items: center; padding-top: 0; }
+    .mv-promo-card__eyebrow{ font-size: 17px; margin-bottom: 0; }
+    .mv-promo-card__sub{ margin-bottom: 6px; }
+    .mv-promo-card__tagline{ font-size: 12.5px; margin-bottom: 8px; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
     .mv-promo-card__cta{ padding: 9px 16px; font-size: 11.5px; }
   }
 
@@ -661,6 +654,7 @@
     .mv-developers-row{ gap: 8px; }
     .mv-developer-pill{ padding: 7px 14px; font-size: 12px; }
     .mv-consult-form-card{ padding: 20px; }
+    .mv-consult-cta-section{ padding-top: 36px !important; padding-bottom: 36px !important; }
 
     /* Why Meleven — feature cards were staying full desktop size and
        stacking to a very tall section on phones; shrink padding/icon so
@@ -1059,12 +1053,12 @@
   </div>
 </section>
 
-<section class="section" style="background:var(--color-navy-dark); text-align:center;">
+<section class="section mv-consult-cta-section" style="background:var(--color-navy-dark); text-align:center;">
   <div class="container narrow">
     <p class="mv-eyebrow">Book a Consultation</p>
     <h2 class="mv-title" style="color:var(--color-white);">Looking For The Right Property?</h2>
-    <p class="hero-subtitle" style="color:#dbe0e8; margin:16px auto 0; text-align:center;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
-    <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp" style="margin-top:24px;">
+    <p class="hero-subtitle" style="color:#dbe0e8; margin:10px auto 0; text-align:center;">Talk to our consultancy team — we'll guide you through every step, from shortlisting to closing.</p>
+    <a href="https://wa.me/201009898795" target="_blank" rel="noopener" class="hero-cta hero-cta--whatsapp" style="margin-top:16px;">
         <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.29 1.18-1.78 1.2-.45.02-.94.22-3.14-.66-2.64-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.9.9-2.16.24-.26.52-.32.7-.32h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.45-.13.16-.28.35-.4.47-.13.13-.27.27-.12.53.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.16 1.34.26.13.41.11.56-.07.16-.18.66-.77.84-1.03.18-.26.35-.22.6-.13.24.09 1.54.73 1.8.86.27.13.44.2.51.31.06.11.06.62-.16 1.23z"/></svg>
         Chat on WhatsApp
     </a>
