@@ -525,27 +525,24 @@
 
   .mv-calc-card{
     background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 10px; padding: 26px;
-  }
-  .mv-calc-card__title{
-    display: flex; align-items: center; gap: 8px;
-    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--color-gold); margin: 0 0 20px 0;
+    border-radius: 12px; padding: 44px;
   }
   .mv-calc-label{
-    display: block; font-family: var(--font-body); font-size: 11.5px; font-weight: 600;
-    letter-spacing: .04em; text-transform: uppercase; color: #b7bdc8; margin-bottom: 6px;
+    display: block; font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    color: #c7cedb; margin-bottom: 14px;
   }
   .mv-calc-budget-display{
-    width: 100%; background: none; border: none; color: var(--color-white);
-    font-family: var(--font-heading); font-size: 24px; font-weight: 700; padding: 0 0 8px 0;
+    width: 100%; background: none; border: none; color: var(--color-gold);
+    font-family: var(--font-heading); font-size: 40px; font-weight: 700; padding: 0 0 10px 0;
   }
-  .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); }
-  .mv-calc-filters-row{ display: flex; gap: 12px; margin-bottom: 4px; }
-  .mv-calc-filter{ flex: 1 1 0; min-width: 0; }
-  .mv-calc-select--input{ cursor: text; }
+  .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); margin-bottom: 40px; }
+  .mv-calc-filters-grid{
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 16px; margin-bottom: 8px;
+  }
+  .mv-calc-filter{ min-width: 0; }
   @media (max-width: 640px){
-    .mv-calc-filters-row{ flex-direction: column; gap: 12px; }
+    .mv-calc-filters-grid{ grid-template-columns: repeat(2, 1fr); gap: 16px 12px; }
+    .mv-calc-card{ padding: 24px; }
   }
 
   .mv-calc-select{
@@ -558,13 +555,27 @@
     cursor: pointer;
   }
   .mv-calc-select option{ color: #111; background: #fff; }
-  .mv-calc-results{
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    margin: 22px 0 18px 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12);
+
+  .mv-calc-match{
+    margin: 36px 0 28px 0; padding: 28px 0 0 0; border-top: 1px solid rgba(255,255,255,.12);
   }
-  .mv-calc-results__label{ font-family: var(--font-body); font-size: 11.5px; color: #b7bdc8; margin: 0 0 4px 0; }
-  .mv-calc-results__value{ font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: var(--color-white); margin: 0; }
-  .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; }
+  .mv-calc-match__title{
+    font-family: var(--font-heading); font-size: 13px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #c7cedb; margin: 0 0 16px 0;
+  }
+  .mv-calc-match__list{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .mv-calc-match__list li{
+    font-family: var(--font-body); font-size: 16px; color: var(--color-white); font-weight: 500;
+  }
+  .mv-calc-match__list span#calc-projects,
+  .mv-calc-match__list span#calc-count,
+  .mv-calc-match__list span#calc-minprice,
+  .mv-calc-match__list span#calc-monthly{ color: var(--color-gold); font-weight: 700; }
+  .mv-calc-check{ color: var(--color-gold); font-weight: 700; margin-right: 6px; }
+  .mv-calc-suggest{ font-family: var(--font-body); font-size: 13px; color: #c7cedb; margin: 14px 0 0 0; }
+  .mv-calc-suggest .mv-calc-suggest__areas{ color: var(--color-gold); font-weight: 600; }
+
+  .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; text-transform: uppercase; letter-spacing: .04em; }
   .mv-calc-disclaimer{ font-family: var(--font-body); font-size: 11px; color: #8891a0; margin: 12px 0 0 0; line-height: 1.4; }
 
   .mv-match-form{
@@ -640,12 +651,13 @@
      --------------------------------------------------------------- */
   @media (max-width: 640px){
     .mv-property-card__media{ height: 120px; }
-    .mv-calc-card{ padding: 16px; }
-    .mv-calc-filters-row{ gap: 10px; margin-bottom: 2px; }
+    .mv-calc-card{ padding: 20px; }
+    .mv-calc-filters-grid{ gap: 14px 10px; margin-bottom: 4px; }
     .mv-calc-select{ padding: 8px 30px 8px 10px; font-size: 13px; }
-    .mv-calc-budget-display{ font-size: 19px; padding-bottom: 4px; }
-    .mv-calc-results{ margin: 14px 0 12px 0; padding-top: 12px; gap: 10px; }
-    .mv-calc-results__value{ font-size: 15px; }
+    .mv-calc-budget-display{ font-size: 28px; padding-bottom: 6px; }
+    .mv-calc-slider{ margin-bottom: 28px; }
+    .mv-calc-match{ margin: 24px 0 20px 0; padding-top: 20px; }
+    .mv-calc-match__list li{ font-size: 14px; }
     .mv-calc-cta{ padding: 12px 20px; font-size: 13px; }
     .mv-luxury-cta{ padding-top: 8px; }
     .mv-luxury-cta__grid{ gap: 28px; }
@@ -939,16 +951,16 @@
 
 <section class="section" style="background:var(--color-navy-dark);">
   <div class="container">
-    <div style="text-align:center; max-width:560px; margin:0 auto 32px auto;">
+    <div style="text-align:center; max-width:620px; margin:0 auto 40px auto;">
       <p class="mv-eyebrow">Plan Your Investment</p>
-      <h2 class="mv-title" style="color:var(--color-white);">Investment Calculator</h2>
+      <h2 class="mv-title" style="color:var(--color-white);">Find Properties Within Your Budget</h2>
     </div>
     <div class="mv-calc-card">
-      <p class="mv-calc-card__title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:18px;height:18px;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3"/></svg>
-        Investment Calculator
-      </p>
-      <div class="mv-calc-filters-row">
+      <label class="mv-calc-label" for="calc-budget">How much are you planning to invest?</label>
+      <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
+      <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
+
+      <div class="mv-calc-filters-grid">
         <div class="mv-calc-filter">
           <label class="mv-calc-label" for="calc-area">Area</label>
           <select id="calc-area" class="mv-calc-select">
@@ -959,7 +971,7 @@
           </select>
         </div>
         <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-type">Type</label>
+          <label class="mv-calc-label" for="calc-type">Property Type</label>
           <select id="calc-type" class="mv-calc-select">
             <option value="">Any type</option>
             {% for t in all_unit_types %}
@@ -977,23 +989,47 @@
             <option value="0.20" selected>20%</option>
           </select>
         </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-developer">Developer</label>
+          <select id="calc-developer" class="mv-calc-select">
+            <option value="">Any developer</option>
+            {% for d in all_developer_names %}
+            <option value="{{ d }}">{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-bedrooms">Bedrooms</label>
+          <select id="calc-bedrooms" class="mv-calc-select">
+            <option value="">Any</option>
+            {% for b in all_bedroom_options %}
+            <option value="{{ b }}">{{ b }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-delivery">Delivery</label>
+          <select id="calc-delivery" class="mv-calc-select">
+            <option value="">Any year</option>
+            {% for y in all_delivery_years %}
+            <option value="{{ y }}">{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
 
-      <label class="mv-calc-label" for="calc-budget">Your Budget (EGP)</label>
-      <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
-      <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
-
-      <div class="mv-calc-results" style="margin-top:20px;">
-        <div>
-          <p class="mv-calc-results__label">Estimated Monthly Payment</p>
-          <p class="mv-calc-results__value" id="calc-monthly">From EGP 33,333</p>
-        </div>
-        <div>
-          <p class="mv-calc-results__label">Properties Available</p>
-          <p class="mv-calc-results__value" id="calc-count">{{ initial_calc_count }}</p>
-        </div>
+      <div class="mv-calc-match">
+        <p class="mv-calc-match__title">Your Match</p>
+        <ul class="mv-calc-match__list">
+          <li><span class="mv-calc-check">✓</span> <span id="calc-projects">{{ initial_calc_projects }}</span> Project{{ 's' if initial_calc_projects != 1 else '' }}</li>
+          <li><span class="mv-calc-check">✓</span> <span id="calc-count">{{ initial_calc_count }}</span> Units</li>
+          <li><span class="mv-calc-check">✓</span> Starting from <span id="calc-minprice">{{ "{:,.0f}".format(initial_calc_min_price) if initial_calc_min_price else '—' }}</span> EGP</li>
+          <li><span class="mv-calc-check">✓</span> Installments from <span id="calc-monthly">EGP 33,333</span>/month</li>
+        </ul>
+        <p class="mv-calc-suggest" id="calc-suggest" style="display:none;"></p>
       </div>
-      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">View Matching Properties</a>
+
+      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">See My Matches</a>
       <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
     </div>
   </div>
@@ -1191,10 +1227,16 @@
     var ctaLink = document.getElementById('calc-cta');
     var areaInput = document.getElementById('calc-area');
     var typeSelect = document.getElementById('calc-type');
+    var developerSelect = document.getElementById('calc-developer');
+    var bedroomsSelect = document.getElementById('calc-bedrooms');
+    var deliverySelect = document.getElementById('calc-delivery');
     if (!slider) return;
 
     var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
     var countOut = document.getElementById('calc-count');
+    var projectsOut = document.getElementById('calc-projects');
+    var minPriceOut = document.getElementById('calc-minprice');
+    var suggestOut = document.getElementById('calc-suggest');
     var countFetchToken = 0; // guards against an older, slower request overwriting a newer one
 
     function formatEGP(n){
@@ -1212,21 +1254,34 @@
       };
     }
 
-    function fetchLiveCount(budget, area, unitType){
+    function fetchLiveResults(budget, area, unitType, developer, bedrooms, delivery){
       var thisToken = ++countFetchToken;
       var params = new URLSearchParams({ max_price: budget });
       if (area) params.set('area', area);
       if (unitType) params.set('unit_type', unitType);
+      if (developer) params.set('developer', developer);
+      if (bedrooms) params.set('bedrooms', bedrooms);
+      if (delivery) params.set('delivery_year', delivery);
       fetch('/api/properties-count?' + params.toString())
         .then(function(res){ return res.json(); })
         .then(function(data){
           if (thisToken !== countFetchToken) return; // a newer request already landed
           if (countOut) countOut.textContent = data.count;
+          if (projectsOut) projectsOut.textContent = data.projects;
+          if (minPriceOut) minPriceOut.textContent = data.min_price ? formatEGP(data.min_price) : '—';
+          if (suggestOut) {
+            if (!area && data.suggested_areas && data.suggested_areas.length){
+              suggestOut.innerHTML = 'Areas within your budget: <span class="mv-calc-suggest__areas">' + data.suggested_areas.join(', ') + '</span>';
+              suggestOut.style.display = 'block';
+            } else {
+              suggestOut.style.display = 'none';
+            }
+          }
         })
-        .catch(function(){ /* leave the last known count on screen if the request fails */ });
+        .catch(function(){ /* leave the last known figures on screen if the request fails */ });
     }
 
-    var debouncedFetch = debounce(fetchLiveCount, 250);
+    var debouncedFetch = debounce(fetchLiveResults, 250);
 
     function recalculate(){
       var budget = parseInt(slider.value, 10);
@@ -1235,16 +1290,21 @@
       var monthly = financedAmount / INSTALLMENT_MONTHS;
       var area = areaInput ? areaInput.value.trim() : '';
       var unitType = typeSelect ? typeSelect.value : '';
+      var developer = developerSelect ? developerSelect.value : '';
+      var bedrooms = bedroomsSelect ? bedroomsSelect.value : '';
+      var delivery = deliverySelect ? deliverySelect.value : '';
 
       budgetDisplay.value = formatEGP(budget);
-      monthlyOut.textContent = 'From EGP ' + formatEGP(monthly);
-      debouncedFetch(budget, area, unitType);
+      monthlyOut.textContent = 'EGP ' + formatEGP(monthly);
+      debouncedFetch(budget, area, unitType, developer, bedrooms, delivery);
 
       if (ctaLink) {
         var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
         url.searchParams.set('max_price', budget);
         if (area) url.searchParams.set('area', area);
         if (unitType) url.searchParams.set('unit_type', unitType);
+        if (developer) url.searchParams.set('developer', developer);
+        if (delivery) url.searchParams.set('delivery_year', delivery);
         ctaLink.href = url.pathname + url.search;
       }
     }
@@ -1257,6 +1317,9 @@
     downpaymentSelect.addEventListener('change', recalculate);
     if (areaInput) areaInput.addEventListener('change', recalculate);
     if (typeSelect) typeSelect.addEventListener('change', recalculate);
+    if (developerSelect) developerSelect.addEventListener('change', recalculate);
+    if (bedroomsSelect) bedroomsSelect.addEventListener('change', recalculate);
+    if (deliverySelect) deliverySelect.addEventListener('change', recalculate);
   })();
 </script>
 
