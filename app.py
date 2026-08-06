@@ -253,16 +253,37 @@ def create_app():
             .all()
         })
 
-        # Initial "Properties Available" figure shown before the calculator's
-        # JS has run its first live lookup — matches the default 5,000,000
-        # EGP slider value so the number on first paint is already correct
-        # rather than flashing from the old "total compounds" placeholder.
-        initial_calc_count = (
+        # Distinct bedroom counts and delivery years — power the "Bedrooms"
+        # and "Delivery" dropdowns on the Investment Calculator.
+        all_bedroom_options = sorted({
+            row[0] for row in
+            db.session.query(Unit.bedrooms)
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Compound.is_published == True, Unit.bedrooms.isnot(None))
+            .distinct()
+            .all()
+        }, key=lambda x: (len(str(x)), str(x)))
+
+        all_delivery_years = sorted({
+            row[0] for row in
+            db.session.query(Compound.delivery_year)
+            .filter(Compound.is_published == True, Compound.delivery_year.isnot(None))
+            .distinct()
+            .all()
+        })
+
+        # Initial calculator figures shown before the JS has run its first
+        # live lookup — match the default 5,000,000 EGP slider value so the
+        # panel is already correct on first paint instead of flashing from
+        # a placeholder.
+        initial_calc_base_query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
             .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None), Unit.price <= 5000000)
-            .count()
         )
+        initial_calc_count = initial_calc_base_query.count()
+        initial_calc_projects = initial_calc_base_query.with_entities(Compound.id).distinct().count()
+        initial_calc_min_price = initial_calc_base_query.with_entities(db.func.min(Unit.price)).scalar()
 
         return render_template(
             "index.html",
@@ -277,7 +298,11 @@ def create_app():
             locations_menu=locations_menu,
             developer_logos=developer_logos,
             all_unit_types=all_unit_types,
+            all_bedroom_options=all_bedroom_options,
+            all_delivery_years=all_delivery_years,
             initial_calc_count=initial_calc_count,
+            initial_calc_projects=initial_calc_projects,
+            initial_calc_min_price=initial_calc_min_price,
         )
 
     # ---------- Investment calculator: live matching-properties count ----------
@@ -286,13 +311,17 @@ def create_app():
     def api_properties_count():
         """
         Returns how many published, available units actually fit within a
-        given budget (and, optionally, a chosen area/unit type) — used by
-        the homepage Investment Calculator so "Properties Available"
+        given budget (plus optional Area / Type / Developer / Bedrooms /
+        Delivery Year filters) — powers the homepage "Plan Your Investment"
+        panel so every figure shown (projects, units, starting price)
         reflects the real, filtered inventory instead of a static total.
         """
         max_price = request.args.get("max_price", type=int)
         area = request.args.get("area", "").strip()
         unit_type = request.args.get("unit_type", "").strip()
+        developer = request.args.get("developer", "").strip()
+        bedrooms = request.args.get("bedrooms", "").strip()
+        delivery_year = request.args.get("delivery_year", "").strip()
 
         query = (
             Unit.query
@@ -305,9 +334,50 @@ def create_app():
             query = query.filter(db.or_(Compound.area.ilike(f"%{area}%"), Compound.location.ilike(f"%{area}%")))
         if unit_type:
             query = query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
+        if developer:
+            query = query.filter(Compound.developer.ilike(f"%{developer}%"))
+        if bedrooms:
+            query = query.filter(Unit.bedrooms == bedrooms)
+        if delivery_year:
+            query = query.filter(Compound.delivery_year == delivery_year)
 
         count = query.count()
-        return jsonify({"count": count})
+        projects = query.with_entities(Compound.id).distinct().count()
+        min_price = query.with_entities(db.func.min(Unit.price)).scalar()
+
+        # Consultancy angle: when no area is picked yet, surface the areas
+        # that actually have inventory within budget, so the panel can
+        # suggest "Areas within your budget" instead of making the person
+        # guess an area before seeing anything.
+        suggested_areas = []
+        if not area and max_price:
+            area_query = (
+                Unit.query
+                .join(Compound, Unit.compound_id == Compound.id)
+                .filter(Unit.is_available == True, Compound.is_published == True,
+                        Unit.price.isnot(None), Unit.price <= max_price)
+            )
+            if unit_type:
+                area_query = area_query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
+            if developer:
+                area_query = area_query.filter(Compound.developer.ilike(f"%{developer}%"))
+            if bedrooms:
+                area_query = area_query.filter(Unit.bedrooms == bedrooms)
+            rows = (
+                area_query.with_entities(Compound.area, db.func.count(Unit.id))
+                .group_by(Compound.area)
+                .order_by(db.func.count(Unit.id).desc())
+                .limit(3)
+                .all()
+            )
+            suggested_areas = [r[0] for r in rows if r[0]]
+
+        return jsonify({
+            "count": count,
+            "projects": projects,
+            "min_price": min_price,
+            "suggested_areas": suggested_areas,
+        })
 
     @app.route("/locations")
     def locations():
