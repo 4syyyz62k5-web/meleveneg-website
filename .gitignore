@@ -1,0 +1,16 @@
+.env
+*.db
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+
+# Local uploads folder (falls back here only when UPLOAD_FOLDER isn't set)
+/uploads/
+
+# Scraper output — regenerate locally, don't commit scraped listing dumps
+/scripts/output/
+
+# Personal Claude Code permission overrides — not shared project config
+/.claude/settings.local.json

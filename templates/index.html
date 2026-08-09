@@ -129,25 +129,25 @@
   }
 
   /* ---------- Hero stats row ---------- */
-  .hero-stats{ background: var(--color-navy-dark); padding: 0 0 28px 0; }
+  .hero-stats{ background: var(--color-navy-dark); padding: 0 0 18px 0; }
   .hero-stats__grid{
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
-    border-top: 1px solid rgba(255,255,255,.12); padding-top: 22px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    border-top: 1px solid rgba(255,255,255,.12); padding-top: 14px;
   }
   .hero-stat{ text-align: center; }
   .hero-stat__number{
-    font-family: var(--font-heading); font-weight: 700; font-size: clamp(22px, 3vw, 30px);
-    color: var(--color-gold); margin: 0 0 4px 0;
+    font-family: var(--font-heading); font-weight: 700; font-size: clamp(18px, 2.2vw, 24px);
+    color: var(--color-gold); margin: 0 0 2px 0;
   }
   .hero-stat__label{
-    font-family: var(--font-body); font-size: 12px; color: #c7cedb; margin: 0;
+    font-family: var(--font-body); font-size: 11px; color: #c7cedb; margin: 0;
     text-transform: uppercase; letter-spacing: .04em;
   }
   @media (max-width: 640px){
-    .hero-stats{ padding-bottom: 20px; }
-    .hero-stats__grid{ grid-template-columns: repeat(4, 1fr); gap: 6px; padding-top: 16px; }
-    .hero-stat__number{ font-size: 16px; }
-    .hero-stat__label{ font-size: 8.5px; line-height: 1.25; }
+    .hero-stats{ padding-bottom: 14px; }
+    .hero-stats__grid{ grid-template-columns: repeat(3, 1fr); gap: 6px; padding-top: 10px; }
+    .hero-stat__number{ font-size: 14px; }
+    .hero-stat__label{ font-size: 8px; line-height: 1.25; }
   }
 
   .mv-section{ padding: 100px 0; }
@@ -750,10 +750,6 @@
 
 <section class="hero-stats">
   <div class="container hero-stats__grid">
-    <div class="hero-stat">
-      <p class="hero-stat__number" data-count="12">0</p>
-      <p class="hero-stat__label">Years of Experience</p>
-    </div>
     <div class="hero-stat">
       <p class="hero-stat__number" data-count="{{ all_compound_names|length }}">0</p>
       <p class="hero-stat__label">Projects</p>

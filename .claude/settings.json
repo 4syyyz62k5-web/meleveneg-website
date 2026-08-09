@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(pytest *)",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 scripts/nawy_merge.py*)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(grep *)"
+    ],
+    "ask": [
+      "Bash(python3 scripts/nawy_to_csv.py*)",
+      "Bash(python3 scripts/nawy_by_developer.py*)",
+      "Bash(curl *)",
+      "WebFetch(domain:api.firecrawl.dev)",
+      "Bash(python3 -c *)"
+    ]
+  }
+}
