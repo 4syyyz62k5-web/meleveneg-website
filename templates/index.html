@@ -536,11 +536,34 @@
     font-family: var(--font-heading); font-size: 32px; font-weight: 700; padding: 0 0 6px 0;
   }
   .mv-calc-slider{ width: 100%; accent-color: var(--color-gold); margin-bottom: 26px; }
+
+  .mv-calc-installment-row{
+    display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px 12px; margin-bottom: 22px;
+  }
+  .mv-calc-input{
+    width: 100%; box-sizing: border-box; padding: 10px 12px; margin-top: 4px; border-radius: 6px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
+    color: var(--color-white); font-family: var(--font-body); font-size: 14px;
+  }
+  .mv-calc-input:invalid{ border-color: #d9776a; }
+  .mv-calc-required{ color: var(--color-gold); }
+  .mv-calc-toggle{
+    display: flex; margin-top: 4px; border: 1px solid rgba(255,255,255,.2); border-radius: 6px; overflow: hidden;
+  }
+  .mv-calc-toggle__btn{
+    flex: 1; padding: 10px 8px; background: transparent; border: none; color: #c7cedb;
+    font-family: var(--font-body); font-size: 13px; cursor: pointer; transition: background .15s, color .15s;
+  }
+  .mv-calc-toggle__btn + .mv-calc-toggle__btn{ border-left: 1px solid rgba(255,255,255,.2); }
+  .mv-calc-toggle__btn.is-active{ background: var(--color-gold); color: var(--color-navy-dark); font-weight: 700; }
+
   .mv-calc-filters-grid{
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 12px; margin-bottom: 4px;
   }
   .mv-calc-filter{ min-width: 0; }
   @media (max-width: 640px){
+    .mv-calc-installment-row{ grid-template-columns: 1fr 1fr; }
+    .mv-calc-installment-row > :first-child{ grid-column: 1 / -1; }
     .mv-calc-filters-grid{ grid-template-columns: repeat(2, 1fr); gap: 12px 10px; }
     .mv-calc-card{ padding: 20px; }
   }
@@ -654,8 +677,11 @@
     .mv-calc-card{ padding: 18px; }
     .mv-calc-filters-grid{ gap: 10px 8px; margin-bottom: 2px; }
     .mv-calc-select{ padding: 8px 30px 8px 10px; font-size: 13px; }
+    .mv-calc-input{ padding: 8px 10px; font-size: 13px; }
     .mv-calc-budget-display{ font-size: 24px; padding-bottom: 4px; }
     .mv-calc-slider{ margin-bottom: 20px; }
+    .mv-calc-installment-row{ gap: 10px 8px; margin-bottom: 18px; }
+    .mv-calc-toggle__btn{ padding: 8px 6px; font-size: 12px; }
     .mv-calc-match{ margin: 16px 0 14px 0; padding-top: 14px; }
     .mv-calc-match__list{ gap: 5px; }
     .mv-calc-match__list li{ font-size: 13px; }
@@ -953,9 +979,31 @@
       <h2 class="mv-title" style="color:var(--color-white);">Find Properties Within Your Budget</h2>
     </div>
     <div class="mv-calc-card">
-      <label class="mv-calc-label" for="calc-budget">How much are you planning to invest?</label>
-      <input type="text" id="calc-budget-display" class="mv-calc-budget-display" value="5,000,000" readonly>
-      <input type="range" id="calc-budget" class="mv-calc-slider" min="1000000" max="50000000" step="100000" value="5000000">
+      <label class="mv-calc-label" for="calc-downpayment-slider">How much down payment do you have?</label>
+      <input type="text" id="calc-downpayment-display" class="mv-calc-budget-display" value="{{ '{:,.0f}'.format(initial_down_payment) }}" readonly>
+      <input type="range" id="calc-downpayment-slider" class="mv-calc-slider" min="0" max="20000000" step="100000" value="{{ initial_down_payment }}">
+
+      <div class="mv-calc-installment-row">
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-installment">Installment I can afford <span class="mv-calc-required">*</span></label>
+          <input type="number" id="calc-installment" class="mv-calc-input" min="1000" step="1000" value="{{ initial_installment }}" required>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label">Frequency</label>
+          <div class="mv-calc-toggle" id="calc-cadence-toggle" role="group" aria-label="Installment frequency">
+            <button type="button" class="mv-calc-toggle__btn is-active" data-cadence="monthly">Monthly</button>
+            <button type="button" class="mv-calc-toggle__btn" data-cadence="quarterly">Quarterly</button>
+          </div>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-duration">Installment Duration</label>
+          <select id="calc-duration" class="mv-calc-select">
+            {% for y in [5, 6, 7, 8, 10, 12] %}
+            <option value="{{ y }}" {{ 'selected' if y == initial_duration_years else '' }}>{{ y }} Years</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
 
       <div class="mv-calc-filters-grid">
         <div class="mv-calc-filter">
@@ -977,34 +1025,6 @@
           </select>
         </div>
         <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-downpayment">Down Payment</label>
-          <select id="calc-downpayment" class="mv-calc-select">
-            <option value="0.00">0%</option>
-            <option value="0.05">5%</option>
-            <option value="0.10">10%</option>
-            <option value="0.15">15%</option>
-            <option value="0.20" selected>20%</option>
-          </select>
-        </div>
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-developer">Developer</label>
-          <select id="calc-developer" class="mv-calc-select">
-            <option value="">Any developer</option>
-            {% for d in all_developer_names %}
-            <option value="{{ d }}">{{ d }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-bedrooms">Bedrooms</label>
-          <select id="calc-bedrooms" class="mv-calc-select">
-            <option value="">Any</option>
-            {% for b in all_bedroom_options %}
-            <option value="{{ b }}">{{ b }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="mv-calc-filter">
           <label class="mv-calc-label" for="calc-delivery">Delivery</label>
           <select id="calc-delivery" class="mv-calc-select">
             <option value="">Any year</option>
@@ -1021,13 +1041,13 @@
           <li><span class="mv-calc-check">✓</span> <span id="calc-projects">{{ initial_calc_projects }}</span> Project{{ 's' if initial_calc_projects != 1 else '' }}</li>
           <li><span class="mv-calc-check">✓</span> <span id="calc-count">{{ initial_calc_count }}</span> Units</li>
           <li><span class="mv-calc-check">✓</span> Starting from <span id="calc-minprice">{{ "{:,.0f}".format(initial_calc_min_price) if initial_calc_min_price else '—' }}</span> EGP</li>
-          <li><span class="mv-calc-check">✓</span> Installments from <span id="calc-monthly">EGP 33,333</span>/month</li>
+          <li><span class="mv-calc-check">✓</span> Installments from EGP <span id="calc-monthly">{{ "{:,.0f}".format(initial_calc_min_installment) if initial_calc_min_installment is not none else '—' }}</span>/<span id="calc-period-label">month</span></li>
         </ul>
         <p class="mv-calc-suggest" id="calc-suggest" style="display:none;"></p>
       </div>
 
       <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">See My Matches</a>
-      <p class="mv-calc-disclaimer">Estimate only, based on an 8-year installment plan. Actual payment plans vary by developer.</p>
+      <p class="mv-calc-disclaimer">Estimate based on your own down payment, installment and duration — actual payment plans vary by developer.</p>
     </div>
   </div>
 </section>
@@ -1217,19 +1237,20 @@
 
 <script>
   (function(){
-    var slider = document.getElementById('calc-budget');
-    var budgetDisplay = document.getElementById('calc-budget-display');
-    var downpaymentSelect = document.getElementById('calc-downpayment');
-    var monthlyOut = document.getElementById('calc-monthly');
+    var downpaymentSlider = document.getElementById('calc-downpayment-slider');
+    var downpaymentDisplay = document.getElementById('calc-downpayment-display');
+    var installmentInput = document.getElementById('calc-installment');
+    var cadenceToggle = document.getElementById('calc-cadence-toggle');
+    var durationSelect = document.getElementById('calc-duration');
+    var minInstallmentOut = document.getElementById('calc-monthly');
+    var periodLabelOut = document.getElementById('calc-period-label');
     var ctaLink = document.getElementById('calc-cta');
     var areaInput = document.getElementById('calc-area');
     var typeSelect = document.getElementById('calc-type');
-    var developerSelect = document.getElementById('calc-developer');
-    var bedroomsSelect = document.getElementById('calc-bedrooms');
     var deliverySelect = document.getElementById('calc-delivery');
-    if (!slider) return;
+    if (!downpaymentSlider) return;
 
-    var INSTALLMENT_MONTHS = 96; // 8-year plan, matches the disclaimer text below the calculator
+    var cadence = 'monthly'; // toggled by the Monthly/Quarterly buttons below
     var countOut = document.getElementById('calc-count');
     var projectsOut = document.getElementById('calc-projects');
     var minPriceOut = document.getElementById('calc-minprice');
@@ -1240,8 +1261,8 @@
       return Math.round(n).toLocaleString('en-US');
     }
 
-    // Debounce so dragging the slider (or typing an area) doesn't fire a
-    // request on every keystroke — only once movement/typing pauses.
+    // Debounce so dragging the slider (or typing an area/installment) doesn't
+    // fire a request on every keystroke — only once movement/typing pauses.
     function debounce(fn, wait){
       var t;
       return function(){
@@ -1251,13 +1272,16 @@
       };
     }
 
-    function fetchLiveResults(budget, area, unitType, developer, bedrooms, delivery){
+    function fetchLiveResults(downPayment, installment, cadenceValue, duration, area, unitType, delivery){
       var thisToken = ++countFetchToken;
-      var params = new URLSearchParams({ max_price: budget });
+      var params = new URLSearchParams({
+        down_payment: downPayment,
+        installment: installment,
+        cadence: cadenceValue,
+        duration_years: duration,
+      });
       if (area) params.set('area', area);
       if (unitType) params.set('unit_type', unitType);
-      if (developer) params.set('developer', developer);
-      if (bedrooms) params.set('bedrooms', bedrooms);
       if (delivery) params.set('delivery_year', delivery);
       fetch('/api/properties-count?' + params.toString())
         .then(function(res){ return res.json(); })
@@ -1266,6 +1290,20 @@
           if (countOut) countOut.textContent = data.count;
           if (projectsOut) projectsOut.textContent = data.projects;
           if (minPriceOut) minPriceOut.textContent = data.min_price ? formatEGP(data.min_price) : '—';
+          if (minInstallmentOut) {
+            minInstallmentOut.textContent = (data.min_installment !== null && data.min_installment !== undefined)
+              ? formatEGP(data.min_installment) : '—';
+          }
+          if (ctaLink) {
+            var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
+            if (data.max_price !== null && data.max_price !== undefined) {
+              url.searchParams.set('max_price', Math.round(data.max_price));
+            }
+            if (area) url.searchParams.set('area', area);
+            if (unitType) url.searchParams.set('unit_type', unitType);
+            if (delivery) url.searchParams.set('delivery_year', delivery);
+            ctaLink.href = url.pathname + url.search;
+          }
           if (suggestOut) {
             if (!area && data.suggested_areas && data.suggested_areas.length){
               suggestOut.innerHTML = 'Areas within your budget: <span class="mv-calc-suggest__areas">' + data.suggested_areas.join(', ') + '</span>';
@@ -1281,41 +1319,40 @@
     var debouncedFetch = debounce(fetchLiveResults, 250);
 
     function recalculate(){
-      var budget = parseInt(slider.value, 10);
-      var downpaymentRate = parseFloat(downpaymentSelect.value);
-      var financedAmount = budget * (1 - downpaymentRate);
-      var monthly = financedAmount / INSTALLMENT_MONTHS;
+      var downPayment = parseInt(downpaymentSlider.value, 10);
+      var installment = parseInt(installmentInput.value, 10) || 0;
+      var duration = parseInt(durationSelect.value, 10);
       var area = areaInput ? areaInput.value.trim() : '';
       var unitType = typeSelect ? typeSelect.value : '';
-      var developer = developerSelect ? developerSelect.value : '';
-      var bedrooms = bedroomsSelect ? bedroomsSelect.value : '';
       var delivery = deliverySelect ? deliverySelect.value : '';
 
-      budgetDisplay.value = formatEGP(budget);
-      monthlyOut.textContent = 'EGP ' + formatEGP(monthly);
-      debouncedFetch(budget, area, unitType, developer, bedrooms, delivery);
-
-      if (ctaLink) {
-        var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);
-        url.searchParams.set('max_price', budget);
-        if (area) url.searchParams.set('area', area);
-        if (unitType) url.searchParams.set('unit_type', unitType);
-        if (developer) url.searchParams.set('developer', developer);
-        if (delivery) url.searchParams.set('delivery_year', delivery);
-        ctaLink.href = url.pathname + url.search;
-      }
+      downpaymentDisplay.value = formatEGP(downPayment);
+      if (periodLabelOut) periodLabelOut.textContent = cadence === 'quarterly' ? 'quarter' : 'month';
+      debouncedFetch(downPayment, installment, cadence, duration, area, unitType, delivery);
     }
 
     if (ctaLink && !ctaLink.getAttribute('data-base-href')) {
       ctaLink.setAttribute('data-base-href', ctaLink.getAttribute('href'));
     }
 
-    slider.addEventListener('input', recalculate);
-    downpaymentSelect.addEventListener('change', recalculate);
+    if (cadenceToggle) {
+      cadenceToggle.addEventListener('click', function(e){
+        var btn = e.target.closest('.mv-calc-toggle__btn');
+        if (!btn) return;
+        cadence = btn.getAttribute('data-cadence');
+        var buttons = cadenceToggle.querySelectorAll('.mv-calc-toggle__btn');
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].classList.toggle('is-active', buttons[i] === btn);
+        }
+        recalculate();
+      });
+    }
+
+    downpaymentSlider.addEventListener('input', recalculate);
+    installmentInput.addEventListener('input', recalculate);
+    durationSelect.addEventListener('change', recalculate);
     if (areaInput) areaInput.addEventListener('change', recalculate);
     if (typeSelect) typeSelect.addEventListener('change', recalculate);
-    if (developerSelect) developerSelect.addEventListener('change', recalculate);
-    if (bedroomsSelect) bedroomsSelect.addEventListener('change', recalculate);
     if (deliverySelect) deliverySelect.addEventListener('change', recalculate);
   })();
 </script>

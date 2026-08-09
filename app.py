@@ -253,17 +253,8 @@ def create_app():
             .all()
         })
 
-        # Distinct bedroom counts and delivery years — power the "Bedrooms"
-        # and "Delivery" dropdowns on the Investment Calculator.
-        all_bedroom_options = sorted({
-            row[0] for row in
-            db.session.query(Unit.bedrooms)
-            .join(Compound, Unit.compound_id == Compound.id)
-            .filter(Compound.is_published == True, Unit.bedrooms.isnot(None))
-            .distinct()
-            .all()
-        }, key=lambda x: (len(str(x)), str(x)))
-
+        # Distinct delivery years — power the "Delivery" dropdown on the
+        # Investment Calculator.
         all_delivery_years = sorted({
             row[0] for row in
             db.session.query(Compound.delivery_year)
@@ -273,17 +264,28 @@ def create_app():
         })
 
         # Initial calculator figures shown before the JS has run its first
-        # live lookup — match the default 5,000,000 EGP slider value so the
-        # panel is already correct on first paint instead of flashing from
-        # a placeholder.
+        # live lookup — computed from the same defaults the down-payment
+        # slider / installment field / duration select start at, via the
+        # same "price <= down_payment + installment x periods" rule the
+        # /api/properties-count endpoint uses, so the panel is already
+        # correct on first paint instead of flashing from a placeholder.
+        INITIAL_DOWN_PAYMENT = 2000000
+        INITIAL_INSTALLMENT = 50000
+        INITIAL_DURATION_YEARS = 8
+        initial_periods = INITIAL_DURATION_YEARS * 12  # monthly is the default cadence
+        initial_max_price = INITIAL_DOWN_PAYMENT + INITIAL_INSTALLMENT * initial_periods
+
         initial_calc_base_query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
-            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None), Unit.price <= 5000000)
+            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None), Unit.price <= initial_max_price)
         )
         initial_calc_count = initial_calc_base_query.count()
         initial_calc_projects = initial_calc_base_query.with_entities(Compound.id).distinct().count()
         initial_calc_min_price = initial_calc_base_query.with_entities(db.func.min(Unit.price)).scalar()
+        initial_calc_min_installment = None
+        if initial_calc_min_price is not None:
+            initial_calc_min_installment = max(0, float(initial_calc_min_price) - INITIAL_DOWN_PAYMENT) / initial_periods
 
         return render_template(
             "index.html",
@@ -298,46 +300,71 @@ def create_app():
             locations_menu=locations_menu,
             developer_logos=developer_logos,
             all_unit_types=all_unit_types,
-            all_bedroom_options=all_bedroom_options,
             all_delivery_years=all_delivery_years,
+            initial_down_payment=INITIAL_DOWN_PAYMENT,
+            initial_installment=INITIAL_INSTALLMENT,
+            initial_duration_years=INITIAL_DURATION_YEARS,
             initial_calc_count=initial_calc_count,
             initial_calc_projects=initial_calc_projects,
             initial_calc_min_price=initial_calc_min_price,
+            initial_calc_min_installment=initial_calc_min_installment,
         )
 
     # ---------- Investment calculator: live matching-properties count ----------
 
+    # Units don't store a down-payment/installment plan as separate columns —
+    # payment_plan is free text scraped from listings (e.g. "140,625
+    # Quarterly / 8 Years") and isn't reliable enough to parse for filtering
+    # (a sample of real scraped values found cadences beyond monthly/quarterly
+    # and a handful of rows that don't match any "amount cadence / N Years"
+    # shape at all). So instead of reading an installment plan off the unit,
+    # this derives the price a visitor's own terms can reach and filters
+    # Unit.price against that — the same math as the old max_price filter,
+    # just computed from three inputs instead of taken directly.
+    CALC_DURATIONS_YEARS = {5, 6, 7, 8, 10, 12}
+
+    def _calc_periods_and_ceiling(down_payment, installment, cadence, duration_years):
+        """Returns (periods, max_price) for the "down payment + installment x
+        periods" rule, or (None, None) if installment/duration aren't usable —
+        a unit with price P fits when P <= down_payment + installment x periods,
+        i.e. the down payment plus every remaining installment covers it."""
+        if not installment or duration_years not in CALC_DURATIONS_YEARS:
+            return None, None
+        periods_per_year = 4 if cadence == "quarterly" else 12
+        periods = duration_years * periods_per_year
+        return periods, down_payment + installment * periods
+
     @app.route("/api/properties-count")
     def api_properties_count():
         """
-        Returns how many published, available units actually fit within a
-        given budget (plus optional Area / Type / Developer / Bedrooms /
-        Delivery Year filters) — powers the homepage "Plan Your Investment"
-        panel so every figure shown (projects, units, starting price)
-        reflects the real, filtered inventory instead of a static total.
+        Returns how many published, available units actually fit a visitor's
+        own down payment + affordable installment + installment duration
+        (plus optional Area / Type / Delivery Year filters) — powers the
+        homepage "Plan Your Investment" panel so every figure shown
+        (projects, units, starting price, starting installment) reflects the
+        real, filtered inventory instead of a static estimate.
         """
-        max_price = request.args.get("max_price", type=int)
+        down_payment = request.args.get("down_payment", type=int) or 0
+        installment = request.args.get("installment", type=int)
+        cadence = request.args.get("cadence", "monthly").strip().lower()
+        duration_years = request.args.get("duration_years", type=int)
         area = request.args.get("area", "").strip()
         unit_type = request.args.get("unit_type", "").strip()
-        developer = request.args.get("developer", "").strip()
-        bedrooms = request.args.get("bedrooms", "").strip()
         delivery_year = request.args.get("delivery_year", "").strip()
+
+        periods, max_price = _calc_periods_and_ceiling(down_payment, installment, cadence, duration_years)
 
         query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
             .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None))
         )
-        if max_price:
+        if max_price is not None:
             query = query.filter(Unit.price <= max_price)
         if area:
             query = query.filter(db.or_(Compound.area.ilike(f"%{area}%"), Compound.location.ilike(f"%{area}%")))
         if unit_type:
             query = query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
-        if developer:
-            query = query.filter(Compound.developer.ilike(f"%{developer}%"))
-        if bedrooms:
-            query = query.filter(Unit.bedrooms == bedrooms)
         if delivery_year:
             query = query.filter(Compound.delivery_year == delivery_year)
 
@@ -345,12 +372,20 @@ def create_app():
         projects = query.with_entities(Compound.id).distinct().count()
         min_price = query.with_entities(db.func.min(Unit.price)).scalar()
 
+        # The actual installment the cheapest matching unit would need on
+        # these same terms — usually lower than what the visitor said they
+        # could afford, which is worth surfacing rather than just echoing
+        # their own input back at them.
+        min_installment = None
+        if min_price is not None and periods:
+            min_installment = max(0.0, float(min_price) - down_payment) / periods
+
         # Consultancy angle: when no area is picked yet, surface the areas
-        # that actually have inventory within budget, so the panel can
+        # that actually have inventory within reach, so the panel can
         # suggest "Areas within your budget" instead of making the person
         # guess an area before seeing anything.
         suggested_areas = []
-        if not area and max_price:
+        if not area and max_price is not None:
             area_query = (
                 Unit.query
                 .join(Compound, Unit.compound_id == Compound.id)
@@ -359,10 +394,6 @@ def create_app():
             )
             if unit_type:
                 area_query = area_query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
-            if developer:
-                area_query = area_query.filter(Compound.developer.ilike(f"%{developer}%"))
-            if bedrooms:
-                area_query = area_query.filter(Unit.bedrooms == bedrooms)
             rows = (
                 area_query.with_entities(Compound.area, db.func.count(Unit.id))
                 .group_by(Compound.area)
@@ -376,6 +407,8 @@ def create_app():
             "count": count,
             "projects": projects,
             "min_price": min_price,
+            "min_installment": min_installment,
+            "max_price": max_price,
             "suggested_areas": suggested_areas,
         })
 
