@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — Meleven Consultancy{% endblock %}
+{% block content %}
+<style>
+    .browse-layout {
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+    }
+    .filter-sidebar {
+        width: 260px;
+        flex-shrink: 0;
+        background: var(--color-white);
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 20px;
+        position: sticky;
+        top: 20px;
+    }
+    .filter-sidebar h3 {
+        font-family: var(--font-heading);
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-navy);
+        margin: 0 0 12px;
+    }
+    .filter-group {
+        margin-bottom: 24px;
+    }
+    .filter-group:last-child {
+        margin-bottom: 0;
+    }
+    .filter-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: var(--font-body);
+    }
+    .filter-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .filter-actions button,
+    .filter-actions a {
+        text-align: center;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: var(--font-body);
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .filter-apply-btn {
+        background: var(--color-gold);
+        color: var(--color-navy-dark);
+        border: none;
+    }
+    .filter-reset-link {
+        background: transparent;
+        color: var(--color-navy);
+        border: 1px solid var(--color-navy);
+    }
+    .browse-content {
+        flex: 1;
+        min-width: 0;
+    }
+    .browse-count {
+        font-family: var(--font-body);
+        font-size: 14px;
+        color: var(--color-text-muted);
+        margin: -12px 0 20px 0;
+    }
+
+    .filter-toggle-summary{
+        display: none;
+        cursor: pointer;
+        list-style: none;
+        font-family: var(--font-heading);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-size: 14px;
+        color: var(--color-navy);
+        padding: 12px 16px;
+        background: var(--color-white);
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .filter-toggle-summary::-webkit-details-marker{ display: none; }
+    .filter-toggle-summary::after{ content: "Filters ▾"; color: var(--color-gold); font-size: 13px; }
+    details[open] .filter-toggle-summary::after{ content: "Filters ▴"; }
+
+    @media (max-width: 900px) {
+        .browse-layout {
+            flex-direction: column;
+        }
+        .filter-sidebar {
+            width: 100%;
+            position: static;
+            border: none;
+            padding: 0;
+        }
+        .filter-toggle-summary{ display: flex; }
+    }
+    @media (min-width: 901px){
+        .filter-drawer .filter-sidebar{ display: block !important; }
+    }
+</style>
+
+<section class="section">
+    <div class="container">
+        <h1 class="page-title">{{ page_title }}</h1>
+
+        <div class="browse-layout">
+            <details class="filter-drawer">
+                <summary class="filter-toggle-summary">Filter properties</summary>
+                <aside class="filter-sidebar">
+                    <form action="{{ url_for(endpoint_name) }}" method="get">
+                        <div class="filter-group">
+                            <h3>Area</h3>
+                            <select name="area" class="filter-select">
+                                <option value="">All Areas</option>
+                                {% for a in areas %}
+                                <option value="{{ a }}" {% if a == selected_area %}selected{% endif %}>{{ a }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <h3>Property Type</h3>
+                            <select name="unit_type" class="filter-select">
+                                <option value="">All Types</option>
+                                {% for t in unit_types %}
+                                <option value="{{ t }}" {% if t == selected_unit_type %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="submit" class="filter-apply-btn">Apply Filters</button>
+                            <a href="{{ url_for(endpoint_name) }}" class="filter-reset-link">Reset All</a>
+                        </div>
+                    </form>
+                </aside>
+            </details>
+
+            <div class="browse-content">
+                {% if listings %}
+                <p class="browse-count">{{ listings|length }} propert{{ 'y' if listings|length == 1 else 'ies' }} found</p>
+                <div class="card-grid">
+                    {% for l in listings %}
+                        {% include "_listing_card.html" %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No listings found. Try adjusting your filters.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

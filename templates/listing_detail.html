@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.title }} — Meleven Consultancy{% endblock %}
+
+{% block content %}
+<style>
+    .compound-hero{
+        filter: contrast(1.1) saturate(1.12) brightness(0.98);
+    }
+    .compound-hero-overlay{
+        background: linear-gradient(180deg, rgba(10,33,68,0.15) 0%, rgba(10,33,68,0.55) 55%, rgba(10,33,68,0.9) 100%);
+    }
+</style>
+
+<section class="compound-hero" style="background-image: url('{{ listing.image_url or (listing.compound.cover_image_url if listing.compound else None) or url_for('static', filename='img/placeholder.jpg') }}');">
+    <div class="compound-hero-overlay">
+        <div class="container">
+            <h1>{{ listing.title }}</h1>
+            <p>{{ listing.listing_type_label() }}{% if listing.area or listing.location %} · {{ listing.area or listing.location }}{% endif %}{% if listing.compound %} · {{ listing.compound.name }}{% endif %}</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container detail-grid">
+
+        <div class="detail-main">
+            <h2>Overview</h2>
+            <ul class="fact-list">
+                {% if listing.unit_type %}<li><strong>Property Type:</strong> {{ listing.unit_type }}</li>{% endif %}
+                {% if listing.bedrooms %}<li><strong>Bedrooms:</strong> {{ listing.bedrooms }}</li>{% endif %}
+                {% if listing.bathrooms %}<li><strong>Bathrooms:</strong> {{ listing.bathrooms }}</li>{% endif %}
+                {% if listing.area_sqm %}<li><strong>Area:</strong> {{ listing.area_sqm|int }} m²</li>{% endif %}
+                <li><strong>Price:</strong> {{ listing.price_display() }}{% if listing.negotiable %} (Negotiable){% endif %}</li>
+                {% if listing.furnishing %}<li><strong>Furnishing:</strong> {{ listing.furnishing|capitalize }}</li>{% endif %}
+                {% if listing.condition %}<li><strong>Condition:</strong> {{ listing.condition }}</li>{% endif %}
+                {% if listing.legal_status %}<li><strong>Legal Status:</strong> {{ listing.legal_status_label() }}</li>{% endif %}
+                {% if listing.compound %}<li><strong>Compound:</strong> <a href="{{ url_for('compound_detail', slug=listing.compound.slug) }}">{{ listing.compound.name }}</a></li>{% endif %}
+            </ul>
+        </div>
+
+        <aside class="detail-sidebar">
+            <div class="inquiry-card">
+                <h3>Ask about this property</h3>
+                <p>Leave your details and our team will contact you.</p>
+                <form action="{{ url_for('listing_interested', listing_id=listing.id) }}" method="post" class="inquiry-form">
+                    <input type="text" name="name" placeholder="Full Name" required>
+                    <input type="tel" name="phone" placeholder="Phone Number" required>
+                    <input type="email" name="email" placeholder="Email (optional)">
+                    <textarea name="message" placeholder="Any specific questions?" rows="3"></textarea>
+                    <button type="submit" class="btn-primary btn-block">Ask About This Unit</button>
+                </form>
+            </div>
+        </aside>
+
+    </div>
+</section>
+
+{% endblock %}

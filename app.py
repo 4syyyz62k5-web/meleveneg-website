@@ -3,11 +3,12 @@ import csv
 import io
 import os
 import uuid
+from datetime import datetime
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Compound, Unit, Lead, Developer
+from models import db, Compound, Unit, Lead, Developer, Listing
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
@@ -68,6 +69,15 @@ def create_app():
         if "is_launch" not in existing_unit_columns:
             with db.engine.connect() as connection:
                 connection.execute(db.text("ALTER TABLE units ADD COLUMN is_launch BOOLEAN DEFAULT FALSE"))
+                connection.commit()
+
+        # `listings` itself is a brand-new table, so db.create_all() above
+        # already creates it — only `leads.listing_id` needs the manual
+        # check-then-ALTER TABLE treatment, since `leads` already existed.
+        existing_lead_columns = [col["name"] for col in inspector.get_columns("leads")]
+        if "listing_id" not in existing_lead_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE leads ADD COLUMN listing_id INTEGER"))
                 connection.commit()
 
         # ---------------------------------------------------------------
@@ -613,6 +623,137 @@ def create_app():
         flash("Thanks for your interest! Our team at Meleven will contact you shortly about this project.", "success")
         return redirect(url_for("compound_detail", slug=slug))
 
+    # ---------- Resale/Rent listings (public) ----------
+    # Entirely separate from the Compound/Unit developer-sale inventory —
+    # these are individually-owned units submitted by their owner or an
+    # agent. Every submission lands as status="pending" and is invisible on
+    # every public route below until an admin approves it under /admin.
+
+    ALLOWED_LISTING_TYPES = {"resale", "rent_annual", "rent_seasonal"}
+
+    @app.route("/list-your-property", methods=["GET", "POST"])
+    def list_property():
+        if request.method == "POST":
+            listing_type = request.form.get("listing_type", "").strip()
+            if listing_type not in ALLOWED_LISTING_TYPES:
+                flash("Please choose a valid listing type.", "error")
+                return redirect(url_for("list_property"))
+
+            title = request.form.get("title", "").strip()
+            owner_name = request.form.get("owner_name", "").strip()
+            owner_phone = request.form.get("owner_phone", "").strip()
+            if not title or not owner_name or not owner_phone:
+                flash("Title, your name, and phone number are required.", "error")
+                return redirect(url_for("list_property"))
+
+            image_url = request.form.get("image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                image_url = url_for("uploaded_file", filename=uploaded_name)
+
+            listing = Listing(
+                listing_type=listing_type,
+                status="pending",
+                compound_id=request.form.get("compound_id") or None,
+                title=title,
+                area=request.form.get("area", "").strip(),
+                location=request.form.get("location", "").strip(),
+                unit_type=request.form.get("unit_type", "").strip(),
+                bedrooms=request.form.get("bedrooms") or None,
+                bathrooms=request.form.get("bathrooms") or None,
+                area_sqm=request.form.get("area_sqm") or None,
+                price=request.form.get("price") or None,
+                rent_amount=request.form.get("rent_amount") or None,
+                rent_cadence=request.form.get("rent_cadence", "").strip(),
+                price_per_week=request.form.get("price_per_week") or None,
+                high_season_multiplier=request.form.get("high_season_multiplier") or None,
+                furnishing=request.form.get("furnishing", "").strip(),
+                condition=request.form.get("condition", "").strip(),
+                legal_status=request.form.get("legal_status", "").strip(),
+                seller_type=request.form.get("seller_type", "").strip(),
+                negotiable=bool(request.form.get("negotiable")),
+                owner_name=owner_name,
+                owner_phone=owner_phone,
+                image_url=image_url,
+            )
+            db.session.add(listing)
+            db.session.commit()
+            flash("Thanks! Your listing has been submitted and is pending review — we'll publish it once approved.", "success")
+            return redirect(url_for("list_property"))
+
+        compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
+        return render_template("list_your_property.html", compounds_for_link=compounds_for_link)
+
+    def _listings_browse(listing_types, page_title, endpoint_name):
+        """Shared query + render for /resale and /rent — only status="approved"
+        listings of the given type(s) are ever visible here."""
+        area = request.args.get("area", "").strip()
+        unit_type = request.args.get("unit_type", "").strip()
+
+        base_filter = db.and_(Listing.status == "approved", Listing.listing_type.in_(listing_types))
+
+        query = Listing.query.filter(base_filter)
+        if area:
+            query = query.filter(db.or_(Listing.area.ilike(f"%{area}%"), Listing.location.ilike(f"%{area}%")))
+        if unit_type:
+            query = query.filter(Listing.unit_type.ilike(f"%{unit_type}%"))
+        all_listings = query.order_by(Listing.submitted_at.desc()).all()
+
+        areas = sorted({
+            row[0] for row in
+            db.session.query(Listing.area)
+            .filter(base_filter, Listing.area.isnot(None), Listing.area != "")
+            .distinct().all()
+            if row[0]
+        })
+        unit_types = sorted({
+            row[0] for row in
+            db.session.query(Listing.unit_type)
+            .filter(base_filter, Listing.unit_type.isnot(None), Listing.unit_type != "")
+            .distinct().all()
+            if row[0]
+        })
+
+        return render_template(
+            "listings.html",
+            listings=all_listings,
+            page_title=page_title,
+            areas=areas,
+            unit_types=unit_types,
+            selected_area=area,
+            selected_unit_type=unit_type,
+            endpoint_name=endpoint_name,
+        )
+
+    @app.route("/resale")
+    def resale_listings():
+        return _listings_browse(("resale",), "Resale Properties", "resale_listings")
+
+    @app.route("/rent")
+    def rent_listings():
+        return _listings_browse(("rent_annual", "rent_seasonal"), "Properties for Rent", "rent_listings")
+
+    @app.route("/listing/<int:listing_id>")
+    def listing_detail(listing_id):
+        listing = Listing.query.filter_by(id=listing_id, status="approved").first_or_404()
+        return render_template("listing_detail.html", listing=listing)
+
+    @app.route("/listing/<int:listing_id>/interested", methods=["POST"])
+    def listing_interested(listing_id):
+        listing = Listing.query.filter_by(id=listing_id, status="approved").first_or_404()
+        lead = Lead(
+            name=request.form.get("name", "").strip(),
+            phone=request.form.get("phone", "").strip(),
+            email=request.form.get("email", "").strip(),
+            message=request.form.get("message", "").strip(),
+            listing_id=listing.id,
+            source_page=f"listing:{listing.id}",
+        )
+        db.session.add(lead)
+        db.session.commit()
+        flash("Thanks for your interest! Our team at Meleven will contact you shortly about this property.", "success")
+        return redirect(url_for("listing_detail", listing_id=listing.id))
+
     # ---------- Admin auth ----------
 
     def login_required(f):
@@ -1037,6 +1178,115 @@ def create_app():
                 message += f" (+{len(unknown_slugs) - 10} more)"
         flash(message, "success" if created else "error")
         return redirect(url_for("admin_dashboard"))
+
+    # ---------- Admin: Resale/Rent listings ----------
+
+    ALLOWED_LISTING_STATUS_FILTERS = {"pending", "approved", "rejected", "all"}
+
+    @app.route("/admin/listings")
+    @login_required
+    def admin_listings():
+        status_filter = request.args.get("status", "pending")
+        if status_filter not in ALLOWED_LISTING_STATUS_FILTERS:
+            status_filter = "pending"
+
+        query = Listing.query
+        if status_filter != "all":
+            query = query.filter(Listing.status == status_filter)
+        all_listings = query.order_by(Listing.submitted_at.desc()).all()
+
+        pending_count = Listing.query.filter(Listing.status == "pending").count()
+        approved_count = Listing.query.filter(Listing.status == "approved").count()
+        rejected_count = Listing.query.filter(Listing.status == "rejected").count()
+
+        return render_template(
+            "admin/listings.html",
+            listings=all_listings,
+            status_filter=status_filter,
+            pending_count=pending_count,
+            approved_count=approved_count,
+            rejected_count=rejected_count,
+        )
+
+    @app.route("/admin/listings/<int:listing_id>")
+    @login_required
+    def admin_listing_review(listing_id):
+        listing = Listing.query.get_or_404(listing_id)
+        return render_template("admin/listing_review.html", listing=listing)
+
+    @app.route("/admin/listings/<int:listing_id>/approve", methods=["POST"])
+    @login_required
+    def admin_listing_approve(listing_id):
+        listing = Listing.query.get_or_404(listing_id)
+        listing.status = "approved"
+        listing.reviewed_at = datetime.utcnow()
+        listing.reviewed_by = request.form.get("reviewed_by", "").strip() or "Admin"
+        db.session.commit()
+        flash(f"'{listing.title}' approved and now live.", "success")
+        return redirect(url_for("admin_listings"))
+
+    @app.route("/admin/listings/<int:listing_id>/reject", methods=["POST"])
+    @login_required
+    def admin_listing_reject(listing_id):
+        listing = Listing.query.get_or_404(listing_id)
+        listing.status = "rejected"
+        listing.reviewed_at = datetime.utcnow()
+        listing.reviewed_by = request.form.get("reviewed_by", "").strip() or "Admin"
+        db.session.commit()
+        flash(f"'{listing.title}' rejected.", "success")
+        return redirect(url_for("admin_listings"))
+
+    @app.route("/admin/listings/<int:listing_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def admin_listing_edit(listing_id):
+        listing = Listing.query.get_or_404(listing_id)
+        if request.method == "POST":
+            listing_type = request.form.get("listing_type", "").strip()
+            if listing_type in ALLOWED_LISTING_TYPES:
+                listing.listing_type = listing_type
+
+            listing.compound_id = request.form.get("compound_id") or None
+            listing.title = request.form.get("title", "").strip()
+            listing.area = request.form.get("area", "").strip()
+            listing.location = request.form.get("location", "").strip()
+            listing.unit_type = request.form.get("unit_type", "").strip()
+            listing.bedrooms = request.form.get("bedrooms") or None
+            listing.bathrooms = request.form.get("bathrooms") or None
+            listing.area_sqm = request.form.get("area_sqm") or None
+            listing.price = request.form.get("price") or None
+            listing.rent_amount = request.form.get("rent_amount") or None
+            listing.rent_cadence = request.form.get("rent_cadence", "").strip()
+            listing.price_per_week = request.form.get("price_per_week") or None
+            listing.high_season_multiplier = request.form.get("high_season_multiplier") or None
+            listing.furnishing = request.form.get("furnishing", "").strip()
+            listing.condition = request.form.get("condition", "").strip()
+            listing.legal_status = request.form.get("legal_status", "").strip()
+            listing.seller_type = request.form.get("seller_type", "").strip()
+            listing.negotiable = bool(request.form.get("negotiable"))
+            listing.owner_name = request.form.get("owner_name", "").strip()
+            listing.owner_phone = request.form.get("owner_phone", "").strip()
+
+            image_url = request.form.get("image_url", "").strip()
+            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if uploaded_name:
+                image_url = url_for("uploaded_file", filename=uploaded_name)
+            listing.image_url = image_url
+
+            db.session.commit()
+            flash("Listing updated.", "success")
+            return redirect(url_for("admin_listing_review", listing_id=listing.id))
+
+        compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
+        return render_template("admin/listing_edit.html", listing=listing, compounds_for_link=compounds_for_link)
+
+    @app.route("/admin/listings/<int:listing_id>/delete", methods=["POST"])
+    @login_required
+    def admin_listing_delete(listing_id):
+        listing = Listing.query.get_or_404(listing_id)
+        db.session.delete(listing)
+        db.session.commit()
+        flash("Listing deleted.", "success")
+        return redirect(url_for("admin_listings"))
 
     return app
 

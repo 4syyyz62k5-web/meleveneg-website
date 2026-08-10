@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}Listings — Meleven Admin{% endblock %}
+{% block content %}
+<div class="admin-container">
+    <div class="admin-page-header">
+        <h1>Resale/Rent Listings</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+    </div>
+
+    <div class="admin-lead-tabs">
+        <a href="{{ url_for('admin_listings', status='pending') }}"
+           class="admin-lead-tab {% if status_filter == 'pending' %}active{% endif %}">
+            Pending ({{ pending_count }})
+        </a>
+        <a href="{{ url_for('admin_listings', status='approved') }}"
+           class="admin-lead-tab {% if status_filter == 'approved' %}active{% endif %}">
+            Approved ({{ approved_count }})
+        </a>
+        <a href="{{ url_for('admin_listings', status='rejected') }}"
+           class="admin-lead-tab {% if status_filter == 'rejected' %}active{% endif %}">
+            Rejected ({{ rejected_count }})
+        </a>
+        <a href="{{ url_for('admin_listings', status='all') }}"
+           class="admin-lead-tab {% if status_filter == 'all' %}active{% endif %}">
+            All ({{ pending_count + approved_count + rejected_count }})
+        </a>
+    </div>
+
+    {% if listings %}
+    <table class="admin-table">
+        <thead>
+            <tr><th>Title</th><th>Type</th><th>Area</th><th>Price / Rent</th><th>Seller</th><th>Submitted</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for l in listings %}
+            <tr>
+                <td>{{ l.title }}</td>
+                <td>{{ l.listing_type_label() }}</td>
+                <td>{{ l.area or l.location or '-' }}</td>
+                <td>{{ l.price_display() }}</td>
+                <td>{{ l.seller_type|capitalize if l.seller_type else '-' }}</td>
+                <td>{{ l.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if l.status == 'pending' %}
+                        <span class="admin-badge admin-badge-sell">Pending</span>
+                    {% else %}
+                        <span class="admin-badge">{{ l.status|capitalize }}</span>
+                    {% endif %}
+                </td>
+                <td class="admin-actions">
+                    <a href="{{ url_for('admin_listing_review', listing_id=l.id) }}">Review</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No listings in this category yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

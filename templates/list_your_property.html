@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}List Your Property — Meleven Consultancy{% endblock %}
+{% block content %}
+<style>
+  .lp-form{ display: flex; flex-direction: column; gap: 14px; }
+  .lp-form label{
+    font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    color: var(--color-navy); margin-bottom: -6px;
+  }
+  .lp-form input, .lp-form select{
+    padding: 11px 13px; border: 1px solid #ddd; border-radius: 4px;
+    font-family: var(--font-body); font-size: 14px; width: 100%; box-sizing: border-box;
+    background: var(--color-white);
+  }
+  .lp-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .lp-row-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .lp-checkbox{ display: flex; align-items: center; gap: 8px; font-family: var(--font-body); font-size: 14px; color: var(--color-navy); }
+  .lp-checkbox input{ width: auto; }
+  .lp-section-title{ font-family: var(--font-heading); font-weight: 700; font-size: 15px; color: var(--color-navy); margin: 10px 0 -4px; }
+  .lp-hint{ font-weight: 400; font-size: 12.5px; color: var(--color-text-muted); }
+  @media (max-width: 640px){ .lp-row, .lp-row-3{ grid-template-columns: 1fr; } }
+</style>
+
+<section class="section">
+  <div class="container narrow">
+    <h1 class="page-title">List Your Property</h1>
+    <p class="lead-text">Submit your resale or rental property below. Every listing is reviewed by our team before it goes live — nothing is published automatically.</p>
+
+    <form method="post" action="{{ url_for('list_property') }}" enctype="multipart/form-data" class="lp-form" id="lp-form">
+
+      <label for="lp-type">Listing Type *</label>
+      <select name="listing_type" id="lp-type" required>
+        <option value="">Select listing type</option>
+        <option value="resale">For Sale (Resale)</option>
+        <option value="rent_annual">For Rent — Annual</option>
+        <option value="rent_seasonal">For Rent — Seasonal</option>
+      </select>
+
+      <label for="lp-title">Title *</label>
+      <input type="text" id="lp-title" name="title" placeholder="e.g. Modern 3BR Apartment with Garden View" required>
+
+      <label for="lp-compound">Link to an existing compound (optional)</label>
+      <select name="compound_id" id="lp-compound">
+        <option value="">Not linked to a specific compound</option>
+        {% for c in compounds_for_link %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="lp-row">
+        <div>
+          <label for="lp-area">Area</label>
+          <input type="text" id="lp-area" name="area" placeholder="e.g. Mostakbal City">
+        </div>
+        <div>
+          <label for="lp-location">Location (region)</label>
+          <input type="text" id="lp-location" name="location" placeholder="e.g. New Cairo">
+        </div>
+      </div>
+
+      <label for="lp-unit-type">Property Type</label>
+      <select name="unit_type" id="lp-unit-type">
+        <option value="">Property Type</option>
+        <option value="Apartment">Apartment</option>
+        <option value="Duplex">Duplex</option>
+        <option value="Penthouse">Penthouse</option>
+        <option value="Villa">Villa</option>
+        <option value="Twin House">Twin House</option>
+        <option value="Townhouse">Townhouse</option>
+        <option value="Chalet">Chalet</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <div class="lp-row-3">
+        <div><label for="lp-bedrooms">Bedrooms</label><input type="number" id="lp-bedrooms" name="bedrooms" min="0"></div>
+        <div><label for="lp-bathrooms">Bathrooms</label><input type="number" id="lp-bathrooms" name="bathrooms" min="0"></div>
+        <div><label for="lp-area-sqm">Area (sqm)</label><input type="number" id="lp-area-sqm" name="area_sqm" min="0" step="0.01"></div>
+      </div>
+
+      <div id="lp-field-resale" class="lp-conditional" hidden>
+        <label for="lp-price">Price (EGP) *</label>
+        <input type="number" id="lp-price" name="price" min="0">
+      </div>
+
+      <div id="lp-field-rent" class="lp-conditional" hidden>
+        <div class="lp-row">
+          <div>
+            <label for="lp-rent-amount">Rent Amount (EGP) *</label>
+            <input type="number" id="lp-rent-amount" name="rent_amount" min="0">
+          </div>
+          <div>
+            <label for="lp-rent-cadence">Rent Cadence</label>
+            <input type="text" id="lp-rent-cadence" name="rent_cadence" placeholder="e.g. Monthly, Yearly">
+          </div>
+        </div>
+      </div>
+
+      <div id="lp-field-seasonal" class="lp-conditional" hidden>
+        <div class="lp-row">
+          <div>
+            <label for="lp-price-per-week">Price Per Week (EGP)</label>
+            <input type="number" id="lp-price-per-week" name="price_per_week" min="0">
+          </div>
+          <div>
+            <label for="lp-multiplier">High Season Multiplier</label>
+            <input type="number" id="lp-multiplier" name="high_season_multiplier" min="1" step="0.1" placeholder="e.g. 1.5">
+          </div>
+        </div>
+      </div>
+
+      <label for="lp-furnishing">Furnishing</label>
+      <select name="furnishing" id="lp-furnishing">
+        <option value="">Not specified</option>
+        <option value="unfurnished">Unfurnished</option>
+        <option value="semi">Semi-Furnished</option>
+        <option value="furnished">Furnished</option>
+      </select>
+
+      <label for="lp-condition">Condition</label>
+      <select name="condition" id="lp-condition">
+        <option value="">Not specified</option>
+        <option value="New">New</option>
+        <option value="Excellent">Excellent</option>
+        <option value="Good">Good</option>
+        <option value="Needs Renovation">Needs Renovation</option>
+      </select>
+
+      <label for="lp-legal">Legal Status</label>
+      <select name="legal_status" id="lp-legal">
+        <option value="">Not specified</option>
+        <option value="registered_title">Registered Title</option>
+        <option value="court_validated">Court Validated</option>
+        <option value="preliminary_contract">Preliminary Contract</option>
+        <option value="unknown">Unknown</option>
+      </select>
+
+      <label for="lp-seller-type">Who's Listing This?</label>
+      <select name="seller_type" id="lp-seller-type">
+        <option value="">Not specified</option>
+        <option value="owner">Owner</option>
+        <option value="agent">Agent</option>
+      </select>
+
+      <label class="lp-checkbox">
+        <input type="checkbox" name="negotiable">
+        Price is negotiable
+      </label>
+
+      <label for="lp-image-file">Photo (optional)</label>
+      <input type="file" id="lp-image-file" name="image_file" accept="image/*">
+      <label for="lp-image-url">Or Photo URL</label>
+      <input type="text" id="lp-image-url" name="image_url" placeholder="https://...">
+
+      <p class="lp-section-title">Your Contact Details <span class="lp-hint">(kept private — never shown publicly)</span></p>
+      <div class="lp-row">
+        <div><label for="lp-owner-name">Your Name *</label><input type="text" id="lp-owner-name" name="owner_name" required></div>
+        <div><label for="lp-owner-phone">Your Phone *</label><input type="tel" id="lp-owner-phone" name="owner_phone" required></div>
+      </div>
+
+      <button type="submit" class="btn-primary btn-block">Submit Listing</button>
+    </form>
+  </div>
+</section>
+
+<script>
+(function(){
+  var typeSelect = document.getElementById('lp-type');
+  var resaleFields = document.getElementById('lp-field-resale');
+  var rentFields = document.getElementById('lp-field-rent');
+  var seasonalFields = document.getElementById('lp-field-seasonal');
+  if (!typeSelect) return;
+
+  var priceInput = document.getElementById('lp-price');
+  var rentAmountInput = document.getElementById('lp-rent-amount');
+
+  function update(){
+    var v = typeSelect.value;
+    var isResale = v === 'resale';
+    var isRent = v === 'rent_annual' || v === 'rent_seasonal';
+    var isSeasonal = v === 'rent_seasonal';
+
+    resaleFields.hidden = !isResale;
+    rentFields.hidden = !isRent;
+    seasonalFields.hidden = !isSeasonal;
+
+    priceInput.required = isResale;
+    rentAmountInput.required = isRent;
+  }
+
+  typeSelect.addEventListener('change', update);
+  update();
+})();
+</script>
+{% endblock %}

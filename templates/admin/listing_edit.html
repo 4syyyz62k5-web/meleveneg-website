@@ -1,0 +1,160 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit Listing — Meleven Admin{% endblock %}
+{% block content %}
+<div class="admin-container narrow-admin">
+    <h1>Edit Listing</h1>
+    <form method="post" class="admin-form" enctype="multipart/form-data">
+        <label>Listing Type *</label>
+        <select name="listing_type" id="al-type" required>
+            <option value="resale" {% if listing.listing_type == 'resale' %}selected{% endif %}>For Sale (Resale)</option>
+            <option value="rent_annual" {% if listing.listing_type == 'rent_annual' %}selected{% endif %}>For Rent — Annual</option>
+            <option value="rent_seasonal" {% if listing.listing_type == 'rent_seasonal' %}selected{% endif %}>For Rent — Seasonal</option>
+        </select>
+
+        <label>Title *</label>
+        <input type="text" name="title" value="{{ listing.title }}" required>
+
+        <label>Linked Compound (optional)</label>
+        <select name="compound_id">
+            <option value="">Not linked to a specific compound</option>
+            {% for c in compounds_for_link %}
+            <option value="{{ c.id }}" {% if listing.compound_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="admin-form-row">
+            <div>
+                <label>Area</label>
+                <input type="text" name="area" value="{{ listing.area or '' }}">
+            </div>
+            <div>
+                <label>Location (region)</label>
+                <input type="text" name="location" value="{{ listing.location or '' }}">
+            </div>
+        </div>
+
+        <label>Property Type</label>
+        <input type="text" name="unit_type" value="{{ listing.unit_type or '' }}" placeholder="e.g. Apartment, Villa">
+
+        <div class="admin-form-row">
+            <div>
+                <label>Bedrooms</label>
+                <input type="number" name="bedrooms" value="{{ listing.bedrooms if listing.bedrooms is not none else '' }}">
+            </div>
+            <div>
+                <label>Bathrooms</label>
+                <input type="number" name="bathrooms" value="{{ listing.bathrooms if listing.bathrooms is not none else '' }}">
+            </div>
+        </div>
+        <label>Area (sqm)</label>
+        <input type="number" step="0.01" name="area_sqm" value="{{ listing.area_sqm if listing.area_sqm is not none else '' }}">
+
+        <div id="al-field-resale" class="al-conditional">
+            <label>Price (EGP)</label>
+            <input type="number" name="price" value="{{ listing.price if listing.price is not none else '' }}">
+        </div>
+
+        <div id="al-field-rent" class="al-conditional">
+            <div class="admin-form-row">
+                <div>
+                    <label>Rent Amount (EGP)</label>
+                    <input type="number" name="rent_amount" value="{{ listing.rent_amount if listing.rent_amount is not none else '' }}">
+                </div>
+                <div>
+                    <label>Rent Cadence</label>
+                    <input type="text" name="rent_cadence" value="{{ listing.rent_cadence or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div id="al-field-seasonal" class="al-conditional">
+            <div class="admin-form-row">
+                <div>
+                    <label>Price Per Week (EGP)</label>
+                    <input type="number" name="price_per_week" value="{{ listing.price_per_week if listing.price_per_week is not none else '' }}">
+                </div>
+                <div>
+                    <label>High Season Multiplier</label>
+                    <input type="number" step="0.1" name="high_season_multiplier" value="{{ listing.high_season_multiplier if listing.high_season_multiplier is not none else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <label>Furnishing</label>
+        <select name="furnishing">
+            <option value="" {% if not listing.furnishing %}selected{% endif %}>Not specified</option>
+            <option value="unfurnished" {% if listing.furnishing == 'unfurnished' %}selected{% endif %}>Unfurnished</option>
+            <option value="semi" {% if listing.furnishing == 'semi' %}selected{% endif %}>Semi-Furnished</option>
+            <option value="furnished" {% if listing.furnishing == 'furnished' %}selected{% endif %}>Furnished</option>
+        </select>
+
+        <label>Condition</label>
+        <input type="text" name="condition" value="{{ listing.condition or '' }}" placeholder="e.g. New, Excellent, Needs Renovation">
+
+        <label>Legal Status</label>
+        <select name="legal_status">
+            <option value="" {% if not listing.legal_status %}selected{% endif %}>Not specified</option>
+            <option value="registered_title" {% if listing.legal_status == 'registered_title' %}selected{% endif %}>Registered Title</option>
+            <option value="court_validated" {% if listing.legal_status == 'court_validated' %}selected{% endif %}>Court Validated</option>
+            <option value="preliminary_contract" {% if listing.legal_status == 'preliminary_contract' %}selected{% endif %}>Preliminary Contract</option>
+            <option value="unknown" {% if listing.legal_status == 'unknown' %}selected{% endif %}>Unknown</option>
+        </select>
+
+        <label>Seller Type</label>
+        <select name="seller_type">
+            <option value="" {% if not listing.seller_type %}selected{% endif %}>Not specified</option>
+            <option value="owner" {% if listing.seller_type == 'owner' %}selected{% endif %}>Owner</option>
+            <option value="agent" {% if listing.seller_type == 'agent' %}selected{% endif %}>Agent</option>
+        </select>
+
+        <label class="checkbox-label">
+            <input type="checkbox" name="negotiable" {% if listing.negotiable %}checked{% endif %}>
+            Price is negotiable
+        </label>
+
+        <label>Photo</label>
+        {% if listing.image_url %}
+        <p class="unit-payment-plan">Current photo: <a href="{{ listing.image_url }}" target="_blank">view</a></p>
+        {% endif %}
+        <input type="file" name="image_file" accept="image/*">
+        <label>Or Photo URL (used only if you don't upload a photo above)</label>
+        <input type="text" name="image_url" value="{{ listing.image_url or '' }}" placeholder="https://...">
+
+        <div class="admin-form-row">
+            <div>
+                <label>Owner Name *</label>
+                <input type="text" name="owner_name" value="{{ listing.owner_name }}" required>
+            </div>
+            <div>
+                <label>Owner Phone *</label>
+                <input type="text" name="owner_phone" value="{{ listing.owner_phone }}" required>
+            </div>
+        </div>
+
+        <div class="admin-form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('admin_listing_review', listing_id=listing.id) }}" class="admin-cancel-link">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+(function(){
+  var typeSelect = document.getElementById('al-type');
+  var resaleFields = document.getElementById('al-field-resale');
+  var rentFields = document.getElementById('al-field-rent');
+  var seasonalFields = document.getElementById('al-field-seasonal');
+  if (!typeSelect) return;
+
+  function update(){
+    var v = typeSelect.value;
+    resaleFields.style.display = (v === 'resale') ? '' : 'none';
+    rentFields.style.display = (v === 'rent_annual' || v === 'rent_seasonal') ? '' : 'none';
+    seasonalFields.style.display = (v === 'rent_seasonal') ? '' : 'none';
+  }
+
+  typeSelect.addEventListener('change', update);
+  update();
+})();
+</script>
+{% endblock %}

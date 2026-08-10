@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}Review Listing — Meleven Admin{% endblock %}
+{% block content %}
+<div class="admin-container narrow-admin">
+    <div class="admin-page-header">
+        <h1>{{ listing.title }}</h1>
+        {% if listing.status == 'pending' %}
+            <span class="admin-badge admin-badge-sell">Pending</span>
+        {% else %}
+            <span class="admin-badge">{{ listing.status|capitalize }}</span>
+        {% endif %}
+    </div>
+
+    <table class="admin-table">
+        <tbody>
+            <tr><td><strong>Listing Type</strong></td><td>{{ listing.listing_type_label() }}</td></tr>
+            <tr><td><strong>Area / Location</strong></td><td>{{ listing.area or '-' }} / {{ listing.location or '-' }}</td></tr>
+            <tr><td><strong>Linked Compound</strong></td><td>{{ listing.compound.name if listing.compound else '-' }}</td></tr>
+            <tr><td><strong>Property Type</strong></td><td>{{ listing.unit_type or '-' }}</td></tr>
+            <tr><td><strong>Bedrooms / Bathrooms</strong></td><td>{{ listing.bedrooms or '-' }} / {{ listing.bathrooms or '-' }}</td></tr>
+            <tr><td><strong>Area (sqm)</strong></td><td>{{ listing.area_sqm or '-' }}</td></tr>
+            <tr><td><strong>Price / Rent</strong></td><td>{{ listing.price_display() }}</td></tr>
+            <tr><td><strong>Negotiable</strong></td><td>{{ "Yes" if listing.negotiable else "No" }}</td></tr>
+            <tr><td><strong>Furnishing</strong></td><td>{{ listing.furnishing or '-' }}</td></tr>
+            <tr><td><strong>Condition</strong></td><td>{{ listing.condition or '-' }}</td></tr>
+            <tr><td><strong>Legal Status</strong></td><td>{{ listing.legal_status_label() if listing.legal_status else '-' }}</td></tr>
+            <tr><td><strong>Seller Type</strong></td><td>{{ listing.seller_type|capitalize if listing.seller_type else '-' }}</td></tr>
+            <tr><td><strong>Owner Name</strong></td><td>{{ listing.owner_name }}</td></tr>
+            <tr><td><strong>Owner Phone</strong></td><td><a href="tel:{{ listing.owner_phone }}">{{ listing.owner_phone }}</a></td></tr>
+            <tr><td><strong>Photo</strong></td><td>{% if listing.image_url %}<a href="{{ listing.image_url }}" target="_blank">view</a>{% else %}-{% endif %}</td></tr>
+            <tr><td><strong>Submitted</strong></td><td>{{ listing.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+            {% if listing.reviewed_at %}
+            <tr><td><strong>Reviewed</strong></td><td>{{ listing.reviewed_at.strftime('%Y-%m-%d %H:%M') }} by {{ listing.reviewed_by or 'Admin' }}</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if listing.status == 'pending' %}
+    <div class="admin-form-row" style="margin-top:24px; align-items:end;">
+        <form method="post" action="{{ url_for('admin_listing_approve', listing_id=listing.id) }}">
+            <label>Reviewed by (optional)</label>
+            <input type="text" name="reviewed_by" placeholder="Admin">
+            <button type="submit" class="btn-primary" style="margin-top:8px;">Approve</button>
+        </form>
+        <form method="post" action="{{ url_for('admin_listing_reject', listing_id=listing.id) }}">
+            <label>Reviewed by (optional)</label>
+            <input type="text" name="reviewed_by" placeholder="Admin">
+            <button type="submit" class="admin-delete-btn" style="margin-top:8px;">Reject</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="admin-form-actions">
+        <a href="{{ url_for('admin_listing_edit', listing_id=listing.id) }}" class="admin-cancel-link">Edit Details</a>
+        <form method="post" action="{{ url_for('admin_listing_delete', listing_id=listing.id) }}" onsubmit="return confirm('Delete this listing permanently? This cannot be undone.');">
+            <button type="submit" class="admin-delete-btn">Delete</button>
+        </form>
+        <a href="{{ url_for('admin_listings') }}" class="admin-cancel-link">← Back to Listings</a>
+    </div>
+</div>
+{% endblock %}

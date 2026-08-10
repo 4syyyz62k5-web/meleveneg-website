@@ -139,13 +139,14 @@
   margin-top: 12px;
   margin-bottom: 4px;
 }
-.admin-form input, .admin-form textarea {
+.admin-form input, .admin-form textarea, .admin-form select {
   padding: 10px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-family: var(--font-body);
   font-size: 14px;
   width: 100%;
+  box-sizing: border-box;
 }
 .admin-form-row {
   display: grid;
