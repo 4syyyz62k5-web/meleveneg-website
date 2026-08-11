@@ -28,3 +28,8 @@ class Config:
 
     # Placeholder — fill in once Circles integration is ready
     CIRCLES_APP_URL = os.environ.get("CIRCLES_APP_URL", "https://your-circles-app.onrender.com")
+
+    # Base URL used to build absolute links in /sitemap.xml (deliberately not
+    # derived from the incoming request's Host header, so it's always this
+    # domain regardless of how the app was reached).
+    SITE_URL = os.environ.get("SITE_URL", "https://meleveneg.com")

@@ -3,9 +3,10 @@ import csv
 import io
 import os
 import uuid
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response
 from werkzeug.utils import secure_filename
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing
@@ -146,6 +147,56 @@ def create_app():
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+    # ---------- Sitemap (for Google Search Console) ----------
+
+    @app.route("/sitemap.xml")
+    def sitemap():
+        # Absolute URLs are built from Config.SITE_URL, not the incoming
+        # request's Host header, so this always points at the real domain
+        # regardless of how the app was reached.
+        base_url = app.config["SITE_URL"].rstrip("/")
+        urlset = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+
+        def add_url(path, lastmod=None, changefreq=None, priority=None):
+            el = ET.SubElement(urlset, "url")
+            ET.SubElement(el, "loc").text = base_url + path
+            if lastmod:
+                ET.SubElement(el, "lastmod").text = lastmod.strftime("%Y-%m-%d")
+            if changefreq:
+                ET.SubElement(el, "changefreq").text = changefreq
+            if priority:
+                ET.SubElement(el, "priority").text = priority
+
+        # Static pages — no lastmod, there's no real "last modified" signal
+        # for a template-driven page (a fabricated one would be worse than none).
+        for endpoint, changefreq, priority in [
+            ("home", "daily", "1.0"),
+            ("compounds", "daily", "0.8"),
+            ("resale_listings", "weekly", "0.6"),
+            ("rent_listings", "weekly", "0.6"),
+            ("sell_property", "monthly", "0.5"),
+            ("about", "monthly", "0.4"),
+            ("contact", "monthly", "0.4"),
+        ]:
+            add_url(url_for(endpoint), changefreq=changefreq, priority=priority)
+
+        # Every published compound's own page.
+        for c in Compound.query.filter_by(is_published=True).all():
+            add_url(
+                url_for("compound_detail", slug=c.slug),
+                lastmod=c.created_at, changefreq="weekly", priority="0.7",
+            )
+
+        # Every approved Resale/Rent listing's own page.
+        for l in Listing.query.filter_by(status="approved").all():
+            add_url(
+                url_for("listing_detail", listing_id=l.id),
+                lastmod=l.reviewed_at or l.submitted_at, changefreq="weekly", priority="0.5",
+            )
+
+        xml_bytes = ET.tostring(urlset, encoding="utf-8", xml_declaration=True)
+        return Response(xml_bytes, mimetype="application/xml")
 
     # ---------- Public pages ----------
 
