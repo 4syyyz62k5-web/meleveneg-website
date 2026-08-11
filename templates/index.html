@@ -620,6 +620,16 @@
   .mv-calc-suggest{ font-family: var(--font-body); font-size: 12.5px; color: #c7cedb; margin: 10px 0 0 0; }
   .mv-calc-suggest .mv-calc-suggest__areas{ color: var(--color-gold); font-weight: 600; }
 
+  .mv-calc-sample{ margin: 20px 0 18px 0; }
+  .mv-calc-sample__title{
+    font-family: var(--font-heading); font-size: 12px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #c7cedb; margin: 0 0 10px 0;
+  }
+  .mv-calc-sample__grid{
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;
+  }
+  .mv-calc-sample .mv-unit-card{ width: auto; }
+
   .mv-calc-cta{ display: block; text-align: center; width: 100%; box-sizing: border-box; text-transform: uppercase; letter-spacing: .04em; }
   .mv-calc-disclaimer{ font-family: var(--font-body); font-size: 11px; color: #8891a0; margin: 12px 0 0 0; line-height: 1.4; }
 
@@ -1068,6 +1078,27 @@
         <p class="mv-calc-suggest" id="calc-suggest" style="display:none;"></p>
       </div>
 
+      <div class="mv-calc-sample" id="calc-sample" {% if not initial_sample_units %}style="display:none;"{% endif %}>
+        <p class="mv-calc-sample__title">Matching Properties</p>
+        <div class="mv-calc-sample__grid" id="calc-sample-grid">
+          {% for u in initial_sample_units %}
+          <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound_slug) }}">
+            <img class="mv-unit-card__thumb" src="{{ u.image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ u.unit_type or u.compound_name }}" loading="lazy">
+            <div class="mv-unit-card__body">
+              <p class="mv-unit-card__compound">{{ u.compound_name }}</p>
+              <p class="mv-unit-card__type">{{ u.unit_type or 'Unit' }}</p>
+              <p class="mv-unit-card__facts">
+                {% if u.bedrooms %}<span>{{ u.bedrooms }} Bed</span>{% endif %}
+                {% if u.bathrooms %}<span>{{ u.bathrooms }} Bath</span>{% endif %}
+                {% if u.area_sqm %}<span>{{ u.area_sqm|int }} m²</span>{% endif %}
+              </p>
+              <p class="mv-unit-card__price">{{ "{:,.0f}".format(u.price) if u.price else "On request" }} EGP</p>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
       <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">See My Matches</a>
       <p class="mv-calc-disclaimer">Estimate based on your own down payment, installment and duration — actual payment plans vary by developer.</p>
     </div>
@@ -1277,10 +1308,52 @@
     var projectsOut = document.getElementById('calc-projects');
     var minPriceOut = document.getElementById('calc-minprice');
     var suggestOut = document.getElementById('calc-suggest');
+    var sampleWrap = document.getElementById('calc-sample');
+    var sampleGrid = document.getElementById('calc-sample-grid');
     var countFetchToken = 0; // guards against an older, slower request overwriting a newer one
+    var PLACEHOLDER_IMG = "{{ url_for('static', filename='img/placeholder.jpg') }}";
 
     function formatEGP(n){
       return Math.round(n).toLocaleString('en-US');
+    }
+
+    function escapeHtml(s){
+      var div = document.createElement('div');
+      div.textContent = s == null ? '' : String(s);
+      return div.innerHTML;
+    }
+
+    // Mirrors the .mv-unit-card markup Jinja renders for the initial paint
+    // (see the "Matching Properties" block above), so a live recalculation
+    // swaps in cards that look identical.
+    function renderSampleUnits(units){
+      if (!sampleWrap || !sampleGrid) return;
+      if (!units || !units.length) {
+        sampleGrid.innerHTML = '';
+        sampleWrap.style.display = 'none';
+        return;
+      }
+      sampleGrid.innerHTML = units.map(function(u){
+        var facts = [];
+        if (u.bedrooms) facts.push('<span>' + u.bedrooms + ' Bed</span>');
+        if (u.bathrooms) facts.push('<span>' + u.bathrooms + ' Bath</span>');
+        if (u.area_sqm) facts.push('<span>' + Math.round(u.area_sqm) + ' m²</span>');
+        var price = u.price ? formatEGP(u.price) + ' EGP' : 'On request';
+        // Same path Flask's url_for('compound_detail', slug=...) produces.
+        var href = '/compound/' + encodeURIComponent(u.compound_slug);
+        return (
+          '<a class="mv-unit-card" href="' + href + '">' +
+            '<img class="mv-unit-card__thumb" src="' + escapeHtml(u.image_url || PLACEHOLDER_IMG) + '" alt="' + escapeHtml(u.unit_type || u.compound_name) + '" loading="lazy">' +
+            '<div class="mv-unit-card__body">' +
+              '<p class="mv-unit-card__compound">' + escapeHtml(u.compound_name) + '</p>' +
+              '<p class="mv-unit-card__type">' + escapeHtml(u.unit_type || 'Unit') + '</p>' +
+              '<p class="mv-unit-card__facts">' + facts.join('') + '</p>' +
+              '<p class="mv-unit-card__price">' + price + '</p>' +
+            '</div>' +
+          '</a>'
+        );
+      }).join('');
+      sampleWrap.style.display = '';
     }
 
     // Debounce so dragging the slider (or typing an area/installment) doesn't
@@ -1334,6 +1407,7 @@
               suggestOut.style.display = 'none';
             }
           }
+          renderSampleUnits(data.sample_units);
         })
         .catch(function(){ /* leave the last known figures on screen if the request fails */ });
     }

@@ -305,6 +305,7 @@ def create_app():
         initial_calc_min_installment = None
         if initial_calc_min_price is not None:
             initial_calc_min_installment = max(0, float(initial_calc_min_price) - INITIAL_DOWN_PAYMENT) / initial_periods
+        initial_sample_units = _serialize_sample_units(initial_calc_base_query)
 
         return render_template(
             "index.html",
@@ -327,6 +328,7 @@ def create_app():
             initial_calc_projects=initial_calc_projects,
             initial_calc_min_price=initial_calc_min_price,
             initial_calc_min_installment=initial_calc_min_installment,
+            initial_sample_units=initial_sample_units,
         )
 
     # ---------- Investment calculator: live matching-properties count ----------
@@ -352,6 +354,26 @@ def create_app():
         periods_per_year = 4 if cadence == "quarterly" else 12
         periods = duration_years * periods_per_year
         return periods, down_payment + installment * periods
+
+    def _serialize_sample_units(query, limit=4):
+        """A cheap slice of an already-filtered Unit query — reuses the exact
+        same WHERE clause built by the caller (no duplicated filter logic),
+        just orders by price and caps the row count, so this is one small
+        extra SELECT rather than a second heavy query."""
+        units = query.order_by(Unit.price.asc()).limit(limit).all()
+        return [
+            {
+                "compound_name": u.compound.name,
+                "compound_slug": u.compound.slug,
+                "unit_type": u.unit_type,
+                "bedrooms": u.bedrooms,
+                "bathrooms": u.bathrooms,
+                "area_sqm": float(u.area_sqm) if u.area_sqm is not None else None,
+                "price": float(u.price) if u.price is not None else None,
+                "image_url": u.image_url or u.compound.cover_image_url,
+            }
+            for u in units
+        ]
 
     @app.route("/api/properties-count")
     def api_properties_count():
@@ -422,6 +444,8 @@ def create_app():
             )
             suggested_areas = [r[0] for r in rows if r[0]]
 
+        sample_units = _serialize_sample_units(query)
+
         return jsonify({
             "count": count,
             "projects": projects,
@@ -429,6 +453,7 @@ def create_app():
             "min_installment": min_installment,
             "max_price": max_price,
             "suggested_areas": suggested_areas,
+            "sample_units": sample_units,
         })
 
     @app.route("/locations")
