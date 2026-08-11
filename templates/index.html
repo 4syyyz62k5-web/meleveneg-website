@@ -301,6 +301,28 @@
   .mv-launch-card__price{ font-family: var(--font-body); font-size: 12px; color: #c7cedb; margin: 0; }
   .mv-launch-card__price span{ font-size: 14px; font-weight: 700; color: var(--color-gold); }
 
+  /* ---------- New Launches: desktop-only — 3 large fixed cards instead of
+     the small horizontal-scroll row (mobile above is untouched). ---------- */
+  @media (min-width: 861px) {
+    .mv-launches{
+      display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 24px;
+      overflow: visible; padding-bottom: 0;
+    }
+    .mv-launch-card{ width: auto; aspect-ratio: 4 / 4.2; }
+    .mv-launch-card:nth-child(n+4){ display: none; }
+    .mv-launch-card__scrim{
+      background: linear-gradient(180deg, rgba(10,33,68,0) 45%, rgba(10,33,68,.95) 100%);
+    }
+    .mv-launch-card__body{ padding: 22px; }
+    .mv-launch-card__name{ font-size: 22px; }
+    .mv-launch-card__developer{ font-size: 13px; }
+    .mv-launch-card__developer-logo{ height: 22px; max-width: 100px; }
+    .mv-launch-card__meta{ font-size: 13px; margin-bottom: 10px; }
+    .mv-launch-card__price{ font-size: 14px; }
+    .mv-launch-card__price span{ font-size: 26px; }
+    #launches-dots{ display: none; }
+  }
+
   /* ---------- Delivery badge (used on media, over the image) ---------- */
   .mv-delivery-badge{
     display: inline-block; font-family: var(--font-body); font-size: 9.5px; font-weight: 700;
