@@ -80,6 +80,15 @@ def create_app():
                 connection.execute(db.text("ALTER TABLE leads ADD COLUMN listing_id INTEGER"))
                 connection.commit()
 
+        # `listings` itself was new in the previous deploy, but it's already
+        # live now, so a further field addition (owner_email) needs the same
+        # check-then-ALTER TABLE treatment as everything else here.
+        existing_listing_columns = [col["name"] for col in inspector.get_columns("listings")]
+        if "owner_email" not in existing_listing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text("ALTER TABLE listings ADD COLUMN owner_email VARCHAR(150)"))
+                connection.commit()
+
         # ---------------------------------------------------------------
         # Backfill: any existing compound that doesn't have `location` set
         # yet gets one assigned automatically based on its current `area`,
@@ -585,8 +594,20 @@ def create_app():
             )
             db.session.add(lead)
             db.session.commit()
-            flash("Thanks! One of our agents will call you shortly to help sell your property.", "success")
-            return redirect(url_for("sell_property"))
+
+            # Step 1 of 2: this Lead is a safety net so nothing is lost if the
+            # visitor never finishes step 2 — the fields are also carried into
+            # the fuller /list-your-property form via the session so they
+            # don't have to retype them. Read once and cleared there.
+            session["sell_prefill"] = {
+                "name": name,
+                "phone": phone,
+                "email": email,
+                "location": location,
+                "compound_name": compound_name,
+                "property_type": property_type,
+            }
+            return redirect(url_for("list_property"))
 
         return render_template("sell.html")
 
@@ -674,6 +695,7 @@ def create_app():
                 negotiable=bool(request.form.get("negotiable")),
                 owner_name=owner_name,
                 owner_phone=owner_phone,
+                owner_email=request.form.get("owner_email", "").strip(),
                 image_url=image_url,
             )
             db.session.add(listing)
@@ -681,8 +703,34 @@ def create_app():
             flash("Thanks! Your listing has been submitted and is pending review — we'll publish it once approved.", "success")
             return redirect(url_for("list_property"))
 
+        # Step 2 of 2 when arriving from /sell: read the step-1 fields once
+        # and clear them immediately, so a stale value never lingers into an
+        # unrelated later visit. Absent entirely for anyone who lands here
+        # directly (e.g. the footer link) — the template only shows the
+        # "step 2" framing when this is actually set.
+        prefill = session.pop("sell_prefill", None)
+        prefilled_compound_id = None
+        suggested_title = ""
+        if prefill and prefill.get("compound_name"):
+            match = Compound.query.filter(
+                db.func.lower(Compound.name) == prefill["compound_name"].strip().lower(),
+                Compound.is_published == True,
+            ).first()
+            if match:
+                prefilled_compound_id = match.id
+            else:
+                # No matching compound on file — don't lose what they typed,
+                # just carry it forward as a starting point for the title.
+                suggested_title = prefill["compound_name"]
+
         compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
-        return render_template("list_your_property.html", compounds_for_link=compounds_for_link)
+        return render_template(
+            "list_your_property.html",
+            compounds_for_link=compounds_for_link,
+            prefill=prefill,
+            prefilled_compound_id=prefilled_compound_id,
+            suggested_title=suggested_title,
+        )
 
     def _listings_browse(listing_types, page_title, endpoint_name):
         """Shared query + render for /resale and /rent — only status="approved"

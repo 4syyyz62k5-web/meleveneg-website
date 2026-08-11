@@ -146,6 +146,7 @@ class Listing(db.Model):
     # Admin-only — never rendered on any public template.
     owner_name = db.Column(db.String(150), nullable=False)
     owner_phone = db.Column(db.String(50), nullable=False)
+    owner_email = db.Column(db.String(150))  # optional — carried over from the /sell step-1 form
 
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     reviewed_at = db.Column(db.DateTime)

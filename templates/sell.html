@@ -12,6 +12,10 @@
     font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .14em;
     text-transform: uppercase; color: var(--color-gold); margin: 0 0 14px 0;
   }
+  .sp-step-badge{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--color-gold); text-align: center; margin: 0 0 6px 0;
+  }
   .sp-hero h1{
     font-family: var(--font-heading); font-weight: 700; font-size: clamp(30px, 4.5vw, 46px);
     line-height: 1.2; max-width: 640px; margin: 0 0 16px 0;
@@ -180,8 +184,9 @@
 
 <section class="section area-section" id="sp-form">
   <div class="container narrow">
+    <p class="sp-step-badge">Step 1 of 2</p>
     <h2 class="section-title" style="text-align:center;">Complete The Form</h2>
-    <p class="lead-text" style="text-align:center;">Your privacy is important to us. We won't publish or share your information with anyone.</p>
+    <p class="lead-text" style="text-align:center;">Your privacy is important to us. We won't publish or share your information with anyone. Next, we'll ask a few more details about the unit itself.</p>
     <div class="sp-form-card">
       <form method="POST" action="{{ url_for('sell_property') }}" class="contact-form">
         <div class="sp-form-row">
@@ -224,7 +229,7 @@
             </select>
           </div>
         </div>
-        <button type="submit" class="btn-primary btn-block">Submit</button>
+        <button type="submit" class="btn-primary btn-block">Continue to Property Details →</button>
       </form>
     </div>
   </div>

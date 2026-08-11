@@ -18,13 +18,22 @@
   .lp-checkbox input{ width: auto; }
   .lp-section-title{ font-family: var(--font-heading); font-weight: 700; font-size: 15px; color: var(--color-navy); margin: 10px 0 -4px; }
   .lp-hint{ font-weight: 400; font-size: 12.5px; color: var(--color-text-muted); }
+  .lp-step-badge{
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--color-gold); margin: 0 0 6px 0;
+  }
   @media (max-width: 640px){ .lp-row, .lp-row-3{ grid-template-columns: 1fr; } }
 </style>
 
 <section class="section">
   <div class="container narrow">
+    {% if prefill %}<p class="lp-step-badge">Step 2 of 2</p>{% endif %}
     <h1 class="page-title">List Your Property</h1>
+    {% if prefill %}
+    <p class="lead-text">Thanks — we've carried over what you already told us. Just fill in the rest of the property details below. Every listing is reviewed by our team before it goes live.</p>
+    {% else %}
     <p class="lead-text">Submit your resale or rental property below. Every listing is reviewed by our team before it goes live — nothing is published automatically.</p>
+    {% endif %}
 
     <form method="post" action="{{ url_for('list_property') }}" enctype="multipart/form-data" class="lp-form" id="lp-form">
 
@@ -37,15 +46,18 @@
       </select>
 
       <label for="lp-title">Title *</label>
-      <input type="text" id="lp-title" name="title" placeholder="e.g. Modern 3BR Apartment with Garden View" required>
+      <input type="text" id="lp-title" name="title" value="{{ suggested_title }}" placeholder="e.g. Modern 3BR Apartment with Garden View" required>
 
       <label for="lp-compound">Link to an existing compound (optional)</label>
       <select name="compound_id" id="lp-compound">
         <option value="">Not linked to a specific compound</option>
         {% for c in compounds_for_link %}
-        <option value="{{ c.id }}">{{ c.name }}</option>
+        <option value="{{ c.id }}" {% if prefilled_compound_id == c.id %}selected{% endif %}>{{ c.name }}</option>
         {% endfor %}
       </select>
+      {% if prefill and prefill.compound_name and not prefilled_compound_id %}
+      <p class="lp-hint">You mentioned "{{ prefill.compound_name }}" — it's not in our list yet, so we've put it in the title above. Feel free to describe it further in Area/Location below.</p>
+      {% endif %}
 
       <div class="lp-row">
         <div>
@@ -54,21 +66,16 @@
         </div>
         <div>
           <label for="lp-location">Location (region)</label>
-          <input type="text" id="lp-location" name="location" placeholder="e.g. New Cairo">
+          <input type="text" id="lp-location" name="location" value="{{ prefill.location if prefill else '' }}" placeholder="e.g. New Cairo">
         </div>
       </div>
 
       <label for="lp-unit-type">Property Type</label>
       <select name="unit_type" id="lp-unit-type">
         <option value="">Property Type</option>
-        <option value="Apartment">Apartment</option>
-        <option value="Duplex">Duplex</option>
-        <option value="Penthouse">Penthouse</option>
-        <option value="Villa">Villa</option>
-        <option value="Twin House">Twin House</option>
-        <option value="Townhouse">Townhouse</option>
-        <option value="Chalet">Chalet</option>
-        <option value="Other">Other</option>
+        {% for t in ["Apartment", "Duplex", "Penthouse", "Villa", "Twin House", "Townhouse", "Chalet", "Other"] %}
+        <option value="{{ t }}" {% if prefill and prefill.property_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
       </select>
 
       <div class="lp-row-3">
@@ -153,9 +160,11 @@
 
       <p class="lp-section-title">Your Contact Details <span class="lp-hint">(kept private — never shown publicly)</span></p>
       <div class="lp-row">
-        <div><label for="lp-owner-name">Your Name *</label><input type="text" id="lp-owner-name" name="owner_name" required></div>
-        <div><label for="lp-owner-phone">Your Phone *</label><input type="tel" id="lp-owner-phone" name="owner_phone" required></div>
+        <div><label for="lp-owner-name">Your Name *</label><input type="text" id="lp-owner-name" name="owner_name" value="{{ prefill.name if prefill else '' }}" required></div>
+        <div><label for="lp-owner-phone">Your Phone *</label><input type="tel" id="lp-owner-phone" name="owner_phone" value="{{ prefill.phone if prefill else '' }}" required></div>
       </div>
+      <label for="lp-owner-email">Your Email (optional)</label>
+      <input type="email" id="lp-owner-email" name="owner_email" value="{{ prefill.email if prefill else '' }}">
 
       <button type="submit" class="btn-primary btn-block">Submit Listing</button>
     </form>

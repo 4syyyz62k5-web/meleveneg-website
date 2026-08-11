@@ -268,8 +268,13 @@
         <nav class="main-nav" id="main-nav" aria-label="Main navigation">
             <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="is-active" aria-current="page"{% endif %}>Home</a>
             <a href="{{ url_for('compounds') }}" {% if request.endpoint == 'compounds' %}class="is-active" aria-current="page"{% endif %}>Properties</a>
+            {# Resale/Rent nav links temporarily hidden until real approved listings
+               exist to show — /resale and /rent still fully work if visited directly,
+               and the admin approval flow is untouched. Delete this comment wrapper
+               (keep the two <a> tags) to bring them back.
             <a href="{{ url_for('resale_listings') }}" {% if request.endpoint == 'resale_listings' %}class="is-active" aria-current="page"{% endif %}>Resale</a>
             <a href="{{ url_for('rent_listings') }}" {% if request.endpoint == 'rent_listings' %}class="is-active" aria-current="page"{% endif %}>Rent</a>
+            #}
             <a href="{{ url_for('sell_property') }}" {% if request.endpoint == 'sell_property' %}class="is-active" aria-current="page"{% endif %}>Sell</a>
             <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}class="is-active" aria-current="page"{% endif %}>About</a>
             <a href="{{ url_for('contact') }}" class="nav-cta" {% if request.endpoint == 'contact' %}aria-current="page"{% endif %}>Contact Us</a>
@@ -318,8 +323,12 @@
                 <div class="footer-col-links">
                     <a href="{{ url_for('home') }}">Home</a>
                     <a href="{{ url_for('compounds') }}">Properties</a>
+                    {# Resale/Rent footer links temporarily hidden until real approved
+                       listings exist to show — see the matching comment in the nav
+                       above for why. Delete this wrapper to bring them back.
                     <a href="{{ url_for('resale_listings') }}">Resale</a>
                     <a href="{{ url_for('rent_listings') }}">Rent</a>
+                    #}
                     <a href="{{ url_for('list_property') }}">List Your Property</a>
                     <a href="{{ url_for('sell_property') }}">Sell</a>
                     <a href="{{ url_for('about') }}">About Us</a>
