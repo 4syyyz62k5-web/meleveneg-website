@@ -173,6 +173,8 @@ h1, h2, h3 {
 .card-title-link { display: block; text-decoration: none; color: inherit; }
 .card-body h3 { font-size: 18px; margin-bottom: 4px; }
 .card-location { color: var(--color-text-muted); font-size: 14px; margin-bottom: 6px; }
+.card-location__dev-link { color: inherit; text-decoration: none; }
+.card-location__dev-link:hover { text-decoration: underline; }
 .card-price { color: var(--color-gold); font-weight: 600; font-size: 15px; margin-top: 6px; }
 
 .card-facts {
@@ -287,6 +289,8 @@ h1, h2, h3 {
 }
 .compound-hero-overlay h1 { color: var(--color-white); font-size: 36px; margin-bottom: 4px; }
 .compound-hero-overlay p { color: var(--color-gold); font-size: 16px; padding-bottom: 28px; }
+.compound-hero__dev-link { color: inherit; text-decoration: none; }
+.compound-hero__dev-link:hover { text-decoration: underline; }
 
 .detail-grid {
   display: grid;

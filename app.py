@@ -6,7 +6,7 @@ import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response, abort
 from werkzeug.utils import secure_filename
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing
@@ -41,6 +41,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
+    app.jinja_env.globals["slugify"] = slugify  # so templates can build /developer/<slug> links
 
     with app.app_context():
         db.create_all()
@@ -637,6 +638,37 @@ def create_app():
     def compound_detail(slug):
         compound = Compound.query.filter_by(slug=slug, is_published=True).first_or_404()
         return render_template("compound_detail.html", compound=compound)
+
+    @app.route("/developer/<slug>")
+    def developer_detail(slug):
+        # Compound.developer is free text (no FK to Developer — see models.py),
+        # so this resolves the slug against whatever developer names actually
+        # appear on published compounds, not against the Developer table
+        # (which only exists to optionally attach a logo and doesn't have to
+        # have a row for every developer name in use).
+        all_names = {
+            row[0] for row in
+            db.session.query(Compound.developer)
+            .filter(Compound.is_published == True, Compound.developer.isnot(None))
+            .distinct().all()
+            if row[0]
+        }
+        developer_name = next((n for n in all_names if slugify(n) == slug), None)
+        if not developer_name:
+            abort(404)
+
+        compounds = (
+            Compound.query
+            .filter(Compound.developer == developer_name, Compound.is_published == True)
+            .order_by(Compound.name.asc())
+            .all()
+        )
+        developer = Developer.query.filter(db.func.lower(Developer.name) == developer_name.lower()).first()
+
+        return render_template(
+            "developer_detail.html",
+            developer_name=developer_name, developer=developer, compounds=compounds,
+        )
 
     @app.route("/about")
     def about():

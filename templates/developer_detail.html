@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ developer_name }} — Meleven Consultancy{% endblock %}
+{% block content %}
+<style>
+  .dev-header{
+    display: flex; align-items: center; gap: 20px; margin-bottom: 28px;
+  }
+  .dev-header__logo{
+    height: 64px; max-width: 180px; object-fit: contain;
+  }
+  .dev-header__count{
+    font-family: var(--font-body); font-size: 14px; color: var(--color-text-muted); margin: 4px 0 0 0;
+  }
+  @media (max-width: 640px){
+    .dev-header{ flex-direction: column; align-items: flex-start; gap: 12px; }
+    .dev-header__logo{ height: 48px; }
+  }
+</style>
+
+<section class="section">
+  <div class="container">
+    <div class="dev-header">
+      {% if developer and developer.logo_url %}
+      <img src="{{ developer.logo_url }}" alt="{{ developer_name }}" class="dev-header__logo">
+      {% endif %}
+      <div>
+        <h1 class="page-title" style="margin-bottom:0;">{{ developer_name }}</h1>
+        <p class="dev-header__count">{{ compounds|length }} project{{ 's' if compounds|length != 1 else '' }}</p>
+      </div>
+    </div>
+
+    {% if compounds %}
+    <div class="card-grid">
+      {% for c in compounds %}
+        {% include "_compound_card.html" %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">No published projects found for this developer.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -320,7 +320,7 @@
                 <summary><h4>Developers</h4></summary>
                 <div class="footer-col-links">
                     {% for dev in footer_developers %}
-                    <a href="{{ url_for('compounds', developer=dev.name) }}">{{ dev.name }}</a>
+                    <a href="{{ url_for('developer_detail', slug=slugify(dev.name)) }}">{{ dev.name }}</a>
                     {% endfor %}
                 </div>
             </details>

@@ -6,8 +6,8 @@
         </div>
     </a>
     <div class="card-body">
+        <p class="card-location">{{ c.area }}{% if c.developer %} · <a href="{{ url_for('developer_detail', slug=slugify(c.developer)) }}" class="card-location__dev-link">{{ c.developer }}</a>{% endif %}</p>
         <a href="{{ url_for('compound_detail', slug=c.slug) }}" class="card-title-link">
-            <p class="card-location">{{ c.area }}{% if c.developer %} · {{ c.developer }}{% endif %}</p>
             <h3>{{ c.name }}</h3>
         </a>
 

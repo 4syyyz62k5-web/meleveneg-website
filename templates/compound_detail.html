@@ -15,7 +15,7 @@
     <div class="compound-hero-overlay">
         <div class="container">
             <h1>{{ compound.name }}</h1>
-            <p>{{ compound.developer }} · {{ compound.area }}</p>
+            <p>{% if compound.developer %}<a href="{{ url_for('developer_detail', slug=slugify(compound.developer)) }}" class="compound-hero__dev-link">{{ compound.developer }}</a>{% endif %} · {{ compound.area }}</p>
         </div>
     </div>
 </section>

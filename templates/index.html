@@ -297,6 +297,11 @@
     text-transform: uppercase; color: var(--color-gold); margin: 0 0 4px 0;
   }
   .mv-launch-card__developer-logo{ height: 16px; max-width: 70px; object-fit: contain; margin: 0 0 6px 0; display: block; }
+  /* Developer name/logo inside a whole-card <a> (New Launches / Featured /
+     Latest) — a real nested <a> would break the outer card link, so this
+     is a clickable span using the same preventDefault+stopPropagation
+     technique already used by the fav/compare icon buttons in these cards. */
+  .mv-dev-link-wrap{ display: block; cursor: pointer; width: fit-content; }
   .mv-launch-card__meta{ font-family: var(--font-body); font-size: 11px; color: #c7cedb; margin: 0 0 6px 0; }
   .mv-launch-card__price{ font-family: var(--font-body); font-size: 12px; color: #c7cedb; margin: 0; }
   .mv-launch-card__price span{ font-size: 14px; font-weight: 700; color: var(--color-gold); }
@@ -857,10 +862,14 @@
               {% if c.delivery_year %}<span class="mv-delivery-badge">Delivery {{ c.delivery_year }}</span>{% endif %}
             </div>
             <p class="mv-launch-card__name">{{ c.name }}</p>
-            {% if c.developer in developer_logos %}
-            <img class="mv-launch-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-            {% elif c.developer %}
-            <p class="mv-launch-card__developer">{{ c.developer }}</p>
+            {% if c.developer %}
+            <span class="mv-dev-link-wrap" role="link" tabindex="0" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ url_for('developer_detail', slug=slugify(c.developer)) }}';">
+              {% if c.developer in developer_logos %}
+              <img class="mv-launch-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
+              {% else %}
+              <p class="mv-launch-card__developer">{{ c.developer }}</p>
+              {% endif %}
+            </span>
             {% endif %}
             <p class="mv-launch-card__meta">{{ c.area }}</p>
             {% if c.min_price %}
@@ -980,10 +989,14 @@
                   </div>
                   <div class="mv-property-card__body">
                     <p class="mv-property-card__name">{{ c.name }}</p>
-                    {% if c.developer in developer_logos %}
-                    <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-                    {% elif c.developer %}
-                    <p class="mv-property-card__developer">{{ c.developer }}</p>
+                    {% if c.developer %}
+                    <span class="mv-dev-link-wrap" role="link" tabindex="0" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ url_for('developer_detail', slug=slugify(c.developer)) }}';">
+                      {% if c.developer in developer_logos %}
+                      <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
+                      {% else %}
+                      <p class="mv-property-card__developer">{{ c.developer }}</p>
+                      {% endif %}
+                    </span>
                     {% endif %}
                     {% if c.min_price %}
                     <p class="mv-property-card__price">From <span>EGP {{ "{:,.0f}".format(c.min_price) }}</span></p>
@@ -1115,11 +1128,11 @@
     <div class="mv-developers-row">
       {% for d in all_developer_names %}
       {% if d in developer_logos %}
-      <a class="mv-developer-logo-pill" href="{{ url_for('compounds', developer=d) }}">
+      <a class="mv-developer-logo-pill" href="{{ url_for('developer_detail', slug=slugify(d)) }}">
         <img src="{{ developer_logos[d] }}" alt="{{ d }}">
       </a>
       {% else %}
-      <a class="mv-developer-pill" href="{{ url_for('compounds', developer=d) }}">{{ d }}</a>
+      <a class="mv-developer-pill" href="{{ url_for('developer_detail', slug=slugify(d)) }}">{{ d }}</a>
       {% endif %}
       {% endfor %}
     </div>
@@ -1220,10 +1233,14 @@
                     <img src="{{ c.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ c.name }}" loading="lazy">
                   </div>
                   <div class="mv-property-card__body">
-                    {% if c.developer in developer_logos %}
-                    <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
-                    {% elif c.developer %}
-                    <p class="mv-property-card__developer">{{ c.developer }}</p>
+                    {% if c.developer %}
+                    <span class="mv-dev-link-wrap" role="link" tabindex="0" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ url_for('developer_detail', slug=slugify(c.developer)) }}';">
+                      {% if c.developer in developer_logos %}
+                      <img class="mv-property-card__developer-logo" src="{{ developer_logos[c.developer] }}" alt="{{ c.developer }}">
+                      {% else %}
+                      <p class="mv-property-card__developer">{{ c.developer }}</p>
+                      {% endif %}
+                    </span>
                     {% endif %}
                     <p class="mv-property-card__name">{{ c.name }}</p>
                     <p class="mv-property-card__meta">{{ c.area }}</p>
