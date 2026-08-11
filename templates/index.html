@@ -531,11 +531,15 @@
   .mv-unit-card__facts span:not(:last-child)::after{ content: "·"; margin: 0 5px; color: #ccc; }
   .mv-unit-card__price{ font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--color-gold); margin: 0; }
   /* ---------- Why Meleven (standalone, increased visual weight, light bg) ---------- */
-  .mv-why-features{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 20px; }
+  .mv-why-features{
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 20px;
+    align-items: stretch;
+  }
   @media (max-width: 640px){ .mv-why-features{ grid-template-columns: 1fr; gap: 20px; } }
   .mv-why-feature{
     background: var(--color-white); border: 1px solid #e5e0d6; border-radius: 12px;
     padding: 40px 30px; text-align: center; transition: transform .2s ease, box-shadow .2s ease;
+    display: flex; flex-direction: column; align-items: center; height: 100%;
   }
   .mv-why-feature:hover{ transform: translateY(-4px); box-shadow: 0 16px 32px rgba(16,35,59,.08); }
   .mv-why-feature__icon{
@@ -548,7 +552,7 @@
     font-family: var(--font-heading); font-size: 17px; font-weight: 700; text-transform: uppercase;
     color: var(--color-navy); margin: 0 0 10px 0;
   }
-  .mv-why-feature__text{ font-family: var(--font-body); font-size: 14px; color: var(--color-text-muted); margin: 0; line-height: 1.6; }
+  .mv-why-feature__text{ font-family: var(--font-body); font-size: 14px; color: var(--color-text-muted); margin: 0; }
 
   .mv-calc-card{
     background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
