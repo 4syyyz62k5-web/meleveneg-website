@@ -206,17 +206,34 @@ def create_app():
         featured = Compound.query.filter_by(is_featured=True, is_published=True).limit(6).all()
         latest = Compound.query.filter_by(is_published=True).order_by(Compound.created_at.desc()).limit(8).all()
 
-        area_rows = db.session.query(
-            Compound.area, db.func.count(Compound.id)
-        ).filter(Compound.is_published == True, Compound.area.isnot(None)).group_by(Compound.area).order_by(Compound.area).all()
+        # Grouped by the normalized top-level `location` (New Cairo, North
+        # Coast, ...) rather than the free-text `area` sub-area column —
+        # `area` is scraped/entered per-compound with no normalization, so
+        # grouping by it directly produced near-duplicates ("5th Settlement"
+        # vs "Fifth Settlement", "North Coast" vs "North Coast-Sahel") and
+        # garbage placeholder values ("N/A", "-", even blank) showing up as
+        # if they were real areas. `location` is the column meant to already
+        # be normalized (see the AREA_TO_LOCATION backfill above), so this
+        # also excludes blank/placeholder-looking values defensively in case
+        # a row's location was ever set directly to something like that.
+        JUNK_LOCATION_VALUES = {"", "n/a", "-", "none", "null"}
+        location_rows = (
+            db.session.query(Compound.location, db.func.count(Compound.id))
+            .filter(Compound.is_published == True, Compound.location.isnot(None))
+            .group_by(Compound.location)
+            .order_by(Compound.location)
+            .all()
+        )
 
         top_areas = []
-        for area_name, count in area_rows:
-            # Grab one compound in this area that has a cover image, to represent it visually
+        for location_name, count in location_rows:
+            if (location_name or "").strip().lower() in JUNK_LOCATION_VALUES:
+                continue
+            # Grab one compound in this location that has a cover image, to represent it visually
             sample = (
                 Compound.query
                 .filter(
-                    Compound.area == area_name,
+                    Compound.location == location_name,
                     Compound.is_published == True,
                     Compound.cover_image_url.isnot(None),
                     Compound.cover_image_url != "",
@@ -225,7 +242,7 @@ def create_app():
                 .first()
             )
             top_areas.append({
-                "name": area_name,
+                "name": location_name,
                 "count": count,
                 "cover_image_url": sample.cover_image_url if sample else None,
             })
@@ -287,7 +304,7 @@ def create_app():
         all_location_names = {
             row[0] for row in
             db.session.query(Compound.location).filter(Compound.is_published == True).distinct().all()
-            if row[0]
+            if row[0] and row[0].strip().lower() not in JUNK_LOCATION_VALUES
         }
         all_area_names = sorted({a["name"] for a in all_locations_sorted} | all_location_names)
 
