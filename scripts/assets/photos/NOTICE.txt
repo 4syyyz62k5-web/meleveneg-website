@@ -1,0 +1,19 @@
+Photos in this folder are our own compounds' cover_image_url from the live
+meleveneg.com database (Compound.cover_image_url), not stock photography.
+Chosen because they're free of any other developer's logo/campaign text baked
+into the image -- most North Coast compound cover images in our DB are
+marketing banners with a competing developer's branding overlaid, which would
+visually conflict with our own carousel text.
+
+slide1_koun.webp
+  Compound: Koun (North Coast)
+  Source URL (as stored in our DB): https://prod-images.nawy.com/processed/compound_image/image/6002/default.webp
+
+slide6_crysta.webp
+  Compound: Crysta (North Coast-Sahel)
+  Source URL (as stored in our DB): https://prod-images.nawy.com/processed/compound_image/image/13717/default.webp
+
+---
+Earlier version of this carousel used generic Pexels stock photos (see git
+history) -- replaced because they didn't read as authentically North Coast
+Egypt.
