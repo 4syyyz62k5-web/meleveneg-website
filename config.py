@@ -33,3 +33,8 @@ class Config:
     # derived from the incoming request's Host header, so it's always this
     # domain regardless of how the app was reached).
     SITE_URL = os.environ.get("SITE_URL", "https://meleveneg.com")
+
+    # Claude API key for /api/chat (the property-search chatbot). Get one at
+    # https://console.anthropic.com/settings/keys — set as a real environment
+    # variable on Render; locally, .env fills this in (see load_dotenv() in app.py).
+    CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")

@@ -505,3 +505,159 @@ h1, h2, h3 {
 @media (max-width: 520px) {
   .footer-columns { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------
+   Chat widget (property-search chatbot) — site-wide, injected once
+   in base.html so it appears on every public page. Not used on
+   /admin (admin/base.html is a separate layout that doesn't include it).
+   --------------------------------------------------------------- */
+.chat-widget-bubble {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--color-navy);
+  color: var(--color-white);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(10, 33, 68, 0.35);
+  transition: transform 0.15s ease;
+}
+.chat-widget-bubble:hover { transform: scale(1.06); }
+.chat-widget-bubble svg { width: 28px; height: 28px; }
+.chat-widget-bubble .chat-widget-close-icon { display: none; }
+.chat-widget-bubble.is-open .chat-widget-chat-icon { display: none; }
+.chat-widget-bubble.is-open .chat-widget-close-icon { display: block; }
+
+.chat-widget-panel {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  z-index: 200;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  height: 500px;
+  max-height: calc(100vh - 140px);
+  background: var(--color-white);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(10, 33, 68, 0.25);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--font-body);
+}
+.chat-widget-panel.is-open { display: flex; }
+
+.chat-widget-header {
+  background: var(--color-navy);
+  color: var(--color-white);
+  padding: 16px 18px;
+  flex-shrink: 0;
+}
+.chat-widget-header h4 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  color: var(--color-white);
+}
+.chat-widget-header p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.75);
+}
+
+.chat-widget-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f7f9fc;
+}
+.chat-widget-msg {
+  max-width: 85%;
+  padding: 9px 13px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.chat-widget-msg a { color: inherit; text-decoration: underline; }
+.chat-widget-msg--user {
+  align-self: flex-end;
+  background: var(--color-navy);
+  color: var(--color-white);
+  border-bottom-right-radius: 3px;
+}
+.chat-widget-msg--bot {
+  align-self: flex-start;
+  background: var(--color-white);
+  color: #1a2233;
+  border: 1px solid #e2e7ef;
+  border-bottom-left-radius: 3px;
+}
+.chat-widget-msg--bot.is-loading { color: var(--color-text-muted); font-style: italic; }
+
+.chat-widget-cta {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-top: 1px solid #e2e7ef;
+  background: var(--color-white);
+}
+.chat-widget-cta a {
+  display: block;
+  text-align: center;
+  background: var(--color-gold);
+  color: var(--color-navy-dark);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 9px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.chat-widget-form {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #e2e7ef;
+  background: var(--color-white);
+}
+.chat-widget-form input {
+  flex: 1;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+.chat-widget-form input:focus { outline: 2px solid var(--color-gold); }
+.chat-widget-form button {
+  background: var(--color-navy);
+  color: var(--color-white);
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.chat-widget-form button:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 420px) {
+  .chat-widget-panel {
+    right: 16px;
+    bottom: 88px;
+    width: calc(100vw - 32px);
+  }
+  .chat-widget-bubble { right: 16px; }
+}
