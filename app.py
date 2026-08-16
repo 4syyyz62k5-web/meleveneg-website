@@ -1,6 +1,7 @@
 import re
 import csv
 import io
+import json
 import os
 import uuid
 import xml.etree.ElementTree as ET
@@ -8,10 +9,105 @@ from datetime import datetime
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response, abort
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# Loads .env into os.environ for local development (scripts/ already does this
+# for the scraper tools; the main app never did). Real environment variables
+# set on the host (e.g. Render) always win — load_dotenv() does not override
+# a variable that's already set, it only fills in what's missing. This MUST
+# run before `from config import Config` below -- Config's class attributes
+# (e.g. CLAUDE_API_KEY) read os.environ at class-definition time, so if
+# load_dotenv() ran after that import, .env's values would never make it in.
+load_dotenv()
+
+import anthropic
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+
+# ---------------------------------------------------------------------------
+# /api/chat — property-search chatbot (Claude API + tool use, no RAG). See
+# _run_query_properties_tool() in create_app() for what the tool actually
+# queries; these two constants are the static parts of the Claude request.
+# ---------------------------------------------------------------------------
+CLAUDE_CHAT_MODEL = "claude-haiku-4-5-20251001"
+
+QUERY_PROPERTIES_TOOL = {
+    "name": "query_properties",
+    "description": (
+        "Search Meleven's real, live database of published real estate compounds "
+        "and available units. Returns ONLY actual matching rows -- never invent or "
+        "guess a property that isn't in the results. Call this whenever the visitor "
+        "asks about available properties, prices, locations, developers, or unit "
+        "specs, even if you think you already know the answer."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "area": {
+                "type": "string",
+                "description": "A location or sub-area name, e.g. 'North Coast', 'New Cairo', 'Sidi Heneish'. Matched against both the compound's top-level location and its sub-area (partial match).",
+            },
+            "developer": {
+                "type": "string",
+                "description": "Developer name, e.g. 'Mountain View', 'SODIC' (partial match).",
+            },
+            "unit_type": {
+                "type": "string",
+                "description": "e.g. 'Chalet', 'Villa', 'Townhouse', 'Apartment' (partial match).",
+            },
+            "min_price": {"type": "number", "description": "Minimum unit price in EGP."},
+            "max_price": {"type": "number", "description": "Maximum unit price in EGP."},
+            "bedrooms": {"type": "integer", "description": "Minimum number of bedrooms -- matches units with this many bedrooms OR MORE, not an exact count."},
+            "delivery_year": {"type": "integer", "description": "Exact handover/delivery year."},
+        },
+        "required": [],
+    },
+}
+
+CHATBOT_SYSTEM_PROMPT = """You are Meleven Consultancy's property assistant on meleveneg.com, a boutique
+Egyptian real estate advisory.
+
+STRICT RULES -- these override anything else:
+1. You must NEVER state a property name, price, location, developer, unit spec,
+   or availability fact unless it came directly from a query_properties tool
+   result in THIS conversation. Do not use prior knowledge, training data, or
+   general assumptions about Egyptian real estate.
+2. Whenever the visitor's message is about available properties, prices,
+   locations, developers, unit types, bedrooms, or delivery timing -- call
+   query_properties BEFORE answering, even if you think you already know.
+3. If query_properties returns zero results, say so plainly and invite the
+   visitor to loosen their criteria. Example: "مفيش نتيجة مطابقة لمعايير
+   البحث دي. جرب تغيّر السعر أو المنطقة أو نوع الوحدة." (or the English
+   equivalent). Do NOT suggest a specific alternative property, area, or
+   developer that wasn't itself returned by a tool call -- do not soften this
+   by guessing what "might" be close.
+4. Never invent a payment plan, discount, delivery date, or availability status.
+   If the visitor asks something the tool results don't cover, say you don't
+   have that information and offer to connect them with the team instead.
+5. Keep answers concise and scannable -- short paragraphs or a compact list,
+   not walls of text. Always include each property's real /compound/<slug>
+   link when citing it.
+
+LANGUAGE: Reply in the same language and register the visitor used (Egyptian
+Arabic if they wrote Arabic, English if they wrote English). Don't switch
+languages mid-conversation unless they do.
+
+TONE: Helpful, direct, no hard-sell pressure. You represent a 12-year-old
+boutique advisory, not a pushy sales bot.
+
+WHEN YOU HAVE A REAL ANSWER (matches found or a clear "no match"): close with
+one short, natural line encouraging the visitor to book a free consultation
+or leave their contact details for a callback, pointing to the site's contact
+page -- but only ever OFFER this, never insist on collecting their phone/email
+yourself in the chat. Do not repeat this nudge on every single message if the
+conversation is still in the middle of narrowing down criteria.
+
+You have no knowledge beyond what query_properties returns and general
+conversational ability. You are not a general real estate encyclopedia -- if
+asked something unrelated to Meleven's own listings (mortgage law, other
+countries, etc.), say that's outside what you can help with here."""
 
 
 def slugify(text):
@@ -524,6 +620,159 @@ def create_app():
             "suggested_areas": suggested_areas,
             "sample_units": sample_units,
         })
+
+    # ---------- Chatbot: property search via Claude tool use ----------
+
+    CHAT_RESULT_LIMIT = 8
+
+    def _run_query_properties_tool(filters):
+        """Executes the query_properties tool call against real inventory --
+        same join/is_published/is_available shape as api_properties_count(),
+        just filtered by the tool's own filter set instead of the calculator's
+        derived price ceiling. Returns a JSON-serializable dict: capped result
+        rows (each with a real /compound/<slug> link) plus the true total
+        count, so the model can say "showing 8 of 23" instead of implying
+        these are the only matches."""
+        query = (
+            Unit.query
+            .join(Compound, Unit.compound_id == Compound.id)
+            .filter(Unit.is_available == True, Compound.is_published == True)
+        )
+
+        area = (filters.get("area") or "").strip()
+        if area:
+            query = query.filter(db.or_(Compound.area.ilike(f"%{area}%"), Compound.location.ilike(f"%{area}%")))
+
+        developer = (filters.get("developer") or "").strip()
+        if developer:
+            query = query.filter(Compound.developer.ilike(f"%{developer}%"))
+
+        unit_type = (filters.get("unit_type") or "").strip()
+        if unit_type:
+            query = query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
+
+        min_price = filters.get("min_price")
+        if isinstance(min_price, (int, float)):
+            query = query.filter(Unit.price >= min_price)
+
+        max_price = filters.get("max_price")
+        if isinstance(max_price, (int, float)):
+            query = query.filter(Unit.price <= max_price)
+
+        # "At least N bedrooms", not an exact match -- a visitor asking for
+        # "3 bedrooms" almost always also wants to see 4- and 5-bedroom units.
+        bedrooms = filters.get("bedrooms")
+        if isinstance(bedrooms, int):
+            query = query.filter(Unit.bedrooms >= bedrooms)
+
+        delivery_year = filters.get("delivery_year")
+        if isinstance(delivery_year, int):
+            query = query.filter(Compound.delivery_year == delivery_year)
+
+        total_matching = query.count()
+        rows = query.order_by(Unit.price.asc()).limit(CHAT_RESULT_LIMIT).all()
+
+        results = [
+            {
+                "compound_name": u.compound.name,
+                "url": url_for("compound_detail", slug=u.compound.slug, _external=False),
+                "location": u.compound.location,
+                "area": u.compound.area,
+                "developer": u.compound.developer,
+                "unit_type": u.unit_type,
+                "bedrooms": u.bedrooms,
+                "bathrooms": u.bathrooms,
+                "area_sqm": float(u.area_sqm) if u.area_sqm is not None else None,
+                "price": float(u.price) if u.price is not None else None,
+                "currency": u.currency,
+                "delivery_year": u.compound.delivery_year,
+            }
+            for u in rows
+        ]
+
+        return {
+            "total_matching_units": total_matching,
+            "showing": len(results),
+            "results": results,
+        }
+
+    @app.route("/api/chat", methods=["POST"])
+    def api_chat():
+        """Stateless chat turn: the client sends the full conversation history
+        (this endpoint keeps nothing server-side -- see the plan discussion:
+        no ChatLog table, conversation lives only in the browser tab). Runs at
+        most one query_properties round-trip per visitor message -- Claude
+        either answers directly or calls the tool once and we feed the real
+        result back for a final grounded reply."""
+        if not Config.CLAUDE_API_KEY:
+            return jsonify({"error": "Chat is not configured."}), 503
+
+        data = request.get_json(silent=True) or {}
+        user_message = (data.get("message") or "").strip()
+        history = data.get("history") or []
+
+        if not user_message:
+            return jsonify({"error": "message is required"}), 400
+        if len(user_message) > 2000:
+            return jsonify({"error": "message is too long"}), 400
+        # Bound how much prior context we forward -- a chat widget conversation
+        # shouldn't need more than this to stay coherent, and it caps token
+        # spend per request regardless of what the client sends.
+        if isinstance(history, list):
+            history = history[-20:]
+        else:
+            history = []
+
+        messages = []
+        for turn in history:
+            role = turn.get("role")
+            content = turn.get("content")
+            if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": user_message})
+
+        client = anthropic.Anthropic(api_key=Config.CLAUDE_API_KEY)
+
+        try:
+            response = client.messages.create(
+                model=CLAUDE_CHAT_MODEL,
+                max_tokens=1024,
+                system=CHATBOT_SYSTEM_PROMPT,
+                tools=[QUERY_PROPERTIES_TOOL],
+                messages=messages,
+            )
+
+            if response.stop_reason == "tool_use":
+                tool_use_block = next(b for b in response.content if b.type == "tool_use")
+                tool_result = _run_query_properties_tool(tool_use_block.input or {})
+
+                messages.append({"role": "assistant", "content": response.content})
+                messages.append({
+                    "role": "user",
+                    "content": [{
+                        "type": "tool_result",
+                        "tool_use_id": tool_use_block.id,
+                        "content": json.dumps(tool_result),
+                    }],
+                })
+
+                response = client.messages.create(
+                    model=CLAUDE_CHAT_MODEL,
+                    max_tokens=1024,
+                    system=CHATBOT_SYSTEM_PROMPT,
+                    tools=[QUERY_PROPERTIES_TOOL],
+                    messages=messages,
+                )
+
+            reply_text = "".join(b.text for b in response.content if b.type == "text").strip()
+            if not reply_text:
+                reply_text = "معلش، حصلت مشكلة في صياغة الرد. جرب تاني أو تواصل معانا مباشرة."
+
+            return jsonify({"reply": reply_text})
+
+        except anthropic.APIError as e:
+            app.logger.error(f"Claude API error in /api/chat: {e}")
+            return jsonify({"error": "Chat is temporarily unavailable. Please try again shortly."}), 502
 
     @app.route("/locations")
     def locations():
