@@ -394,8 +394,14 @@
 
 <div class="chat-widget-panel" id="chat-widget-panel" role="dialog" aria-label="Chat with Meleven">
     <div class="chat-widget-header">
-        <h4>Chat with us</h4>
-        <p>Ask about any property — real answers only, in Arabic or English.</p>
+        <h4>Hi, how can we help?</h4>
+        <p>Ask me about any property, area, developer or investment.</p>
+    </div>
+    <div class="chat-widget-quickreplies" id="chat-widget-quickreplies">
+        <button type="button" class="chat-widget-quickreply">Find a property</button>
+        <button type="button" class="chat-widget-quickreply">What's available within my budget?</button>
+        <button type="button" class="chat-widget-quickreply">Best projects in the North Coast</button>
+        <button type="button" class="chat-widget-quickreply">Best investment opportunities</button>
     </div>
     <div class="chat-widget-messages" id="chat-widget-messages"></div>
     <div class="chat-widget-cta">
@@ -411,6 +417,7 @@
   (function(){
     var toggleBtn = document.getElementById('chat-widget-toggle');
     var panel = document.getElementById('chat-widget-panel');
+    var quickReplies = document.getElementById('chat-widget-quickreplies');
     var messagesEl = document.getElementById('chat-widget-messages');
     var form = document.getElementById('chat-widget-form');
     var input = document.getElementById('chat-widget-input');
@@ -418,7 +425,6 @@
     if (!toggleBtn || !panel || !form) return;
 
     var history = [];  // [{role: 'user'|'assistant', content: '...'}] — sent back on every request, kept only in this tab
-    var greeted = false;
 
     function addBubble(text, role, opts) {
       opts = opts || {};
@@ -431,21 +437,13 @@
       return div;
     }
 
-    toggleBtn.addEventListener('click', function(){
-      var isOpen = panel.classList.toggle('is-open');
-      toggleBtn.classList.toggle('is-open', isOpen);
-      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if (isOpen && !greeted) {
-        greeted = true;
-        addBubble('Hi! Ask me about any compound or unit we have — in Arabic or English.', 'bot');
-      }
-      if (isOpen) input.focus();
-    });
-
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var message = input.value.trim();
+    function sendMessage(message) {
+      message = message.trim();
       if (!message) return;
+
+      // First real message of the conversation -- the quick-reply chips have
+      // done their job, make room for the actual conversation instead.
+      if (quickReplies) { quickReplies.remove(); quickReplies = null; }
 
       addBubble(message, 'user');
       input.value = '';
@@ -478,6 +476,26 @@
           sendBtn.disabled = false;
           input.focus();
         });
+    }
+
+    toggleBtn.addEventListener('click', function(){
+      var isOpen = panel.classList.toggle('is-open');
+      toggleBtn.classList.toggle('is-open', isOpen);
+      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) input.focus();
+    });
+
+    if (quickReplies) {
+      quickReplies.querySelectorAll('.chat-widget-quickreply').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          sendMessage(btn.textContent);
+        });
+      });
+    }
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      sendMessage(input.value);
     });
   })();
 </script>
