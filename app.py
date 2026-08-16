@@ -264,6 +264,19 @@ def create_app():
     def uploaded_file(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
+    # Safari (macOS/iOS) requests /favicon.ico directly at the domain root as
+    # a fallback, independent of the <link rel="icon"> tags in base.html --
+    # Chrome doesn't need this and worked fine without it, which is why the
+    # favicon showed correctly in Chrome but not Safari. static/img/favicon.ico
+    # is a multi-resolution ICO (16/32/48/64px) built from the same brand-mark
+    # crop as favicon-32.png/favicon-16.png.
+    @app.route("/favicon.ico")
+    def favicon_ico():
+        return send_from_directory(
+            os.path.join(app.root_path, "static", "img"), "favicon.ico",
+            mimetype="image/vnd.microsoft.icon",
+        )
+
     # ---------- Sitemap (for Google Search Console) ----------
 
     @app.route("/sitemap.xml")
