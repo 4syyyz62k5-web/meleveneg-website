@@ -1202,21 +1202,6 @@ def create_app():
         session.pop("admin_logged_in", None)
         return redirect(url_for("admin_login"))
 
-    @app.route("/admin/diagnostics/claude-key")
-    @login_required
-    def admin_diagnostics_claude_key():
-        """Temporary debug route -- confirms whether THIS running process
-        actually sees CLAUDE_API_KEY (and its length), without ever exposing
-        the value itself. Added to diagnose /api/chat returning "Chat is not
-        configured" on Render even after the env var was added there --
-        distinguishes a Render-side config problem from a code-side bug.
-        Safe to delete once the chat feature is confirmed working."""
-        key = Config.CLAUDE_API_KEY or ""
-        return jsonify({
-            "claude_api_key_present": bool(key),
-            "claude_api_key_length": len(key),
-        })
-
     # ---------- Admin: compounds ----------
 
     @app.route("/admin")
