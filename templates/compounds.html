@@ -144,11 +144,80 @@
     @media (min-width: 901px){
         .filter-drawer .filter-sidebar{ display: block !important; }
     }
+
+    /* ---------- Smart search bar ---------- */
+    .smart-search-bar {
+        background: var(--color-navy);
+        border-radius: 10px;
+        padding: 22px 24px;
+        margin-bottom: 28px;
+    }
+    .smart-search-bar__label {
+        color: rgba(255,255,255,0.8);
+        font-family: var(--font-body);
+        font-size: 13.5px;
+        margin: 0 0 10px;
+    }
+    .smart-search-form {
+        display: flex;
+        gap: 10px;
+    }
+    .smart-search-input {
+        flex: 1;
+        padding: 13px 16px;
+        border: none;
+        border-radius: 6px;
+        font-family: var(--font-body);
+        font-size: 15px;
+    }
+    .smart-search-input:focus { outline: 2px solid var(--color-gold); }
+    .smart-search-submit {
+        background: var(--color-gold);
+        color: var(--color-navy-dark);
+        border: none;
+        border-radius: 6px;
+        padding: 0 24px;
+        font-family: var(--font-heading);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .smart-search-submit:disabled { opacity: 0.6; cursor: default; }
+    .smart-search-error {
+        color: #ffd6d6;
+        font-size: 13px;
+        margin: 10px 0 0;
+        display: none;
+    }
+    .smart-search-error.is-visible { display: block; }
+    .smart-search-note {
+        font-family: var(--font-body);
+        font-size: 14px;
+        color: var(--color-text-muted);
+        margin: -12px 0 20px;
+    }
+    @media (max-width: 560px) {
+        .smart-search-form { flex-direction: column; }
+    }
 </style>
 
 <section class="section">
     <div class="container">
         <h1 class="page-title">Browse Properties</h1>
+
+        <div class="smart-search-bar">
+            <p class="smart-search-bar__label">Search in your own words — e.g. "شقق في التجمع تحت 8 مليون" or "villas in North Coast under 20 million"</p>
+            <form class="smart-search-form" id="smart-search-form">
+                <input type="text" id="smart-search-input" class="smart-search-input" placeholder="What are you looking for?" maxlength="300" required>
+                <button type="submit" class="smart-search-submit" id="smart-search-submit">Search</button>
+            </form>
+            <p class="smart-search-error" id="smart-search-error">Couldn't process that search — try rephrasing, or use the filters below.</p>
+        </div>
+
+        {% if nl_query %}
+        <p class="smart-search-note">Results for: “{{ nl_query }}” — <a href="{{ url_for('compounds') }}">clear search</a></p>
+        {% endif %}
 
         <div class="browse-layout">
             <details class="filter-drawer">
@@ -193,6 +262,16 @@
                         </div>
 
                         <div class="filter-group">
+                            <h3>Bedrooms</h3>
+                            <select name="bedrooms" class="filter-select">
+                                <option value="">Any</option>
+                                {% for n in [1, 2, 3, 4, 5] %}
+                                <option value="{{ n }}" {% if n|string == selected_bedrooms|string %}selected{% endif %}>{{ n }}+</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
                             <h3>Delivery Year</h3>
                             <select name="delivery_year" class="filter-select">
                                 <option value="">Any</option>
@@ -225,4 +304,54 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function(){
+    var form = document.getElementById('smart-search-form');
+    var input = document.getElementById('smart-search-input');
+    var submitBtn = document.getElementById('smart-search-submit');
+    var errorEl = document.getElementById('smart-search-error');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var query = input.value.trim();
+      if (!query) return;
+
+      errorEl.classList.remove('is-visible');
+      input.disabled = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Searching…';
+
+      fetch('{{ url_for("api_smart_search") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({query: query})
+      })
+        .then(function(res){ return res.json().then(function(data){ return {status: res.status, data: data}; }); })
+        .then(function(result){
+          if (result.status !== 200) {
+            throw new Error('smart search failed');
+          }
+          var params = new URLSearchParams();
+          var filters = result.data.filters || {};
+          Object.keys(filters).forEach(function(key){
+            params.set(key, filters[key]);
+          });
+          // Carried through for the "Results for: ..." note only -- doesn't
+          // affect filtering (see nl_query in the compounds() route).
+          params.set('nl_q', query);
+          window.location.href = '{{ url_for("compounds") }}?' + params.toString();
+        })
+        .catch(function(){
+          errorEl.classList.add('is-visible');
+          input.disabled = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Search';
+        });
+    });
+  })();
+</script>
 {% endblock %}

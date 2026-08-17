@@ -66,7 +66,28 @@ QUERY_PROPERTIES_TOOL = {
     },
 }
 
-CHATBOT_SYSTEM_PROMPT = """You are Meleven Consultancy's property assistant on meleveneg.com, a boutique
+# Shared by CHATBOT_SYSTEM_PROMPT and SMART_SEARCH_SYSTEM_PROMPT. Compound.area/
+# location are stored in English (see AREA_TO_LOCATION in create_app()) even
+# when a visitor writes in Arabic -- without this, area="التجمع الخامس" gets
+# passed straight through and the ILIKE match against "New Cairo" silently
+# finds nothing. Keep this list in sync with AREA_TO_LOCATION's target values
+# if that mapping ever changes.
+AREA_NORMALIZATION_GUIDANCE = """AREA NAMES: the database stores the top-level region in English even when the
+visitor writes in Arabic. Always translate a colloquial area name to the
+matching English value below before using it as the area filter -- never pass
+the visitor's raw Arabic area text straight through, it will not match
+anything in the database:
+  التجمع / التجمع الخامس / القاهرة الجديدة -> "New Cairo"
+  الساحل / الساحل الشمالي -> "North Coast"
+  الشيخ زايد / زايد / أكتوبر -> "West Cairo"
+  العاصمة الإدارية / العاصمة الجديدة -> "New Capital"
+  العين السخنة -> "Ain Sokhna"
+  الإسكندرية -> "Alexandria"
+If the visitor names a specific neighborhood that isn't in this list (e.g.
+"Mostakbal City", "Sidi Heneish"), pass that neighborhood name through as-is
+instead -- the area filter matches sub-areas too, just not Arabic ones."""
+
+CHATBOT_SYSTEM_PROMPT = f"""You are Meleven Consultancy's property assistant on meleveneg.com, a boutique
 Egyptian real estate advisory.
 
 STRICT RULES -- these override anything else:
@@ -77,6 +98,7 @@ STRICT RULES -- these override anything else:
 2. Whenever the visitor's message is about available properties, prices,
    locations, developers, unit types, bedrooms, or delivery timing -- call
    query_properties BEFORE answering, even if you think you already know.
+   See AREA NAMES below before filling in the area filter.
 3. If query_properties returns zero results, say so plainly and invite the
    visitor to loosen their criteria. Example: "مفيش نتيجة مطابقة لمعايير
    البحث دي. جرب تغيّر السعر أو المنطقة أو نوع الوحدة." (or the English
@@ -133,6 +155,8 @@ a failed reply, not a stylistic nitpick:
   results, and closing line together -- should be readable in a few
   seconds, not require scrolling a small chat bubble.
 
+{AREA_NORMALIZATION_GUIDANCE}
+
 LANGUAGE: Reply in the same language and register the visitor used (Egyptian
 Arabic if they wrote Arabic, English if they wrote English). Don't switch
 languages mid-conversation unless they do.
@@ -151,6 +175,42 @@ You have no knowledge beyond what query_properties returns and general
 conversational ability. You are not a general real estate encyclopedia -- if
 asked something unrelated to Meleven's own listings (mortgage law, other
 countries, etc.), say that's outside what you can help with here."""
+
+# ---------------------------------------------------------------------------
+# /api/smart-search — natural-language search box on /compounds. Unlike
+# /api/chat, this never generates a reply Claude's model never sees or states
+# search RESULTS at all; its only job is translating free text into the same
+# filter shape /compounds' own filter form already uses (area/developer/
+# unit_type/min_price/max_price/bedrooms/delivery_year), forced via
+# tool_choice so there's no back-and-forth and no risk of the model composing
+# any user-facing text. The real query still runs entirely in the existing,
+# deterministic compounds() route below -- Claude never touches a DB row.
+# ---------------------------------------------------------------------------
+EXTRACT_SEARCH_FILTERS_TOOL = {
+    "name": "extract_search_filters",
+    "description": (
+        "Extract structured real-estate search filters from the visitor's free-text "
+        "search query. Only include a field if the query actually specifies or clearly "
+        "implies it -- never guess or default a field that wasn't mentioned. This is "
+        "the only thing you do; you are not answering the visitor or holding a "
+        "conversation."
+    ),
+    "input_schema": QUERY_PROPERTIES_TOOL["input_schema"],
+}
+
+SMART_SEARCH_SYSTEM_PROMPT = f"""You translate a real estate visitor's free-text search (Arabic or English) on
+meleveneg.com into structured filters by calling extract_search_filters. You
+never answer questions, never chat, never explain -- your only output is that
+one tool call.
+
+Only extract a field if the query actually states or clearly implies it.
+Never invent or default a value for anything the visitor didn't mention --
+leaving a field out entirely is always correct when it's genuinely absent
+from the query, even if that means calling the tool with very few fields
+filled in (or none at all for a query with no concrete criteria).
+
+{AREA_NORMALIZATION_GUIDANCE}
+"""
 
 
 def slugify(text):
@@ -830,6 +890,62 @@ def create_app():
             app.logger.error(f"Claude API error in /api/chat: {e}")
             return jsonify({"error": "Chat is temporarily unavailable. Please try again shortly."}), 502
 
+    # ---------- Smart search: natural-language query -> /compounds filters ----------
+
+    @app.route("/api/smart-search", methods=["POST"])
+    def api_smart_search():
+        """Translates one free-text search query into the same filter shape
+        compounds() already reads from the querystring. Never returns search
+        results itself -- just the extracted filters, so the client can
+        navigate to /compounds?<filters> and let the existing, deterministic
+        route/template do the actual (safe, non-LLM) lookup and rendering."""
+        if not Config.CLAUDE_API_KEY:
+            return jsonify({"error": "Smart search is not configured."}), 503
+
+        data = request.get_json(silent=True) or {}
+        query_text = (data.get("query") or "").strip()
+        if not query_text:
+            return jsonify({"error": "query is required"}), 400
+        if len(query_text) > 300:
+            return jsonify({"error": "query is too long"}), 400
+
+        client = anthropic.Anthropic(api_key=Config.CLAUDE_API_KEY)
+
+        try:
+            response = client.messages.create(
+                model=CLAUDE_CHAT_MODEL,
+                max_tokens=512,
+                system=SMART_SEARCH_SYSTEM_PROMPT,
+                tools=[EXTRACT_SEARCH_FILTERS_TOOL],
+                tool_choice={"type": "tool", "name": "extract_search_filters"},
+                messages=[{"role": "user", "content": query_text}],
+            )
+            tool_use_block = next(b for b in response.content if b.type == "tool_use")
+            extracted = tool_use_block.input or {}
+        except anthropic.APIError as e:
+            app.logger.error(f"Claude API error in /api/smart-search: {e}")
+            return jsonify({"error": "Smart search is temporarily unavailable. Please try again shortly."}), 502
+
+        # Only pass through fields compounds() actually reads, with the same
+        # types it expects from a querystring (everything ends up a string).
+        filters = {}
+        if isinstance(extracted.get("area"), str) and extracted["area"].strip():
+            filters["area"] = extracted["area"].strip()
+        if isinstance(extracted.get("developer"), str) and extracted["developer"].strip():
+            filters["developer"] = extracted["developer"].strip()
+        if isinstance(extracted.get("unit_type"), str) and extracted["unit_type"].strip():
+            filters["unit_type"] = extracted["unit_type"].strip()
+        if isinstance(extracted.get("min_price"), (int, float)):
+            filters["min_price"] = str(int(extracted["min_price"]))
+        if isinstance(extracted.get("max_price"), (int, float)):
+            filters["max_price"] = str(int(extracted["max_price"]))
+        if isinstance(extracted.get("bedrooms"), int):
+            filters["bedrooms"] = str(extracted["bedrooms"])
+        if isinstance(extracted.get("delivery_year"), int):
+            filters["delivery_year"] = str(extracted["delivery_year"])
+
+        return jsonify({"filters": filters})
+
     @app.route("/locations")
     def locations():
         # Group by the top-level `location` column (e.g. "New Cairo", "North
@@ -882,10 +998,16 @@ def create_app():
         selected_areas = request.args.getlist("area")
         selected_developer = request.args.get("developer", "").strip()
         selected_unit_type = request.args.get("unit_type", "").strip()
+        selected_bedrooms = request.args.get("bedrooms", "").strip()
         min_price = request.args.get("min_price", "").strip()
         max_price = request.args.get("max_price", "").strip()
         delivery_year = request.args.get("delivery_year", "").strip()
         search_query = request.args.get("q", "").strip()
+        # Display-only: the original free-text smart-search query, carried
+        # through purely so the page can show "Results for: '...'" -- it does
+        # not participate in filtering itself (the extracted filters already
+        # arrived as normal area/developer/... params by the time we get here).
+        nl_query = request.args.get("nl_q", "").strip()
 
         query = Compound.query.filter_by(is_published=True)
 
@@ -909,13 +1031,21 @@ def create_app():
         if selected_developer:
             query = query.filter(Compound.developer.ilike(f"%{selected_developer}%"))
 
-        if selected_unit_type:
-            query = (
-                query
-                .join(Unit, Unit.compound_id == Compound.id)
-                .filter(Unit.unit_type.ilike(f"%{selected_unit_type}%"))
-                .distinct()
-            )
+        # unit_type and bedrooms both live on Unit, not Compound -- joined
+        # (and distinct()'d) once here if either is present, rather than each
+        # doing its own .join(), which would join Unit twice and error out.
+        if selected_unit_type or selected_bedrooms:
+            query = query.join(Unit, Unit.compound_id == Compound.id)
+            if selected_unit_type:
+                query = query.filter(Unit.unit_type.ilike(f"%{selected_unit_type}%"))
+            if selected_bedrooms:
+                try:
+                    # "At least N bedrooms" -- matches query_properties' chatbot
+                    # tool semantics (see QUERY_PROPERTIES_TOOL), not an exact count.
+                    query = query.filter(Unit.bedrooms >= int(selected_bedrooms))
+                except ValueError:
+                    pass
+            query = query.distinct()
 
         if delivery_year:
             query = query.filter(Compound.delivery_year == delivery_year)
@@ -950,10 +1080,12 @@ def create_app():
             selected_areas=selected_areas,
             selected_developer=selected_developer,
             selected_unit_type=selected_unit_type,
+            selected_bedrooms=selected_bedrooms,
             min_price=min_price,
             max_price=max_price,
             selected_delivery_year=delivery_year,
             search_query=search_query,
+            nl_query=nl_query,
         )
 
     @app.route("/compound/<slug>")
