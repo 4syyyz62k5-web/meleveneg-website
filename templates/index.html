@@ -128,6 +128,50 @@
     }
   }
 
+  /* ---------- Hero smart search (second row, same white card) ---------- */
+  .hero-smart-search{
+    background: rgba(255,255,255,.97);
+    border-radius: 0 0 10px 10px;
+    margin-top: -1px; /* sits flush under .search-form's rounded card above */
+    padding: 14px 18px 16px;
+  }
+  .hero-smart-search__divider{
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .hero-smart-search__divider::before,
+  .hero-smart-search__divider::after{
+    content: ""; flex: 1; height: 1px; background: #e5e5e5;
+  }
+  .hero-smart-search__divider span{
+    font-family: var(--font-body); font-size: 11px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  .hero-smart-search-form{ display: flex; gap: 10px; }
+  .hero-smart-search-form input{
+    flex: 1; min-width: 0; border: 1px solid #e5e5e5; border-radius: 6px;
+    padding: 10px 14px; font-family: var(--font-body); font-size: 14px; color: var(--color-text);
+  }
+  .hero-smart-search-form input:focus{ outline: 2px solid var(--color-gold); }
+  .hero-smart-search-form button{
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--color-navy); color: var(--color-white); border: none;
+    border-radius: 6px; padding: 0 22px; font-family: var(--font-body); font-weight: 600;
+    font-size: 14px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background .2s ease;
+  }
+  .hero-smart-search-form button:hover{ background: var(--color-navy-dark); }
+  .hero-smart-search-form button:disabled{ opacity: .6; cursor: default; }
+  .hero-smart-search-error{
+    display: none; margin: 8px 0 0; font-family: var(--font-body);
+    font-size: 12.5px; color: #b3282d;
+  }
+  .hero-smart-search-error.is-visible{ display: block; }
+  @media (max-width: 640px){
+    .hero-smart-search-form{ flex-direction: column; }
+  }
+
   /* ---------- Hero stats row ---------- */
   .hero-stats{ background: var(--color-navy-dark); padding: 0 0 18px 0; }
   .hero-stats__grid{
@@ -802,6 +846,18 @@
                     Search
                 </button>
             </form>
+
+            <div class="hero-smart-search">
+                <div class="hero-smart-search__divider"><span>or search in your own words</span></div>
+                <form class="hero-smart-search-form" id="hero-smart-search-form">
+                    <input type="text" id="hero-smart-search-input" placeholder='e.g. &quot;شقق في التجمع تحت 8 مليون&quot; or &quot;villas in North Coast under 20M&quot;' maxlength="300" required>
+                    <button type="submit" id="hero-smart-search-submit">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                        Search
+                    </button>
+                </form>
+                <p class="hero-smart-search-error" id="hero-smart-search-error">Couldn't process that search — try rephrasing, or use the filters above.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -1506,6 +1562,56 @@
 
     initDots('launches-scroll', 'launches-dots');
     initDots('featured-grid', 'featured-dots');
+  })();
+</script>
+
+<script>
+  // Hero "search in your own words" box — same /api/smart-search flow as
+  // the one on /compounds (see that template's extra_scripts block): posts
+  // the free-text query, gets back extracted filters, navigates to
+  // /compounds?<filters> so the real, deterministic route/template does the
+  // actual lookup. Entirely separate from the structured Location/Developer/
+  // Compound/Budget form above it — not merged into one <form>.
+  (function(){
+    var form = document.getElementById('hero-smart-search-form');
+    var input = document.getElementById('hero-smart-search-input');
+    var submitBtn = document.getElementById('hero-smart-search-submit');
+    var errorEl = document.getElementById('hero-smart-search-error');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var query = input.value.trim();
+      if (!query) return;
+
+      errorEl.classList.remove('is-visible');
+      input.disabled = true;
+      submitBtn.disabled = true;
+
+      fetch('{{ url_for("api_smart_search") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({query: query})
+      })
+        .then(function(res){ return res.json().then(function(data){ return {status: res.status, data: data}; }); })
+        .then(function(result){
+          if (result.status !== 200) {
+            throw new Error('smart search failed');
+          }
+          var params = new URLSearchParams();
+          var filters = result.data.filters || {};
+          Object.keys(filters).forEach(function(key){
+            params.set(key, filters[key]);
+          });
+          params.set('nl_q', query);
+          window.location.href = '{{ url_for("compounds") }}?' + params.toString();
+        })
+        .catch(function(){
+          errorEl.classList.add('is-visible');
+          input.disabled = false;
+          submitBtn.disabled = false;
+        });
+    });
   })();
 </script>
 {% endblock %}
