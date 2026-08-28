@@ -21,8 +21,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import anthropic
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing
+
+# Rate-limits the public API (see /api/public/* below) -- in-memory storage,
+# per-process. Fine at the current scale/single-service deployment; would
+# need a shared backend (e.g. Redis) if this ever runs as multiple
+# instances/dynos, since each process would then enforce its own separate
+# budget instead of one shared one.
+limiter = Limiter(key_func=get_remote_address)
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
@@ -240,6 +249,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
+    limiter.init_app(app)
     app.jinja_env.globals["slugify"] = slugify  # so templates can build /developer/<slug> links
 
     with app.app_context():
@@ -945,6 +955,132 @@ def create_app():
             filters["delivery_year"] = str(extracted["delivery_year"])
 
         return jsonify({"filters": filters})
+
+    # ---------- Public read-only API (for external consumers, e.g. Circles) ----------
+    #
+    # GET-only, no login. Every route below does nothing but SELECT already-
+    # public data (is_published compounds / is_available units, the same
+    # rows the public site itself shows) -- there is no write path through
+    # this section at all, so it can't be used to modify or delete anything
+    # regardless of what a caller sends. Rate-limited per IP (see `limiter`
+    # near the top of this file) since it's keyless/open to anyone.
+
+    PUBLIC_API_RATE_LIMIT = "60 per minute"
+
+    def _serialize_public_compound(c):
+        return {
+            "slug": c.slug,
+            "name": c.name,
+            "developer": c.developer,
+            "location": c.location,
+            "area": c.area,
+            "min_price": float(c.min_price) if c.min_price is not None else None,
+            "max_price": float(c.max_price) if c.max_price is not None else None,
+            "currency": c.currency,
+            "delivery_year": c.delivery_year,
+            "cover_image_url": c.cover_image_url,
+            "is_launch": bool(c.is_launch),
+            "url": url_for("compound_detail", slug=c.slug, _external=True),
+        }
+
+    @app.route("/api/public/compounds")
+    @limiter.limit(PUBLIC_API_RATE_LIMIT)
+    def api_public_compounds():
+        try:
+            page = max(1, request.args.get("page", 1, type=int) or 1)
+        except (TypeError, ValueError):
+            page = 1
+        per_page = request.args.get("per_page", 50, type=int) or 50
+        per_page = max(1, min(per_page, 100))  # hard cap -- no unbounded response size regardless of what's requested
+
+        query = Compound.query.filter_by(is_published=True).order_by(Compound.id.asc())
+        total = query.count()
+        rows = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return jsonify({
+            "compounds": [_serialize_public_compound(c) for c in rows],
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+        })
+
+    @app.route("/api/public/compounds/<slug>/units")
+    @limiter.limit(PUBLIC_API_RATE_LIMIT)
+    def api_public_compound_units(slug):
+        # 404s the same way for "doesn't exist" and "exists but unpublished"
+        # -- never confirms an unpublished compound's existence to a caller.
+        compound = Compound.query.filter_by(slug=slug, is_published=True).first()
+        if not compound:
+            return jsonify({"error": "compound not found"}), 404
+
+        units = (
+            Unit.query
+            .filter_by(compound_id=compound.id, is_available=True)
+            .order_by(Unit.price.asc())
+            .all()
+        )
+        return jsonify({
+            "compound_slug": compound.slug,
+            "units": [
+                {
+                    "unit_type": u.unit_type,
+                    "phase": u.phase,
+                    "delivery_year": u.delivery_year,
+                    "bedrooms": u.bedrooms,
+                    "bathrooms": u.bathrooms,
+                    "area_sqm": float(u.area_sqm) if u.area_sqm is not None else None,
+                    "price": float(u.price) if u.price is not None else None,
+                    "currency": u.currency,
+                    "payment_plan": u.payment_plan,
+                    "image_url": u.image_url or compound.cover_image_url,
+                    "is_launch": bool(u.is_launch),
+                }
+                for u in units
+            ],
+        })
+
+    @app.route("/admin/debug/locations-check")
+    @login_required
+    def admin_debug_locations_check():
+        # TEMPORARY diagnostic route -- admin-gated. /locations started 500ing
+        # right after the Red Sea import; this runs the exact same query
+        # locations() runs, but catches and returns the real traceback instead
+        # of a generic 500 page. Remove once the real cause is confirmed/fixed.
+        import traceback
+        try:
+            location_expr = db.func.coalesce(Compound.location, Compound.area)
+            rows = (
+                db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
+                .filter(Compound.is_published == True, location_expr.isnot(None))
+                .group_by("location_name")
+                .order_by("location_name")
+                .all()
+            )
+            out = [f"Step 1 OK: {len(rows)} location group(s): {[r[0] for r in rows]}", ""]
+            for location_name, count in rows:
+                sample = (
+                    Compound.query
+                    .filter(
+                        location_expr == location_name,
+                        Compound.is_published == True,
+                        Compound.cover_image_url.isnot(None),
+                        Compound.cover_image_url != "",
+                    )
+                    .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                    .first()
+                )
+                sub_area_rows = (
+                    db.session.query(Compound.area, db.func.count(Compound.id))
+                    .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
+                    .group_by(Compound.area)
+                    .order_by(Compound.area.asc())
+                    .all()
+                )
+                out.append(f"  '{location_name}' (count={count}): sample={sample.slug if sample else None}, sub_areas={[r[0] for r in sub_area_rows]}")
+            out.append("\nAll steps completed without error.")
+            return "<pre>" + "\n".join(out) + "</pre>"
+        except Exception:
+            return "<pre>" + traceback.format_exc() + "</pre>", 500
 
     @app.route("/locations")
     def locations():
