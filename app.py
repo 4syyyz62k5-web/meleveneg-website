@@ -1039,49 +1039,6 @@ def create_app():
             ],
         })
 
-    @app.route("/admin/debug/locations-check")
-    @login_required
-    def admin_debug_locations_check():
-        # TEMPORARY diagnostic route -- admin-gated. /locations started 500ing
-        # right after the Red Sea import; this runs the exact same query
-        # locations() runs, but catches and returns the real traceback instead
-        # of a generic 500 page. Remove once the real cause is confirmed/fixed.
-        import traceback
-        try:
-            location_expr = db.func.coalesce(Compound.location, Compound.area)
-            rows = (
-                db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
-                .filter(Compound.is_published == True, location_expr.isnot(None))
-                .group_by("location_name")
-                .order_by("location_name")
-                .all()
-            )
-            out = [f"Step 1 OK: {len(rows)} location group(s): {[r[0] for r in rows]}", ""]
-            for location_name, count in rows:
-                sample = (
-                    Compound.query
-                    .filter(
-                        location_expr == location_name,
-                        Compound.is_published == True,
-                        Compound.cover_image_url.isnot(None),
-                        Compound.cover_image_url != "",
-                    )
-                    .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
-                    .first()
-                )
-                sub_area_rows = (
-                    db.session.query(Compound.area, db.func.count(Compound.id))
-                    .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
-                    .group_by(Compound.area)
-                    .order_by(Compound.area.asc())
-                    .all()
-                )
-                out.append(f"  '{location_name}' (count={count}): sample={sample.slug if sample else None}, sub_areas={[r[0] for r in sub_area_rows]}")
-            out.append("\nAll steps completed without error.")
-            return "<pre>" + "\n".join(out) + "</pre>"
-        except Exception:
-            return "<pre>" + traceback.format_exc() + "</pre>", 500
-
     @app.route("/locations")
     def locations():
         # Group by the top-level `location` column (e.g. "New Cairo", "North
@@ -1509,6 +1466,49 @@ def create_app():
                 return redirect(url_for("admin_login", next=request.path))
             return f(*args, **kwargs)
         return wrapper
+
+    @app.route("/admin/debug/locations-check")
+    @login_required
+    def admin_debug_locations_check():
+        # TEMPORARY diagnostic route -- admin-gated. /locations started 500ing
+        # right after the Red Sea import; this runs the exact same query
+        # locations() runs, but catches and returns the real traceback instead
+        # of a generic 500 page. Remove once the real cause is confirmed/fixed.
+        import traceback
+        try:
+            location_expr = db.func.coalesce(Compound.location, Compound.area)
+            rows = (
+                db.session.query(location_expr.label("location_name"), db.func.count(Compound.id))
+                .filter(Compound.is_published == True, location_expr.isnot(None))
+                .group_by("location_name")
+                .order_by("location_name")
+                .all()
+            )
+            out = [f"Step 1 OK: {len(rows)} location group(s): {[r[0] for r in rows]}", ""]
+            for location_name, count in rows:
+                sample = (
+                    Compound.query
+                    .filter(
+                        location_expr == location_name,
+                        Compound.is_published == True,
+                        Compound.cover_image_url.isnot(None),
+                        Compound.cover_image_url != "",
+                    )
+                    .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                    .first()
+                )
+                sub_area_rows = (
+                    db.session.query(Compound.area, db.func.count(Compound.id))
+                    .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
+                    .group_by(Compound.area)
+                    .order_by(Compound.area.asc())
+                    .all()
+                )
+                out.append(f"  '{location_name}' (count={count}): sample={sample.slug if sample else None}, sub_areas={[r[0] for r in sub_area_rows]}")
+            out.append("\nAll steps completed without error.")
+            return "<pre>" + "\n".join(out) + "</pre>"
+        except Exception:
+            return "<pre>" + traceback.format_exc() + "</pre>", 500
 
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():

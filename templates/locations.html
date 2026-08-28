@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Locations — Meleven Consultancy{% endblock %}
+{% block meta_description %}Browse Meleven Consultancy's properties by location — New Cairo, North Coast, and more across Egypt.{% endblock %}
+{% block content %}
+<style>
+  .locations-hero{
+    background: var(--color-navy);
+    color: var(--color-white);
+    padding: 100px 24px 48px;
+    text-align: center;
+  }
+  .locations-hero h1{
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 34px;
+    margin: 0 0 10px;
+  }
+  .locations-hero p{
+    font-family: var(--font-body);
+    color: #d7dbe2;
+    font-size: 15px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .locations-wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  .locations-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+  .location-card{
+    display: block;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    border: 1px solid #e5e5e5;
+    background: var(--color-white);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .location-card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+  }
+  .location-card__image{
+    height: 160px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--color-cream);
+  }
+  .location-card__body{
+    padding: 18px 20px;
+  }
+  .location-card__name{
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-navy);
+    margin: 0 0 4px;
+  }
+  .location-card__count{
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--color-gold);
+    margin: 0 0 12px;
+  }
+  .location-card__sub-areas{
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+  .locations-empty{
+    text-align: center;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    padding: 40px 0;
+  }
+</style>
+
+<div class="locations-hero">
+  <h1>Browse by Location</h1>
+  <p>Explore Meleven's listings across Egypt's most sought-after destinations.</p>
+</div>
+
+<div class="locations-wrap">
+  {% if locations %}
+  <div class="locations-grid">
+    {% for loc in locations %}
+    <a class="location-card" href="{{ url_for('compounds', area=loc.name) }}">
+      <div class="location-card__image" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+      <div class="location-card__body">
+        <p class="location-card__name">{{ loc.name }}</p>
+        <p class="location-card__count">{{ loc.count }} propert{{ 'y' if loc.count == 1 else 'ies' }}</p>
+        {% if loc.sub_areas %}
+        <p class="location-card__sub-areas">{{ loc.sub_areas | map(attribute='name') | join(' · ') }}</p>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="locations-empty">No locations available yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
