@@ -6,3 +6,4 @@ gunicorn==22.0.0
 Flask-WTF==1.2.1
 email-validator==2.1.1
 anthropic==0.122.0
+flask-limiter==3.11.0
