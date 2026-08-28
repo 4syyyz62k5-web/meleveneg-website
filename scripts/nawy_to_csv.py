@@ -402,6 +402,18 @@ def crawl_compound(entry_url, api_key, max_pages, sleep_s, log):
         html = data.get("html") or ""
         page_units = j.get("units") or []
         for u in page_units:
+            # Same guard as the sub_listing_links/pagination check below, but applied to units
+            # extracted directly off a single page's own `units` array -- confirmed by inspection
+            # that compound pages (e.g. Makadi Heights, Ras Soma) render "similar/nearby projects"
+            # unit cards inline alongside the page's own units, with no visual distinction the LLM
+            # schema was told to look for. Without this, those foreign units get silently imported
+            # under the WRONG compound (wrong price, wrong specs, wrong everything but the page they
+            # happened to appear on). A unit with no detail_url can't be verified either way -- kept
+            # rather than dropped, since the vast majority of a real page's OWN units do carry one.
+            detail_url = u.get("detail_url") or ""
+            if detail_url and not is_same_compound(urljoin(url, detail_url), prefix):
+                rejected_foreign_links.append(detail_url)
+                continue
             # Override the LLM's listing_type guess with the deterministic DOM check whenever
             # possible — testing showed the LLM reliably notices a "Resale"/"Nawy Now" tag when
             # present, but is NOT reliable at concluding "no tag -> Primary" on its own. Force
