@@ -1165,6 +1165,74 @@ def create_app():
 
         return render_template("locations.html", locations=location_list)
 
+    @app.route("/locations/<location_name>")
+    def location_areas(location_name):
+        # Drill-down step between "/locations" (or the homepage's Top Areas
+        # widget) and the flat "/compounds" listing: pick a main region (e.g.
+        # "North Coast") and land here on its actual sub-areas (Ras El Hekma,
+        # Al Dabaa, Sidi Abdel Rahman, ...) as their own cards -- same
+        # image+name+count card style as the main-region cards -- matching
+        # how the region's compounds were actually grouped when scraped from
+        # nawy.com, instead of jumping straight into one big mixed list.
+        location_expr = db.func.coalesce(Compound.location, Compound.area)
+
+        # Case-insensitive match — the URL segment comes from a link we
+        # generate ourselves (url_for(..., location_name=...)) so casing
+        # normally matches exactly, but this keeps a hand-typed/bookmarked
+        # URL working too.
+        match = db.func.lower(location_expr) == location_name.strip().lower()
+
+        sample = (
+            Compound.query
+            .filter(match, Compound.is_published == True)
+            .order_by(Compound.created_at.desc())
+            .first()
+        )
+        if sample is None:
+            abort(404)
+        # Canonical casing for display, taken from a real row rather than the
+        # (possibly differently-cased) URL segment itself.
+        canonical_name = sample.location or sample.area
+
+        total_count = Compound.query.filter(match, Compound.is_published == True).count()
+
+        sub_area_rows = (
+            db.session.query(Compound.area, db.func.count(Compound.id))
+            .filter(match, Compound.is_published == True, Compound.area.isnot(None), Compound.area != "")
+            .group_by(Compound.area)
+            .order_by(db.func.count(Compound.id).desc())
+            .all()
+        )
+        sub_areas = []
+        for area_name, count in sub_area_rows:
+            area_sample = (
+                Compound.query
+                .filter(
+                    match, Compound.area == area_name, Compound.is_published == True,
+                    Compound.cover_image_url.isnot(None), Compound.cover_image_url != "",
+                )
+                .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
+                .first()
+            )
+            sub_areas.append({
+                "name": area_name,
+                "count": count,
+                "cover_image_url": area_sample.cover_image_url if area_sample else None,
+            })
+
+        # Compounds in this location with no sub-area set at all -- shown as
+        # a fallback "View all in <Location>" card rather than silently
+        # excluded, since they'd otherwise never be reachable from here.
+        uncategorized_count = total_count - sum(a["count"] for a in sub_areas)
+
+        return render_template(
+            "location_areas.html",
+            location_name=canonical_name,
+            sub_areas=sub_areas,
+            total_count=total_count,
+            uncategorized_count=uncategorized_count,
+        )
+
     @app.route("/compounds")
     def compounds():
         # Filters can be multi-select (areas) or single-value (developer, delivery_year, price range)
