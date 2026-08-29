@@ -145,6 +145,51 @@
         .filter-drawer .filter-sidebar{ display: block !important; }
     }
 
+    /* ---------- Sub-area filter bar (shown when browsing a top-level
+       region, e.g. area=North Coast, straight from the homepage Top Areas
+       widget or /locations -- lets you narrow to a specific sub-area
+       without leaving this page) ---------- */
+    .subarea-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .subarea-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-navy);
+        background: var(--color-white);
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 8px 16px;
+        text-decoration: none;
+        transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+    .subarea-chip:hover {
+        border-color: var(--color-gold);
+        color: var(--color-gold);
+    }
+    .subarea-chip__count {
+        color: var(--color-text-muted);
+        font-weight: 500;
+    }
+    .subarea-chip:hover .subarea-chip__count {
+        color: inherit;
+    }
+    .subarea-chip.is-active {
+        background: var(--color-navy);
+        border-color: var(--color-navy);
+        color: var(--color-white);
+    }
+    .subarea-chip.is-active .subarea-chip__count {
+        color: rgba(255,255,255,0.75);
+    }
+
     /* ---------- Smart search bar ---------- */
     .smart-search-bar {
         background: var(--color-navy);
@@ -290,6 +335,15 @@
             </details>
 
             <div class="browse-content">
+                {% if sub_area_bar %}
+                <div class="subarea-bar">
+                    {% for a in sub_area_bar %}
+                    <a class="subarea-chip {{ 'is-active' if a.name in selected_areas else '' }}" href="{{ url_for('compounds', area=a.name) }}">
+                        {{ a.name }} <span class="subarea-chip__count">({{ a.count }})</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% if compounds %}
                 <p class="browse-count">{{ compounds|length }} propert{{ 'y' if compounds|length == 1 else 'ies' }} found</p>
                 <div class="card-grid">
