@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ location_name }} Areas — Meleven Consultancy{% endblock %}
+{% block meta_description %}Browse {{ location_name }}'s neighborhoods and sub-areas — every compound Meleven Consultancy lists there.{% endblock %}
+{% block content %}
+<style>
+  .locareas-hero{
+    background: var(--color-navy);
+    color: var(--color-white);
+    padding: 100px 24px 48px;
+    text-align: center;
+  }
+  .locareas-hero p.locareas-eyebrow{
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 12.5px;
+    color: var(--color-gold);
+    margin: 0 0 10px;
+  }
+  .locareas-hero h1{
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 34px;
+    margin: 0 0 10px;
+  }
+  .locareas-hero p.locareas-sub{
+    font-family: var(--font-body);
+    color: #d7dbe2;
+    font-size: 15px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .locareas-back{
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: #d7dbe2;
+    text-decoration: none;
+    margin-bottom: 14px;
+  }
+  .locareas-back:hover{ color: var(--color-gold); }
+  .locareas-wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  .locareas-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+  }
+  .locarea-card{
+    display: block;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    border: 1px solid #e5e5e5;
+    background: var(--color-white);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .locarea-card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+  }
+  .locarea-card__image{
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--color-cream);
+  }
+  .locarea-card__body{ padding: 16px 18px; }
+  .locarea-card__name{
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--color-navy);
+    margin: 0 0 4px;
+  }
+  .locarea-card__count{
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    color: var(--color-gold);
+    margin: 0;
+  }
+  .locarea-card--all .locarea-card__image{
+    background: linear-gradient(135deg, var(--color-navy), #2a3f5c);
+  }
+  .locareas-empty{
+    text-align: center;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    padding: 40px 0;
+  }
+</style>
+
+<div class="locareas-hero">
+  <a class="locareas-back" href="{{ url_for('locations') }}">← All Locations</a>
+  <p class="locareas-eyebrow">Explore</p>
+  <h1>{{ location_name }}</h1>
+  <p class="locareas-sub">{{ total_count }} propert{{ 'y' if total_count == 1 else 'ies' }} across {{ sub_areas|length }} area{{ 's' if sub_areas|length != 1 else '' }}.</p>
+</div>
+
+<div class="locareas-wrap">
+  {% if sub_areas or uncategorized_count > 0 %}
+  <div class="locareas-grid">
+    {% for a in sub_areas %}
+    <a class="locarea-card" href="{{ url_for('compounds', area=a.name) }}">
+      <div class="locarea-card__image" style="background-image: url('{{ a.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+      <div class="locarea-card__body">
+        <p class="locarea-card__name">{{ a.name }}</p>
+        <p class="locarea-card__count">{{ a.count }} propert{{ 'y' if a.count == 1 else 'ies' }}</p>
+      </div>
+    </a>
+    {% endfor %}
+    {% if uncategorized_count > 0 %}
+    <a class="locarea-card locarea-card--all" href="{{ url_for('compounds', area=location_name) }}">
+      <div class="locarea-card__image"></div>
+      <div class="locarea-card__body">
+        <p class="locarea-card__name">View All {{ location_name }}</p>
+        <p class="locarea-card__count">{{ total_count }} propert{{ 'y' if total_count == 1 else 'ies' }} total</p>
+      </div>
+    </a>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="locareas-empty">No areas available yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

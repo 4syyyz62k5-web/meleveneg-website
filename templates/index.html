@@ -965,7 +965,7 @@
         <div class="mv-topareas-grid">
           {% for area in top_areas %}
           {% set n = area.name|lower %}
-          <a class="mv-topareas-item" href="{{ url_for('compounds', area=area.name) }}">
+          <a class="mv-topareas-item" href="{{ url_for('location_areas', location_name=area.name) }}">
             <span class="mv-topareas-icon">
               {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n %}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/><path d="M7 14V8a2 2 0 0 1 2-2h1V3l3 2v1h1a2 2 0 0 1 2 2v6"/></svg>
@@ -987,7 +987,7 @@
           </button>
           <div class="mv-topareas-grid mv-areas-more" id="areas-more">
             {% for loc in locations_menu %}
-            <a class="mv-topareas-item" href="{{ url_for('compounds', area=loc.name) }}">
+            <a class="mv-topareas-item" href="{{ url_for('location_areas', location_name=loc.name) }}">
               <span class="mv-topareas-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
               </span>
