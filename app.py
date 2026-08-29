@@ -35,6 +35,25 @@ limiter = Limiter(key_func=get_remote_address)
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
+# Unit types that are commercial/administrative rather than residential. A
+# compound can be genuinely residential overall (and kept during the
+# nawy.com import, which only excluded a compound if ALL of its units were
+# non-residential) while still having a handful of these mixed in -- e.g. a
+# small retail strip inside an otherwise-residential gated community. The
+# homepage Investment Calculator is explicitly residential-focused ("Plan
+# Your Investment"), so these are filtered out of both its Type dropdown
+# (all_unit_types) and its actual matching/counting queries -- a visitor
+# should never be able to select or match against "Retail"/"Office"/etc.
+# there. Deliberately NOT applied to /compounds, a compound's own unit
+# listing, or the chatbot -- those are general property browsing, not the
+# residential-investment calculator, so a genuine retail unit should still
+# be visible/searchable there.
+NON_RESIDENTIAL_UNIT_TYPES = {
+    "Retail", "Administrative", "Administrative Office", "Commercial",
+    "Medical", "Office", "Clinic", "Shop", "Pharmacy", "Mall",
+    "Hotel Room", "Hotel Unit",
+}
+
 # ---------------------------------------------------------------------------
 # /api/chat — property-search chatbot (Claude API + tool use, no RAG). See
 # _run_query_properties_tool() in create_app() for what the tool actually
@@ -577,7 +596,8 @@ def create_app():
             row[0] for row in
             db.session.query(Unit.unit_type)
             .join(Compound, Unit.compound_id == Compound.id)
-            .filter(Compound.is_published == True, Unit.unit_type.isnot(None), Unit.unit_type != "")
+            .filter(Compound.is_published == True, Unit.unit_type.isnot(None), Unit.unit_type != "",
+                    Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
             .distinct()
             .all()
         })
@@ -607,7 +627,8 @@ def create_app():
         initial_calc_base_query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
-            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None), Unit.price <= initial_max_price)
+            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None),
+                    Unit.price <= initial_max_price, Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
         )
         initial_calc_count = initial_calc_base_query.count()
         initial_calc_projects = initial_calc_base_query.with_entities(Compound.id).distinct().count()
@@ -720,7 +741,8 @@ def create_app():
         query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
-            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None))
+            .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None),
+                    Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
         )
         if max_price is not None:
             query = query.filter(Unit.price <= max_price)
@@ -762,7 +784,8 @@ def create_app():
                 Unit.query
                 .join(Compound, Unit.compound_id == Compound.id)
                 .filter(Unit.is_available == True, Compound.is_published == True,
-                        Unit.price.isnot(None), Unit.price <= max_price)
+                        Unit.price.isnot(None), Unit.price <= max_price,
+                        Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
             )
             if unit_type:
                 area_query = area_query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
