@@ -488,10 +488,11 @@ def create_app():
                 "cover_image_url": sample.cover_image_url if sample else None,
             })
 
-        # Show at most this many as folder cards; anything beyond that is
-        # only reachable via the "View all areas" dropdown so the two lists
-        # never repeat each other.
-        CARD_LIMIT = 5
+        # Every region now shows directly in the Top Areas card grid (there
+        # are only a handful of real top-level locations) -- no "View all
+        # areas" overflow needed; locations_menu naturally ends up empty and
+        # that section just doesn't render.
+        CARD_LIMIT = len(top_areas)
         all_locations_sorted = top_areas
         top_areas = all_locations_sorted[:CARD_LIMIT]
 
