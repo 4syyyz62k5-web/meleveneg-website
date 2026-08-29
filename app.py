@@ -462,7 +462,7 @@ def create_app():
             db.session.query(Compound.location, db.func.count(Compound.id))
             .filter(Compound.is_published == True, Compound.location.isnot(None))
             .group_by(Compound.location)
-            .order_by(Compound.location)
+            .order_by(db.func.count(Compound.id).desc())
             .all()
         )
 
@@ -559,9 +559,12 @@ def create_app():
         # Only the locations NOT already shown as a folder card above — the
         # dropdown exists purely to reach the "rest" of them, so it never
         # repeats what's already visible in the scroll row.
+        # Alphabetical here (unlike the count-desc order used to pick the top
+        # cards above) -- this is a "look one up" dropdown, not a prominence
+        # ranking, so A-Z is the more useful order to browse it in.
         locations_menu = [
             {"name": a["name"], "count": a["count"], "cover_image_url": a["cover_image_url"]}
-            for a in all_locations_sorted[CARD_LIMIT:]
+            for a in sorted(all_locations_sorted[CARD_LIMIT:], key=lambda a: a["name"])
         ]
 
         # Developer name -> logo URL, so property cards can show a real logo
