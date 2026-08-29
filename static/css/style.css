@@ -123,6 +123,32 @@ h1, h2, h3 {
 .page-title { font-size: 34px; margin-bottom: 20px; }
 .lead-text { font-size: 18px; color: var(--color-text-muted); margin-bottom: 20px; }
 
+/* ---------- Page hero (navy banner) ----------
+   Shared full-bleed navy header for interior pages (About, Contact,
+   Properties, Developer, List Your Property, Listings) so they match the
+   homepage/Sell/Locations navy-hero treatment instead of opening on a flat
+   white page-title. */
+.page-hero {
+  background: var(--color-navy);
+  color: var(--color-white);
+  padding: 100px 24px 48px;
+  text-align: center;
+}
+.page-hero h1 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 34px;
+  color: var(--color-white);
+  margin: 0 0 10px;
+}
+.page-hero p {
+  font-family: var(--font-body);
+  color: #d7dbe2;
+  font-size: 15px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
 /* ---------- Cards ---------- */
 .card-grid {
   display: grid;

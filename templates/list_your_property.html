@@ -25,16 +25,17 @@
   @media (max-width: 640px){ .lp-row, .lp-row-3{ grid-template-columns: 1fr; } }
 </style>
 
+<section class="page-hero">
+  {% if prefill %}<p class="lp-step-badge">Step 2 of 2</p>{% endif %}
+  <h1>List Your Property</h1>
+  {% if prefill %}
+  <p>Thanks — we've carried over what you already told us. Just fill in the rest of the property details below. Every listing is reviewed by our team before it goes live.</p>
+  {% else %}
+  <p>Submit your resale or rental property below. Every listing is reviewed by our team before it goes live — nothing is published automatically.</p>
+  {% endif %}
+</section>
 <section class="section">
   <div class="container narrow">
-    {% if prefill %}<p class="lp-step-badge">Step 2 of 2</p>{% endif %}
-    <h1 class="page-title">List Your Property</h1>
-    {% if prefill %}
-    <p class="lead-text">Thanks — we've carried over what you already told us. Just fill in the rest of the property details below. Every listing is reviewed by our team before it goes live.</p>
-    {% else %}
-    <p class="lead-text">Submit your resale or rental property below. Every listing is reviewed by our team before it goes live — nothing is published automatically.</p>
-    {% endif %}
-
     <form method="post" action="{{ url_for('list_property') }}" enctype="multipart/form-data" class="lp-form" id="lp-form">
 
       <label for="lp-type">Listing Type *</label>
