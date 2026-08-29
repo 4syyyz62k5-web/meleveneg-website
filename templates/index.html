@@ -967,7 +967,7 @@
           {% set n = area.name|lower %}
           <a class="mv-topareas-item" href="{{ url_for('location_areas', location_name=area.name) }}">
             <span class="mv-topareas-icon">
-              {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n %}
+              {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n or 'ghazala' in n %}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/><path d="M7 14V8a2 2 0 0 1 2-2h1V3l3 2v1h1a2 2 0 0 1 2 2v6"/></svg>
               {% elif 'october' in n or 'zayed' in n %}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
