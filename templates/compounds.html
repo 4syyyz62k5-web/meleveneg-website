@@ -162,32 +162,33 @@
         font-family: var(--font-body);
         font-size: 13px;
         font-weight: 600;
-        color: var(--color-navy);
-        background: var(--color-white);
-        border: 1px solid #ddd;
+        color: var(--color-white);
+        background: var(--color-navy);
+        border: 1px solid var(--color-navy);
         border-radius: 20px;
         padding: 8px 16px;
         text-decoration: none;
         transition: border-color .2s ease, background .2s ease, color .2s ease;
     }
-    .subarea-chip:hover {
-        border-color: var(--color-gold);
-        color: var(--color-gold);
-    }
     .subarea-chip__count {
-        color: var(--color-text-muted);
+        color: rgba(255,255,255,0.75);
         font-weight: 500;
+    }
+    .subarea-chip:hover {
+        background: var(--color-gold);
+        border-color: var(--color-gold);
+        color: var(--color-navy);
     }
     .subarea-chip:hover .subarea-chip__count {
         color: inherit;
     }
     .subarea-chip.is-active {
-        background: var(--color-navy);
-        border-color: var(--color-navy);
-        color: var(--color-white);
+        background: var(--color-gold);
+        border-color: var(--color-gold);
+        color: var(--color-navy);
     }
     .subarea-chip.is-active .subarea-chip__count {
-        color: rgba(255,255,255,0.75);
+        color: inherit;
     }
 
     /* ---------- Smart search bar ---------- */
