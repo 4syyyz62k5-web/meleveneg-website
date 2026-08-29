@@ -1148,19 +1148,13 @@ def create_app():
                 .order_by(Compound.is_featured.desc(), Compound.created_at.desc())
                 .first()
             )
-            # Sub-areas within this location (e.g. New Cairo -> Mostakbal City, New Heliopolis)
-            sub_area_rows = (
-                db.session.query(Compound.area, db.func.count(Compound.id))
-                .filter(location_expr == location_name, Compound.is_published == True, Compound.area.isnot(None))
-                .group_by(Compound.area)
-                .order_by(Compound.area.asc())
-                .all()
-            )
+            # Sub-areas are no longer listed inline here -- this page shows only
+            # the main regions; clicking one goes to location_areas() below for
+            # its actual sub-area cards, so there's no need to compute them twice.
             location_list.append({
                 "name": location_name,
                 "count": count,
                 "cover_image_url": sample.cover_image_url if sample else None,
-                "sub_areas": [{"name": r[0], "count": r[1]} for r in sub_area_rows],
             })
 
         return render_template("locations.html", locations=location_list)
