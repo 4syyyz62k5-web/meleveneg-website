@@ -451,19 +451,28 @@
     display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px;
   }
   .mv-topareas-item{
-    display: flex; flex-direction: column; align-items: center; text-align: center;
-    text-decoration: none; gap: 10px;
+    display: block; border-radius: 10px; overflow: hidden; text-decoration: none;
+    background: var(--color-white);
+    transition: transform .15s ease, box-shadow .15s ease;
   }
-  .mv-topareas-icon{
-    width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
-    color: var(--color-gold);
+  .mv-topareas-item:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.3);
   }
-  .mv-topareas-icon svg{ width: 30px; height: 30px; }
+  .mv-topareas-image{
+    height: 90px;
+    background-size: cover; background-position: center;
+    background-color: var(--color-cream);
+  }
+  .mv-topareas-card-body{ padding: 10px 12px; }
   .mv-topareas-name{
-    font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
-    color: #d7dbe2; line-height: 1.3;
+    font-family: var(--font-heading); font-weight: 700; font-size: 13.5px;
+    color: var(--color-navy); line-height: 1.3; margin: 0 0 2px;
   }
-  .mv-topareas-item:hover .mv-topareas-name{ color: var(--color-gold); }
+  .mv-topareas-count{
+    font-family: var(--font-body); font-size: 11.5px;
+    color: var(--color-gold); margin: 0;
+  }
   .mv-topareas-more{ margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
   /* The generic .mv-topareas-grid{display:grid} rule above comes after the
      older .mv-areas-more{display:none} rule in the stylesheet, so it was
@@ -964,18 +973,12 @@
       <div class="mv-topareas-body">
         <div class="mv-topareas-grid">
           {% for area in top_areas %}
-          {% set n = area.name|lower %}
           <a class="mv-topareas-item" href="{{ url_for('compounds', area=area.name) }}">
-            <span class="mv-topareas-icon">
-              {% if 'coast' in n or 'sahel' in n or 'sokhna' in n or 'alexandria' in n or 'hekma' in n or 'dabaa' in n or 'ghazala' in n %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/><path d="M7 14V8a2 2 0 0 1 2-2h1V3l3 2v1h1a2 2 0 0 1 2 2v6"/></svg>
-              {% elif 'october' in n or 'zayed' in n %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
-              {% else %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
-              {% endif %}
-            </span>
-            <span class="mv-topareas-name">{{ area.name }}</span>
+            <div class="mv-topareas-image" style="background-image: url('{{ area.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+            <div class="mv-topareas-card-body">
+              <p class="mv-topareas-name">{{ area.name }}</p>
+              <p class="mv-topareas-count">{{ area.count }} propert{{ 'y' if area.count == 1 else 'ies' }}</p>
+            </div>
           </a>
           {% endfor %}
         </div>
@@ -988,10 +991,11 @@
           <div class="mv-topareas-grid mv-areas-more" id="areas-more">
             {% for loc in locations_menu %}
             <a class="mv-topareas-item" href="{{ url_for('compounds', area=loc.name) }}">
-              <span class="mv-topareas-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="6" height="12"/><rect x="14" y="4" width="6" height="17"/><path d="M6 12h2M6 15h2M16 8h2M16 11h2M16 14h2"/></svg>
-              </span>
-              <span class="mv-topareas-name">{{ loc.name }}</span>
+              <div class="mv-topareas-image" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
+              <div class="mv-topareas-card-body">
+                <p class="mv-topareas-name">{{ loc.name }}</p>
+                <p class="mv-topareas-count">{{ loc.count }} propert{{ 'y' if loc.count == 1 else 'ies' }}</p>
+              </div>
             </a>
             {% endfor %}
           </div>
