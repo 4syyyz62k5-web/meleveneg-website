@@ -1138,7 +1138,12 @@
           <li><span class="mv-calc-check">✓</span> <span id="calc-projects">{{ initial_calc_projects }}</span> Project{{ 's' if initial_calc_projects != 1 else '' }}</li>
           <li><span class="mv-calc-check">✓</span> <span id="calc-count">{{ initial_calc_count }}</span> Units</li>
           <li><span class="mv-calc-check">✓</span> Starting from <span id="calc-minprice">{{ "{:,.0f}".format(initial_calc_min_price) if initial_calc_min_price else '—' }}</span> EGP</li>
-          <li><span class="mv-calc-check">✓</span> Installments from EGP <span id="calc-monthly">{{ "{:,.0f}".format(initial_calc_min_installment) if initial_calc_min_installment is not none else '—' }}</span>/<span id="calc-period-label">month</span></li>
+          <li>
+            <span class="mv-calc-check">✓</span>
+            <span id="calc-installment-value" style="{{ '' if initial_calc_min_installment is not none else 'display:none;' }}">Installments from EGP <span id="calc-monthly">{{ "{:,.0f}".format(initial_calc_min_installment) if initial_calc_min_installment is not none else '0' }}</span>/<span id="calc-period-label">month</span></span>
+            <span id="calc-installment-covered" style="{{ '' if initial_calc_covered_by_down_payment else 'display:none;' }}">Covered by your down payment</span>
+            <span id="calc-installment-empty" style="{{ '' if (initial_calc_min_installment is none and not initial_calc_covered_by_down_payment) else 'display:none;' }}">—</span>
+          </li>
         </ul>
         <p class="mv-calc-suggest" id="calc-suggest" style="display:none;"></p>
       </div>
@@ -1173,19 +1178,15 @@
 
 
 
-{% if all_developer_names %}
+{% if top_partner_developers %}
 <section class="mv-section mv-developers-section">
   <div class="container">
     <p class="mv-eyebrow" style="text-align:center;">Partnering With Industry Leaders</p>
     <div class="mv-developers-row">
-      {% for d in all_developer_names %}
-      {% if d in developer_logos %}
+      {% for d in top_partner_developers %}
       <a class="mv-developer-logo-pill" href="{{ url_for('developer_detail', slug=slugify(d)) }}">
         <img src="{{ developer_logos[d] }}" alt="{{ d }}">
       </a>
-      {% else %}
-      <a class="mv-developer-pill" href="{{ url_for('developer_detail', slug=slugify(d)) }}">{{ d }}</a>
-      {% endif %}
       {% endfor %}
     </div>
   </div>
@@ -1365,6 +1366,9 @@
     var durationSelect = document.getElementById('calc-duration');
     var minInstallmentOut = document.getElementById('calc-monthly');
     var periodLabelOut = document.getElementById('calc-period-label');
+    var installmentValueEl = document.getElementById('calc-installment-value');
+    var installmentCoveredEl = document.getElementById('calc-installment-covered');
+    var installmentEmptyEl = document.getElementById('calc-installment-empty');
     var ctaLink = document.getElementById('calc-cta');
     var areaInput = document.getElementById('calc-area');
     var typeSelect = document.getElementById('calc-type');
@@ -1453,9 +1457,19 @@
           if (countOut) countOut.textContent = data.count;
           if (projectsOut) projectsOut.textContent = data.projects;
           if (minPriceOut) minPriceOut.textContent = data.min_price ? formatEGP(data.min_price) : '—';
-          if (minInstallmentOut) {
-            minInstallmentOut.textContent = (data.min_installment !== null && data.min_installment !== undefined)
-              ? formatEGP(data.min_installment) : '—';
+          if (data.covered_by_down_payment) {
+            if (installmentValueEl) installmentValueEl.style.display = 'none';
+            if (installmentEmptyEl) installmentEmptyEl.style.display = 'none';
+            if (installmentCoveredEl) installmentCoveredEl.style.display = '';
+          } else if (data.min_installment !== null && data.min_installment !== undefined) {
+            if (minInstallmentOut) minInstallmentOut.textContent = formatEGP(data.min_installment);
+            if (installmentCoveredEl) installmentCoveredEl.style.display = 'none';
+            if (installmentEmptyEl) installmentEmptyEl.style.display = 'none';
+            if (installmentValueEl) installmentValueEl.style.display = '';
+          } else {
+            if (installmentValueEl) installmentValueEl.style.display = 'none';
+            if (installmentCoveredEl) installmentCoveredEl.style.display = 'none';
+            if (installmentEmptyEl) installmentEmptyEl.style.display = '';
           }
           if (ctaLink) {
             var url = new URL(ctaLink.getAttribute('data-base-href') || ctaLink.href, window.location.origin);

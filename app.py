@@ -552,6 +552,25 @@ def create_app():
             for d in Developer.query.filter(Developer.logo_url.isnot(None), Developer.logo_url != "").all()
         }
 
+        # "Partnering With Industry Leaders" showcase — deliberately NOT
+        # all_developer_names below (that list is for the search autocomplete
+        # and is meant to be exhaustive; after the nawy.com import it grew to
+        # 100+ names, only a handful of which have a real uploaded logo). A
+        # logo showcase should only ever show real logos, never a bare-text
+        # fallback pill, so this is the subset of all_developer_names that
+        # has one, ranked by published-compound count and capped so the
+        # section stays a curated strip rather than a directory dump.
+        PARTNER_LOGO_LIMIT = 20
+        top_partner_developers = [
+            row[0] for row in
+            db.session.query(Compound.developer, db.func.count(Compound.id))
+            .filter(Compound.is_published == True, Compound.developer.in_(developer_logos.keys()))
+            .group_by(Compound.developer)
+            .order_by(db.func.count(Compound.id).desc())
+            .limit(PARTNER_LOGO_LIMIT)
+            .all()
+        ]
+
         # Distinct unit types across published, available units — powers the
         # "Type" dropdown on the homepage Investment Calculator.
         all_unit_types = sorted({
@@ -593,9 +612,19 @@ def create_app():
         initial_calc_count = initial_calc_base_query.count()
         initial_calc_projects = initial_calc_base_query.with_entities(Compound.id).distinct().count()
         initial_calc_min_price = initial_calc_base_query.with_entities(db.func.min(Unit.price)).scalar()
+        # When the down payment alone already covers the cheapest matching unit
+        # (common now that budget resort units start well under a typical down
+        # payment), there's no meaningful installment to show — surfaced via
+        # initial_calc_covered_by_down_payment instead of a misleading near-zero
+        # figure. See the identical logic in api_properties_count() below.
         initial_calc_min_installment = None
+        initial_calc_covered_by_down_payment = False
         if initial_calc_min_price is not None:
-            initial_calc_min_installment = max(0, float(initial_calc_min_price) - INITIAL_DOWN_PAYMENT) / initial_periods
+            initial_calc_price_gap = float(initial_calc_min_price) - INITIAL_DOWN_PAYMENT
+            if initial_calc_price_gap <= 0:
+                initial_calc_covered_by_down_payment = True
+            else:
+                initial_calc_min_installment = initial_calc_price_gap / initial_periods
         initial_sample_units = _serialize_sample_units(initial_calc_base_query)
 
         return render_template(
@@ -610,6 +639,7 @@ def create_app():
             all_developer_names=all_developer_names,
             locations_menu=locations_menu,
             developer_logos=developer_logos,
+            top_partner_developers=top_partner_developers,
             all_unit_types=all_unit_types,
             all_delivery_years=all_delivery_years,
             initial_down_payment=INITIAL_DOWN_PAYMENT,
@@ -619,6 +649,7 @@ def create_app():
             initial_calc_projects=initial_calc_projects,
             initial_calc_min_price=initial_calc_min_price,
             initial_calc_min_installment=initial_calc_min_installment,
+            initial_calc_covered_by_down_payment=initial_calc_covered_by_down_payment,
             initial_sample_units=initial_sample_units,
         )
 
@@ -707,10 +738,19 @@ def create_app():
         # The actual installment the cheapest matching unit would need on
         # these same terms — usually lower than what the visitor said they
         # could afford, which is worth surfacing rather than just echoing
-        # their own input back at them.
+        # their own input back at them. When the down payment alone already
+        # covers the cheapest matching unit (common now that budget resort
+        # units start well under a typical down payment), there's no
+        # meaningful installment to show — surfaced via covered_by_down_payment
+        # instead of a misleading near-zero figure like "EGP 0/month".
         min_installment = None
-        if min_price is not None and periods:
-            min_installment = max(0.0, float(min_price) - down_payment) / periods
+        covered_by_down_payment = False
+        if min_price is not None:
+            price_gap = float(min_price) - down_payment
+            if price_gap <= 0:
+                covered_by_down_payment = True
+            elif periods:
+                min_installment = price_gap / periods
 
         # Consultancy angle: when no area is picked yet, surface the areas
         # that actually have inventory within reach, so the panel can
@@ -742,6 +782,7 @@ def create_app():
             "projects": projects,
             "min_price": min_price,
             "min_installment": min_installment,
+            "covered_by_down_payment": covered_by_down_payment,
             "max_price": max_price,
             "suggested_areas": suggested_areas,
             "sample_units": sample_units,
