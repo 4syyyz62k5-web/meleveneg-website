@@ -948,13 +948,13 @@
 {% endif %}
 
 
-{% if featured %}
+{% if promo_compound %}
 <section class="mv-promo-section">
-    <a class="mv-promo-card" href="{{ url_for('compound_detail', slug=featured[0].slug) }}" style="background-image:url('{{ featured[0].cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
+    <a class="mv-promo-card" href="{{ url_for('compound_detail', slug=promo_compound.slug) }}" style="background-image:url('{{ promo_compound.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');">
       <div class="mv-promo-card__body">
-        <p class="mv-promo-card__eyebrow">{{ featured[0].name }}</p>
-        <p class="mv-promo-card__sub">{{ featured[0].area }}</p>
-        <p class="mv-promo-card__tagline">{{ featured[0].short_description or 'Seaside living redefined. Where luxury meets nature.' }}</p>
+        <p class="mv-promo-card__eyebrow">{{ promo_compound.name }}</p>
+        <p class="mv-promo-card__sub">{{ promo_compound.area }}</p>
+        <p class="mv-promo-card__tagline">{{ promo_compound.short_description or 'Seaside living redefined. Where luxury meets nature.' }}</p>
         <span class="mv-promo-card__cta">Explore Project</span>
       </div>
     </a>

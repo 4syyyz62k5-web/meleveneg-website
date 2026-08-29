@@ -5,7 +5,7 @@ import json
 import os
 import uuid
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import date, datetime
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response, abort
 from werkzeug.utils import secure_filename
@@ -447,6 +447,28 @@ def create_app():
         featured = Compound.query.filter_by(is_featured=True, is_published=True).limit(6).all()
         latest = Compound.query.filter_by(is_published=True).order_by(Compound.created_at.desc()).limit(8).all()
 
+        # Full-bleed promo banner: rotates through the same handpicked
+        # (is_featured) pool the "Featured" grid below already uses, one at a
+        # time, switching to the next automatically every 2 days -- rather
+        # than always showing whichever one the DB happens to return first
+        # (no ORDER BY previously, so it was effectively frozen on one
+        # compound). Ordered by name for a stable, predictable rotation
+        # sequence that doesn't reshuffle if compounds are added/removed from
+        # the pool. ROTATION_EPOCH is the day this rotation started -- day 0
+        # (today, and the day after) lands on index 0 of the alphabetical
+        # list; every 2 days after that it advances to the next one and wraps
+        # back to the start once it reaches the end.
+        promo_pool = (
+            Compound.query.filter_by(is_featured=True, is_published=True)
+            .order_by(Compound.name.asc())
+            .all()
+        )
+        promo_compound = None
+        if promo_pool:
+            ROTATION_EPOCH = date(2026, 8, 29)
+            days_elapsed = max(0, (date.today() - ROTATION_EPOCH).days)
+            promo_compound = promo_pool[(days_elapsed // 2) % len(promo_pool)]
+
         # Grouped by the normalized top-level `location` (New Cairo, North
         # Coast, ...) rather than the free-text `area` sub-area column —
         # `area` is scraped/entered per-compound with no normalization, so
@@ -665,6 +687,7 @@ def create_app():
         return render_template(
             "index.html",
             featured=featured,
+            promo_compound=promo_compound,
             latest=latest,
             top_areas=top_areas,
             new_launches=new_launches,
