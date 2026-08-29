@@ -90,7 +90,7 @@
   {% if locations %}
   <div class="locations-grid">
     {% for loc in locations %}
-    <a class="location-card" href="{{ url_for('location_areas', location_name=loc.name) }}">
+    <a class="location-card" href="{{ url_for('compounds', area=loc.name) }}">
       <div class="location-card__image" style="background-image: url('{{ loc.cover_image_url or url_for('static', filename='img/placeholder.jpg') }}');"></div>
       <div class="location-card__body">
         <p class="location-card__name">{{ loc.name }}</p>
