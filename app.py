@@ -624,11 +624,21 @@ def create_app():
         initial_periods = INITIAL_DURATION_YEARS * 12  # monthly is the default cadence
         initial_max_price = INITIAL_DOWN_PAYMENT + INITIAL_INSTALLMENT * initial_periods
 
+        # Unit.currency == "EGP": down_payment/installment/max_price above are all
+        # entered in EGP (the calculator has no currency selector), so a USD-priced
+        # unit (e.g. several El Gouna resort compounds, priced in USD on nawy.com
+        # and imported with that raw number rather than a converted EGP figure)
+        # would otherwise get compared against an EGP threshold as if its price
+        # were EGP -- wildly wrong in either direction. Simplest correct fix
+        # without inventing an exchange rate: this residential-investment
+        # calculator just doesn't match non-EGP units at all; they're still fully
+        # visible/searchable elsewhere (compound page, /compounds, chatbot).
         initial_calc_base_query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
             .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None),
-                    Unit.price <= initial_max_price, Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
+                    Unit.price <= initial_max_price, Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES),
+                    Unit.currency == "EGP")
         )
         initial_calc_count = initial_calc_base_query.count()
         initial_calc_projects = initial_calc_base_query.with_entities(Compound.id).distinct().count()
@@ -738,11 +748,14 @@ def create_app():
 
         periods, max_price = _calc_periods_and_ceiling(down_payment, installment, cadence, duration_years)
 
+        # Unit.currency == "EGP": see the identical comment on initial_calc_base_query
+        # above -- this calculator's inputs are all EGP, so non-EGP units are
+        # excluded from matching rather than compared against an EGP threshold.
         query = (
             Unit.query
             .join(Compound, Unit.compound_id == Compound.id)
             .filter(Unit.is_available == True, Compound.is_published == True, Unit.price.isnot(None),
-                    Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
+                    Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES), Unit.currency == "EGP")
         )
         if max_price is not None:
             query = query.filter(Unit.price <= max_price)
@@ -785,7 +798,7 @@ def create_app():
                 .join(Compound, Unit.compound_id == Compound.id)
                 .filter(Unit.is_available == True, Compound.is_published == True,
                         Unit.price.isnot(None), Unit.price <= max_price,
-                        Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES))
+                        Unit.unit_type.notin_(NON_RESIDENTIAL_UNIT_TYPES), Unit.currency == "EGP")
             )
             if unit_type:
                 area_query = area_query.filter(Unit.unit_type.ilike(f"%{unit_type}%"))
@@ -1207,15 +1220,21 @@ def create_app():
         if delivery_year:
             query = query.filter(Compound.delivery_year == delivery_year)
 
+        # This filter's inputs are entered in EGP with no currency selector, so a
+        # USD-priced compound (see NON_RESIDENTIAL_UNIT_TYPES's neighboring comment
+        # in api_properties_count() for the same underlying issue) is excluded
+        # from EGP price-range filtering entirely rather than compared against an
+        # EGP threshold as if its min/max_price were EGP -- it's still fully
+        # visible/browsable via every other filter or a direct link.
         if min_price:
             try:
-                query = query.filter(Compound.max_price >= int(min_price))
+                query = query.filter(Compound.max_price >= int(min_price), Compound.currency == "EGP")
             except ValueError:
                 pass
 
         if max_price:
             try:
-                query = query.filter(Compound.min_price <= int(max_price))
+                query = query.filter(Compound.min_price <= int(max_price), Compound.currency == "EGP")
             except ValueError:
                 pass
 
@@ -1660,6 +1679,7 @@ def create_app():
             c.full_description = request.form.get("full_description", "").strip()
             c.min_price = request.form.get("min_price") or None
             c.max_price = request.form.get("max_price") or None
+            c.currency = (request.form.get("currency", "").strip() or "EGP").upper()
             c.land_area_acres = request.form.get("land_area_acres") or None
             c.delivery_year = request.form.get("delivery_year") or None
 
@@ -1805,6 +1825,7 @@ def create_app():
             u.bathrooms = request.form.get("bathrooms") or None
             u.area_sqm = request.form.get("area_sqm") or None
             u.price = request.form.get("price") or None
+            u.currency = (request.form.get("currency", "").strip() or "EGP").upper()
             u.payment_plan = request.form.get("payment_plan", "").strip()
 
             image_url = request.form.get("image_url", "").strip()
@@ -1876,6 +1897,7 @@ def create_app():
                 full_description=(row.get("full_description") or "").strip(),
                 min_price=row.get("min_price") or None,
                 max_price=row.get("max_price") or None,
+                currency=(row.get("currency") or "").strip().upper() or "EGP",
                 land_area_acres=row.get("land_area_acres") or None,
                 delivery_year=row.get("delivery_year") or None,
                 cover_image_url=(row.get("cover_image_url") or "").strip(),
@@ -1927,6 +1949,7 @@ def create_app():
                 bathrooms=row.get("bathrooms") or None,
                 area_sqm=row.get("area_sqm") or None,
                 price=row.get("price") or None,
+                currency=(row.get("currency") or "").strip().upper() or "EGP",
                 payment_plan=(row.get("payment_plan") or "").strip(),
                 image_url=(row.get("image_url") or "").strip(),
                 is_available=parse_bool(row.get("is_available", "true")),

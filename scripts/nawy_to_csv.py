@@ -39,7 +39,7 @@ import os
 import re
 import sys
 import time
-from collections import deque
+from collections import Counter, deque
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -57,7 +57,7 @@ FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape"
 # ---------------------------------------------------------------------------
 COMPOUND_FIELDS = [
     "name", "slug", "developer", "location", "area", "location_detail",
-    "short_description", "full_description", "min_price", "max_price",
+    "short_description", "full_description", "min_price", "max_price", "currency",
     "land_area_acres", "delivery_year", "cover_image_url", "contact_phone",
     "contact_whatsapp", "is_featured", "is_launch", "is_published",
 ]
@@ -71,7 +71,7 @@ REWRITE_PLACEHOLDER = "[REWRITE NEEDED]"
 
 UNIT_FIELDS = [
     "compound_slug", "unit_type", "phase", "delivery_year", "bedrooms",
-    "bathrooms", "area_sqm", "price", "payment_plan", "image_url",
+    "bathrooms", "area_sqm", "price", "currency", "payment_plan", "image_url",
     "is_available", "is_launch",
 ]
 
@@ -174,6 +174,17 @@ COMPOUND_SCHEMA = {
                     "bathrooms": {"type": ["integer", "null"]},
                     "area_sqm": {"type": ["number", "null"]},
                     "price": {"type": ["number", "null"]},
+                    "currency": {
+                        "type": ["string", "null"],
+                        "description": (
+                            "The currency symbol/label shown right next to this specific unit's "
+                            "price (e.g. '$'/'USD' -> \"USD\", 'EGP' -> \"EGP\"). nawy.com prices "
+                            "some compounds (several El Gouna/Red Sea Orascom projects especially) "
+                            "in USD, sometimes mixed with EGP-priced units on the very same page -- "
+                            "read it per-card, never assume/carry over from another card. null only "
+                            "if truly no currency indicator is visible for this card."
+                        ),
+                    },
                     "payment_plan": {"type": ["string", "null"]},
                     "image_url": {"type": ["string", "null"]},
                     "is_available": {
@@ -218,7 +229,10 @@ PROMPT = (
     "values come from — extract those, not the alt-text placeholder. ALSO IMPORTANT: classify every "
     "unit's listing_type by whether its card shows a small colored 'Resale' or 'Nawy Now' tag/badge "
     "near the image — present means that type, absent entirely means 'Primary' (Developer Sale). "
-    "Use 'Unknown' only if you genuinely cannot tell."
+    "Use 'Unknown' only if you genuinely cannot tell. ALSO IMPORTANT: read each card's currency "
+    "from the symbol/label printed right next to ITS OWN price ('$' or 'USD' -> \"USD\", 'EGP' -> "
+    "\"EGP\") — nawy.com prices some compounds in USD, and a single page can even mix USD and EGP "
+    "cards, so check every card individually rather than assuming the whole page shares one currency."
 )
 
 
@@ -506,6 +520,7 @@ def _unit_base_row(u, slug):
         "bathrooms": u.get("bathrooms") or "",
         "area_sqm": u.get("area_sqm") or "",
         "price": u.get("price") or "",
+        "currency": (u.get("currency") or "EGP").strip().upper() or "EGP",
         "payment_plan": u.get("payment_plan") or "",
         "image_url": u.get("image_url") or "",
         "is_available": "false" if u.get("is_available") is False else "true",
@@ -540,6 +555,24 @@ def build_rows(fields, units, used_slugs):
 
     about_text_raw = (fields.get("full_description") or fields.get("short_description") or "").strip()
 
+    unit_rows = []
+    for u in units:
+        row = _unit_base_row(u, slug)
+        assert set(row.keys()) == set(UNIT_FIELDS), "unit row columns drifted from UNIT_FIELDS"
+        assert len(row) == len(UNIT_FIELDS), "unit row column count != header column count"
+        unit_rows.append(row)
+
+    # Compound.currency is one value, but units are extracted per-card (see the
+    # PROMPT/schema note on currency above) and a page can genuinely mix EGP and
+    # USD cards (seen on real nawy.com pages, e.g. Kamaran in El Gouna). Take the
+    # majority currency among this compound's own Primary units for the
+    # compound-level field (used by price_range_display() etc) and report any
+    # minority currency back to the caller so it can be surfaced as a warning
+    # rather than silently dropped.
+    currency_counts = Counter(row["currency"] for row in unit_rows)
+    compound_currency = currency_counts.most_common(1)[0][0] if currency_counts else "EGP"
+    mixed_currencies = sorted(currency_counts) if len(currency_counts) > 1 else []
+
     compound_row = {
         "name": name,
         "slug": slug,
@@ -552,6 +585,7 @@ def build_rows(fields, units, used_slugs):
         "full_description": REWRITE_PLACEHOLDER,
         "min_price": min_price,
         "max_price": max_price,
+        "currency": compound_currency,
         "land_area_acres": fields.get("land_area_acres") or "",
         "delivery_year": fields.get("delivery_year") or "",
         "cover_image_url": fields.get("cover_image_url") or "",
@@ -566,14 +600,7 @@ def build_rows(fields, units, used_slugs):
     assert set(compound_row.keys()) == set(COMPOUND_FIELDS), "compound row columns drifted from COMPOUND_FIELDS"
     assert len(compound_row) == len(COMPOUND_FIELDS), "compound row column count != header column count"
 
-    unit_rows = []
-    for u in units:
-        row = _unit_base_row(u, slug)
-        assert set(row.keys()) == set(UNIT_FIELDS), "unit row columns drifted from UNIT_FIELDS"
-        assert len(row) == len(UNIT_FIELDS), "unit row column count != header column count"
-        unit_rows.append(row)
-
-    return compound_row, unit_rows, about_text_raw
+    return compound_row, unit_rows, about_text_raw, mixed_currencies
 
 
 def write_csv(path, fieldnames, rows, append=False):
@@ -657,13 +684,21 @@ def main():
         primary_units, excluded_units = filter_primary_units(units)
         unknown_kept = sum(1 for u in primary_units if (u.get("listing_type") or "Unknown") == "Unknown")
 
-        crow, urows, about_text_raw = build_rows(fields, primary_units, used_slugs)
+        crow, urows, about_text_raw, mixed_currencies = build_rows(fields, primary_units, used_slugs)
         excluded_rows = build_excluded_rows(excluded_units, crow["slug"])
         compound_path, units_path, excluded_path = write_compound_output(out_dir, crow, urows, about_text_raw, excluded_rows)
         written.append((
             crow["name"], crow["slug"], compound_path, units_path, excluded_path,
             len(urows), len(excluded_rows), unknown_kept, total_advertised, pages_fetched,
         ))
+
+        if mixed_currencies:
+            all_warnings.append(
+                f"[{url}] '{crow['name']}' has Primary units in more than one currency "
+                f"({', '.join(mixed_currencies)}) — compound_row.currency was set to the majority "
+                f"one ('{crow['currency']}'); check units.csv's own currency column per row before "
+                f"importing, a minority-currency unit needs its price double-checked."
+            )
 
         summary = f"  -> '{crow['name']}' (slug={crow['slug']}): {len(urows)} Primary unit(s)"
         if excluded_rows:

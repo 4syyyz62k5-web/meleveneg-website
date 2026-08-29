@@ -24,12 +24,19 @@
         <textarea name="full_description" rows="5">{{ compound.full_description if compound else '' }}</textarea>
         <div class="admin-form-row">
             <div>
-                <label>Min Price (EGP)</label>
+                <label>Min Price</label>
                 <input type="number" name="min_price" value="{{ compound.min_price if (compound and compound.min_price is not none) else '' }}">
             </div>
             <div>
-                <label>Max Price (EGP)</label>
+                <label>Max Price</label>
                 <input type="number" name="max_price" value="{{ compound.max_price if (compound and compound.max_price is not none) else '' }}">
+            </div>
+            <div>
+                <label>Currency</label>
+                <select name="currency">
+                    <option value="EGP" {% if not compound or not compound.currency or compound.currency == 'EGP' %}selected{% endif %}>EGP</option>
+                    <option value="USD" {% if compound and compound.currency == 'USD' %}selected{% endif %}>USD</option>
+                </select>
             </div>
         </div>
         <div class="admin-form-row">

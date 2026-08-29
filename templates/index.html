@@ -925,7 +925,7 @@
             {% endif %}
             <p class="mv-launch-card__meta">{{ c.area }}</p>
             {% if c.min_price %}
-            <p class="mv-launch-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+            <p class="mv-launch-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} {{ c.currency or 'EGP' }}</span></p>
             {% else %}
             <p class="mv-launch-card__price">Price on request</p>
             {% endif %}
@@ -1051,7 +1051,7 @@
                     </span>
                     {% endif %}
                     {% if c.min_price %}
-                    <p class="mv-property-card__price">From <span>EGP {{ "{:,.0f}".format(c.min_price) }}</span></p>
+                    <p class="mv-property-card__price">From <span>{{ c.currency or 'EGP' }} {{ "{:,.0f}".format(c.min_price) }}</span></p>
                     {% else %}
                     <p class="mv-property-card__price">Price on request</p>
                     {% endif %}
@@ -1301,7 +1301,7 @@
                     <p class="mv-property-card__name">{{ c.name }}</p>
                     <p class="mv-property-card__meta">{{ c.area }}</p>
                     {% if c.min_price %}
-                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} EGP</span></p>
+                    <p class="mv-property-card__price">Starting <span>{{ "{:,.0f}".format(c.min_price) }} {{ c.currency or 'EGP' }}</span></p>
                     {% else %}
                     <p class="mv-property-card__price">Price on request</p>
                     {% endif %}

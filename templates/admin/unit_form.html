@@ -31,8 +31,15 @@
                 <input type="number" step="0.01" name="area_sqm" value="{{ unit.area_sqm if unit.area_sqm is not none else '' }}">
             </div>
             <div>
-                <label>Price (EGP)</label>
+                <label>Price</label>
                 <input type="number" step="0.01" name="price" value="{{ unit.price if unit.price is not none else '' }}">
+            </div>
+            <div>
+                <label>Currency</label>
+                <select name="currency">
+                    <option value="EGP" {% if not unit.currency or unit.currency == 'EGP' %}selected{% endif %}>EGP</option>
+                    <option value="USD" {% if unit.currency == 'USD' %}selected{% endif %}>USD</option>
+                </select>
             </div>
         </div>
 
