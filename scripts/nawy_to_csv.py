@@ -355,7 +355,24 @@ def is_same_compound(url, prefix):
     (a property detail page, a /<Type> filter, pagination, etc). False for links to a DIFFERENT
     compound — nawy.com pages commonly surface "similar/nearby compounds" recommendation links,
     and without this check those get mistaken for legitimate drill-in links, silently pulling in
-    another project's units under the wrong compound_slug."""
+    another project's units under the wrong compound_slug.
+
+    DO NOT "FIX" THIS BY ALLOWING /search?compound=<id>-<slug> THROUGH.
+    Big compounds (Amwaj, Taj City, HAPTown) show a large advertised unit count on their own
+    page — "1600 units" — while yielding 0 Primary units to the crawl, and their pages link out
+    to `/search?category=developer-sale&compound=<id>-<slug>`. Those links look exactly like the
+    missing inventory, and this guard rejects them, which reads like the bug. It is not.
+    That search endpoint IGNORES its own `compound=` filter and returns a generic sitewide
+    listing: fetching it for Amwaj, Taj City and HAPTown returned byte-identical results for all
+    three (same "1858 total", same 12 cards), and those cards belonged to entirely unrelated
+    compounds — a 165,500,000 Yemm Views villa in Ras El Hekma, a 31,190,000 El Patio Town Side
+    twinhouse in New Cairo, and so on. Whitelisting these URLs would import other regions' units
+    under the wrong compound at wrong prices, which is precisely the failure this guard exists
+    to prevent.
+    The large advertised counts on those pages are aggregate marketing figures, not live
+    listings; the only genuinely listed units for such compounds are Resale/Nawy Now, which the
+    import policy excludes. 0 Primary units is therefore the CORRECT result for them, not a
+    crawl failure — verified September 2026."""
     if not prefix:
         return False
     from urllib.parse import urlparse
@@ -485,10 +502,19 @@ def crawl_compound(entry_url, api_key, max_pages, sleep_s, log):
             total_advertised = counted
 
     if total_advertised is not None and len(units) < total_advertised:
+        # Deliberately worded as "check manually" rather than only suggesting --max-pages:
+        # a large gap here is often NOT a crawl shortfall. On big established compounds the
+        # advertised figure is an aggregate marketing number with no live Primary listings
+        # behind it, and raising --max-pages changes nothing (Amwaj: 1600 advertised, 0
+        # extracted, unchanged at --max-pages 80 because only 5 pages exist to fetch).
+        # See the warning block in is_same_compound() before attempting to "reach" the
+        # missing units via /search?compound= links — that path yields other compounds' units.
         warnings.append(
             f"Page(s) advertise {total_advertised} unit(s) but only {len(units)} were extracted "
-            f"— likely more pagination or drill-in branches than were crawled. Re-run with a "
-            f"higher --max-pages, or check the URL(s) manually."
+            f"— either more pagination/drill-in branches than were crawled, or the advertised "
+            f"figure is an aggregate with no live Primary listings behind it. Try a higher "
+            f"--max-pages; if that changes nothing, check the URL(s) manually and see the "
+            f"warning in is_same_compound() before trying /search?compound= links."
         )
 
     return compound_fields, units, total_advertised, warnings, pages_fetched
