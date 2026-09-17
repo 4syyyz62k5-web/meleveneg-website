@@ -523,6 +523,11 @@ def create_app():
         # recently added first. Falls back to the old "soonest delivery
         # year" sort if nothing has been flagged yet, so the section never
         # sits empty while launch flags are still being set in the admin.
+        # Cap sized to fit however many compounds are genuinely flagged right now
+        # (14 as of this change). It's a display cap, not a curation rule -- what
+        # belongs in the section is decided by the is_launch flag in the admin, so
+        # raise this if more compounds get flagged than it currently allows,
+        # otherwise the newest ones silently push older flagged ones out of view.
         new_launches = (
             Compound.query
             .outerjoin(Unit, Unit.compound_id == Compound.id)
@@ -532,7 +537,7 @@ def create_app():
             )
             .distinct()
             .order_by(Compound.created_at.desc())
-            .limit(8)
+            .limit(14)
             .all()
         )
         if not new_launches:
