@@ -947,6 +947,113 @@
 </section>
 {% endif %}
 
+<section class="section" style="background:var(--color-navy-dark);">
+  <div class="container">
+    <div style="text-align:center; max-width:620px; margin:0 auto 26px auto;">
+      <p class="mv-eyebrow">Plan Your Investment</p>
+      <h2 class="mv-title" style="color:var(--color-white);">Find Properties Within Your Budget</h2>
+    </div>
+    <div class="mv-calc-card">
+      <label class="mv-calc-label" for="calc-downpayment-slider">How much down payment do you have?</label>
+      <input type="text" id="calc-downpayment-display" class="mv-calc-budget-display" value="{{ '{:,.0f}'.format(initial_down_payment) }}" readonly>
+      <input type="range" id="calc-downpayment-slider" class="mv-calc-slider" min="0" max="20000000" step="100000" value="{{ initial_down_payment }}">
+
+      <div class="mv-calc-installment-row">
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-installment">Installment I can afford <span class="mv-calc-required">*</span></label>
+          <input type="number" id="calc-installment" class="mv-calc-input" min="1000" step="1000" value="{{ initial_installment }}" required>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label">Frequency</label>
+          <div class="mv-calc-toggle" id="calc-cadence-toggle" role="group" aria-label="Installment frequency">
+            <button type="button" class="mv-calc-toggle__btn is-active" data-cadence="monthly">Monthly</button>
+            <button type="button" class="mv-calc-toggle__btn" data-cadence="quarterly">Quarterly</button>
+          </div>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-duration">Installment Duration</label>
+          <select id="calc-duration" class="mv-calc-select">
+            {% for y in [5, 6, 7, 8, 10, 12] %}
+            <option value="{{ y }}" {{ 'selected' if y == initial_duration_years else '' }}>{{ y }} Years</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="mv-calc-filters-grid">
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-area">Area</label>
+          <select id="calc-area" class="mv-calc-select">
+            <option value="">Any area</option>
+            {% for a in all_area_names %}
+            <option value="{{ a }}">{{ a }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-type">Property Type</label>
+          <select id="calc-type" class="mv-calc-select">
+            <option value="">Any type</option>
+            {% for t in all_unit_types %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mv-calc-filter">
+          <label class="mv-calc-label" for="calc-delivery">Delivery</label>
+          <select id="calc-delivery" class="mv-calc-select">
+            <option value="">Any year</option>
+            {% for y in all_delivery_years %}
+            <option value="{{ y }}">{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="mv-calc-match">
+        <p class="mv-calc-match__title">Your Match</p>
+        <ul class="mv-calc-match__list">
+          <li><span class="mv-calc-check">✓</span> <span id="calc-projects">{{ initial_calc_projects }}</span> Project{{ 's' if initial_calc_projects != 1 else '' }}</li>
+          <li><span class="mv-calc-check">✓</span> <span id="calc-count">{{ initial_calc_count }}</span> Units</li>
+          <li><span class="mv-calc-check">✓</span> Starting from <span id="calc-minprice">{{ "{:,.0f}".format(initial_calc_min_price) if initial_calc_min_price else '—' }}</span> EGP</li>
+          <li>
+            <span class="mv-calc-check">✓</span>
+            <span id="calc-installment-value" style="{{ '' if initial_calc_min_installment is not none else 'display:none;' }}">Installments from EGP <span id="calc-monthly">{{ "{:,.0f}".format(initial_calc_min_installment) if initial_calc_min_installment is not none else '0' }}</span>/<span id="calc-period-label">month</span></span>
+            <span id="calc-installment-covered" style="{{ '' if initial_calc_covered_by_down_payment else 'display:none;' }}">Covered by your down payment</span>
+            <span id="calc-installment-empty" style="{{ '' if (initial_calc_min_installment is none and not initial_calc_covered_by_down_payment) else 'display:none;' }}">—</span>
+          </li>
+        </ul>
+        <p class="mv-calc-suggest" id="calc-suggest" style="display:none;"></p>
+      </div>
+
+      <div class="mv-calc-sample" id="calc-sample" {% if not initial_sample_units %}style="display:none;"{% endif %}>
+        <p class="mv-calc-sample__title">Matching Properties</p>
+        <div class="mv-calc-sample__grid" id="calc-sample-grid">
+          {% for u in initial_sample_units %}
+          <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound_slug) }}">
+            <img class="mv-unit-card__thumb" src="{{ u.image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ u.unit_type or u.compound_name }}" loading="lazy">
+            <div class="mv-unit-card__body">
+              <p class="mv-unit-card__compound">{{ u.compound_name }}</p>
+              <p class="mv-unit-card__type">{{ u.unit_type or 'Unit' }}</p>
+              <p class="mv-unit-card__facts">
+                {% if u.bedrooms %}<span>{{ u.bedrooms }} Bed</span>{% endif %}
+                {% if u.bathrooms %}<span>{{ u.bathrooms }} Bath</span>{% endif %}
+                {% if u.area_sqm %}<span>{{ u.area_sqm|int }} m²</span>{% endif %}
+              </p>
+              <p class="mv-unit-card__price">{{ "{:,.0f}".format(u.price) if u.price else "On request" }} EGP</p>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">See My Matches</a>
+      <p class="mv-calc-disclaimer">Estimate based on your own down payment, installment and duration — actual payment plans vary by developer.</p>
+    </div>
+  </div>
+</section>
+
+
 
 {% if promo_compound %}
 <section class="mv-promo-section">
@@ -1072,111 +1179,6 @@
 
 
 
-<section class="section" style="background:var(--color-navy-dark);">
-  <div class="container">
-    <div style="text-align:center; max-width:620px; margin:0 auto 26px auto;">
-      <p class="mv-eyebrow">Plan Your Investment</p>
-      <h2 class="mv-title" style="color:var(--color-white);">Find Properties Within Your Budget</h2>
-    </div>
-    <div class="mv-calc-card">
-      <label class="mv-calc-label" for="calc-downpayment-slider">How much down payment do you have?</label>
-      <input type="text" id="calc-downpayment-display" class="mv-calc-budget-display" value="{{ '{:,.0f}'.format(initial_down_payment) }}" readonly>
-      <input type="range" id="calc-downpayment-slider" class="mv-calc-slider" min="0" max="20000000" step="100000" value="{{ initial_down_payment }}">
-
-      <div class="mv-calc-installment-row">
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-installment">Installment I can afford <span class="mv-calc-required">*</span></label>
-          <input type="number" id="calc-installment" class="mv-calc-input" min="1000" step="1000" value="{{ initial_installment }}" required>
-        </div>
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label">Frequency</label>
-          <div class="mv-calc-toggle" id="calc-cadence-toggle" role="group" aria-label="Installment frequency">
-            <button type="button" class="mv-calc-toggle__btn is-active" data-cadence="monthly">Monthly</button>
-            <button type="button" class="mv-calc-toggle__btn" data-cadence="quarterly">Quarterly</button>
-          </div>
-        </div>
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-duration">Installment Duration</label>
-          <select id="calc-duration" class="mv-calc-select">
-            {% for y in [5, 6, 7, 8, 10, 12] %}
-            <option value="{{ y }}" {{ 'selected' if y == initial_duration_years else '' }}>{{ y }} Years</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <div class="mv-calc-filters-grid">
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-area">Area</label>
-          <select id="calc-area" class="mv-calc-select">
-            <option value="">Any area</option>
-            {% for a in all_area_names %}
-            <option value="{{ a }}">{{ a }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-type">Property Type</label>
-          <select id="calc-type" class="mv-calc-select">
-            <option value="">Any type</option>
-            {% for t in all_unit_types %}
-            <option value="{{ t }}">{{ t }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="mv-calc-filter">
-          <label class="mv-calc-label" for="calc-delivery">Delivery</label>
-          <select id="calc-delivery" class="mv-calc-select">
-            <option value="">Any year</option>
-            {% for y in all_delivery_years %}
-            <option value="{{ y }}">{{ y }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <div class="mv-calc-match">
-        <p class="mv-calc-match__title">Your Match</p>
-        <ul class="mv-calc-match__list">
-          <li><span class="mv-calc-check">✓</span> <span id="calc-projects">{{ initial_calc_projects }}</span> Project{{ 's' if initial_calc_projects != 1 else '' }}</li>
-          <li><span class="mv-calc-check">✓</span> <span id="calc-count">{{ initial_calc_count }}</span> Units</li>
-          <li><span class="mv-calc-check">✓</span> Starting from <span id="calc-minprice">{{ "{:,.0f}".format(initial_calc_min_price) if initial_calc_min_price else '—' }}</span> EGP</li>
-          <li>
-            <span class="mv-calc-check">✓</span>
-            <span id="calc-installment-value" style="{{ '' if initial_calc_min_installment is not none else 'display:none;' }}">Installments from EGP <span id="calc-monthly">{{ "{:,.0f}".format(initial_calc_min_installment) if initial_calc_min_installment is not none else '0' }}</span>/<span id="calc-period-label">month</span></span>
-            <span id="calc-installment-covered" style="{{ '' if initial_calc_covered_by_down_payment else 'display:none;' }}">Covered by your down payment</span>
-            <span id="calc-installment-empty" style="{{ '' if (initial_calc_min_installment is none and not initial_calc_covered_by_down_payment) else 'display:none;' }}">—</span>
-          </li>
-        </ul>
-        <p class="mv-calc-suggest" id="calc-suggest" style="display:none;"></p>
-      </div>
-
-      <div class="mv-calc-sample" id="calc-sample" {% if not initial_sample_units %}style="display:none;"{% endif %}>
-        <p class="mv-calc-sample__title">Matching Properties</p>
-        <div class="mv-calc-sample__grid" id="calc-sample-grid">
-          {% for u in initial_sample_units %}
-          <a class="mv-unit-card" href="{{ url_for('compound_detail', slug=u.compound_slug) }}">
-            <img class="mv-unit-card__thumb" src="{{ u.image_url or url_for('static', filename='img/placeholder.jpg') }}" alt="{{ u.unit_type or u.compound_name }}" loading="lazy">
-            <div class="mv-unit-card__body">
-              <p class="mv-unit-card__compound">{{ u.compound_name }}</p>
-              <p class="mv-unit-card__type">{{ u.unit_type or 'Unit' }}</p>
-              <p class="mv-unit-card__facts">
-                {% if u.bedrooms %}<span>{{ u.bedrooms }} Bed</span>{% endif %}
-                {% if u.bathrooms %}<span>{{ u.bathrooms }} Bath</span>{% endif %}
-                {% if u.area_sqm %}<span>{{ u.area_sqm|int }} m²</span>{% endif %}
-              </p>
-              <p class="mv-unit-card__price">{{ "{:,.0f}".format(u.price) if u.price else "On request" }} EGP</p>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-
-      <a href="{{ url_for('compounds') }}" id="calc-cta" class="hero-cta hero-cta--primary mv-calc-cta">See My Matches</a>
-      <p class="mv-calc-disclaimer">Estimate based on your own down payment, installment and duration — actual payment plans vary by developer.</p>
-    </div>
-  </div>
-</section>
 
 
 
