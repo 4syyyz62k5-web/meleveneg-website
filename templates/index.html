@@ -893,7 +893,12 @@
 
 
 {% if new_launches %}
-<section class="mv-section mv-section--dark">
+{# Light background on purpose: this sits between the navy hero-stats strip above
+   and the navy calculator below, so a white band separates the three instead of
+   letting them read as one continuous dark block. The photo cards carry their own
+   navy background and scrim, so they stand on a light section unchanged; only the
+   dots need the --light variant to stay visible. #}
+<section class="mv-section">
   <div class="container">
     <div class="mv-section__head">
       <div>
@@ -945,7 +950,7 @@
         {% endfor %}
       </div>
     </div>
-    <div class="mv-dots" id="launches-dots"></div>
+    <div class="mv-dots mv-dots--light" id="launches-dots"></div>
   </div>
 </section>
 {% endif %}
