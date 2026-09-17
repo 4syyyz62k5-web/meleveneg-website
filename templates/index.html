@@ -894,11 +894,13 @@
 
 {% if new_launches %}
 {# Light background on purpose: this sits between the navy hero-stats strip above
-   and the navy calculator below, so a white band separates the three instead of
-   letting them read as one continuous dark block. The photo cards carry their own
-   navy background and scrim, so they stand on a light section unchanged; only the
-   dots need the --light variant to stay visible. #}
-<section class="mv-section">
+   and the navy calculator below, so a light band separates the three instead of
+   letting them read as one continuous dark block. Cream rather than the page's
+   plain white, matching the other light sections on this page and softening the
+   edge against the navy. The photo cards carry their own navy background and
+   scrim, so they stand on a light section unchanged; only the dots need the
+   --light variant to stay visible. #}
+<section class="mv-section" style="background:var(--color-cream);">
   <div class="container">
     <div class="mv-section__head">
       <div>
