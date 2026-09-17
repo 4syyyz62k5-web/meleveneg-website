@@ -522,7 +522,10 @@
   }
 
   /* ---------- Carousel dot pagination (New Launches / Featured) ---------- */
-  .mv-dots{ display: flex; justify-content: center; gap: 7px; margin-top: 16px; }
+  /* One dot per card, so the row grows with however many compounds are flagged.
+     flex-wrap keeps it from overflowing a narrow screen once that count gets
+     high (~24 dots is roughly where a single row stops fitting a 360px phone). */
+  .mv-dots{ display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 16px; }
   .mv-dot{
     width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.25);
     border: none; padding: 0; cursor: pointer; transition: background .2s ease, width .2s ease;
