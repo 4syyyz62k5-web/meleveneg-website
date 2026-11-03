@@ -711,3 +711,17 @@ h1, h2, h3 {
   }
   .chat-widget-bubble { right: 16px; }
 }
+
+
+/* Decoy field for the public forms. Positioned off-canvas rather than
+   display:none or type=hidden -- see the comment in app.py's
+   honeypot_tripped(). Must stay invisible but still be a real, fillable
+   input in the DOM, so do not switch this to display:none. */
+.hp-field {
+    position: absolute !important;
+    left: -9999px !important;
+    top: auto !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+}

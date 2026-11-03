@@ -38,6 +38,11 @@
   <div class="container narrow">
     <form method="post" action="{{ url_for('list_property') }}" enctype="multipart/form-data" class="lp-form" id="lp-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="hp-field" aria-hidden="true">
+            <label for="hp-lp">Website</label>
+            <input type="text" id="hp-lp" name="{{ honeypot_field }}" tabindex="-1" autocomplete="off">
+        </div>
+        <input type="hidden" name="form_ts" value="{{ form_timestamp() }}">
 
       <label for="lp-type">Listing Type *</label>
       <select name="listing_type" id="lp-type" required>

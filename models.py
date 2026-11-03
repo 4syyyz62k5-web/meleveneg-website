@@ -73,6 +73,14 @@ class Lead(db.Model):
     listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"), nullable=True)
     listing = db.relationship("Listing")
     source_page = db.Column(db.String(255))  # which page the lead came from
+
+    # A link in `message` is allowed -- a real enquiry can reasonably paste a
+    # listing or a Facebook page -- so it is marked for a human to glance at
+    # rather than refused. Everywhere else a link is refused outright; this
+    # column exists only because `message` is the one field where refusing
+    # would cost more than it saves.
+    flagged = db.Column(db.Boolean, default=False)
+    flag_reason = db.Column(db.String(255))
     # Once Circles integration is built, this flags whether the lead has been pushed there
     synced_to_circles = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

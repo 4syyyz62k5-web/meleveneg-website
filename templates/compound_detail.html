@@ -83,6 +83,11 @@
                 <p>Leave your details and our team will contact you.</p>
                 <form action="{{ url_for('compound_interested', slug=compound.slug) }}" method="post" class="inquiry-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="hp-field" aria-hidden="true">
+            <label for="hp-compound">Website</label>
+            <input type="text" id="hp-compound" name="{{ honeypot_field }}" tabindex="-1" autocomplete="off">
+        </div>
+        <input type="hidden" name="form_ts" value="{{ form_timestamp() }}">
                     <input type="text" name="name" placeholder="Full Name" required>
                     <input type="tel" name="phone" placeholder="Phone Number" required>
                     <input type="email" name="email" placeholder="Email (optional)">

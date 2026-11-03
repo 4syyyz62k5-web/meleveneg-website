@@ -68,14 +68,27 @@
         </a>
     </div>
 
+    {% if status_filter == 'pending' and listings %}
+    <form method="post" action="{{ url_for('admin_listings_reject_under_minimum') }}"
+          onsubmit="return confirm('Reject every pending listing priced below the minimum for its type? Rows with no price are left alone. This can be undone per row.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="admin-delete-btn">Reject all pending under minimum price</button>
+    </form>
+    {% endif %}
+
     {% if listings %}
+    <form method="post" action="{{ url_for('admin_listings_bulk_reject') }}" id="bulk-form"
+          onsubmit="return confirm('Reject the selected listing(s)?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="return_to" value="{{ status_filter }}">
     <table class="admin-table">
         <thead>
-            <tr><th>Title</th><th>Type</th><th>Area</th><th>Price / Rent</th><th>Seller</th><th>Source</th><th>Submitted</th><th>Status</th><th></th></tr>
+            <tr><th><input type="checkbox" id="bulk-all" title="Select all"></th><th>Title</th><th>Type</th><th>Area</th><th>Price / Rent</th><th>Seller</th><th>Source</th><th>Submitted</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
             {% for l in listings %}
             <tr>
+                <td><input type="checkbox" name="listing_ids" value="{{ l.id }}"></td>
                 <td>{{ l.title }}</td>
                 <td>{{ l.listing_type_label() }}</td>
                 <td>{{ l.area or l.location or '-' }}</td>
@@ -97,6 +110,20 @@
             {% endfor %}
         </tbody>
     </table>
+    <div class="admin-form-actions">
+        <button type="submit" class="admin-delete-btn">Reject selected</button>
+    </div>
+    </form>
+    <script>
+    (function(){
+      var all = document.getElementById('bulk-all');
+      if (!all) return;
+      all.addEventListener('change', function(){
+        document.querySelectorAll('#bulk-form input[name="listing_ids"]')
+          .forEach(function(cb){ cb.checked = all.checked; });
+      });
+    })();
+    </script>
     {% else %}
     <p class="empty-state">No listings in this category yet.</p>
     {% endif %}

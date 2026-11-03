@@ -3,11 +3,12 @@ import csv
 import io
 import json
 import os
+from datetime import datetime, timezone
 import uuid
 import xml.etree.ElementTree as ET
 from datetime import date, datetime
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, Response, abort, current_app
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
@@ -24,15 +25,53 @@ import anthropic
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing
 
-# Rate-limits the public API (see /api/public/* below) -- in-memory storage,
-# per-process. Fine at the current scale/single-service deployment; would
-# need a shared backend (e.g. Redis) if this ever runs as multiple
-# instances/dynos, since each process would then enforce its own separate
-# budget instead of one shared one.
-limiter = Limiter(key_func=get_remote_address)
+def client_ip():
+    """The visitor's own address, for rate-limiting purposes.
+
+    get_remote_address() returns request.remote_addr, which behind Cloudflare
+    and Render is a PROXY. Keying limits on it does not count per visitor at
+    all -- it lumps the whole internet into a handful of buckets, so the
+    spammer sending one request every few days never touches a limit while
+    three unrelated people submitting in the same minute lock out the fourth.
+    Cloudflare puts the real client in CF-Connecting-IP and rewrites it on
+    every request, so a visitor cannot forge it.
+
+    THE HEADER IS ONLY BELIEVED ON A CLOUDFLARE-FRONTED HOST, and that guard
+    is the whole point of this function. A Render service also answers on its
+    own <service>.onrender.com name, which Cloudflare never sees. A request
+    sent straight there can carry any CF-Connecting-IP it likes and get a
+    fresh, empty rate-limit bucket for every single request -- which would
+    make every limit below decorative. So the header counts only when the Host
+    is one we know sits behind Cloudflare (Config.TRUSTED_CF_HOSTS); on any
+    other host we fall back to the socket address, which cannot be chosen by
+    the caller. If the site ever moves domain, that list has to move with it.
+    """
+    host = (request.host or "").split(":")[0].lower()
+    if host in current_app.config.get("TRUSTED_CF_HOSTS", set()):
+        cf = request.headers.get("CF-Connecting-IP", "").strip()
+        if cf:
+            return cf
+        # Behind Cloudflare, XFF's leftmost entry is the client. Only read it
+        # on a trusted host, for exactly the reason above.
+        xff = request.headers.get("X-Forwarded-For", "")
+        if xff:
+            first = xff.split(",")[0].strip()
+            if first:
+                return first
+    return get_remote_address()
+
+
+# In-memory storage, per-process. With a single gunicorn worker that is one
+# shared budget, which is what the numbers in Config assume. Every extra
+# worker multiplies every limit, because each process counts on its own --
+# so if Render is running more than one, either the worker count comes down
+# to 1 or this needs a shared backend (Redis) to mean anything.
+limiter = Limiter(key_func=client_ip)
 
 # Flask-WTF was in requirements.txt from the start and never wired in, so
 # every POST in this app -- the admin login, every admin create/edit/delete,
@@ -349,6 +388,239 @@ LISTING_ENUMS = {
 }
 
 
+# --------------------------------------------------------------------------
+# Spam defences for the public forms.
+#
+# These exist because of what actually arrived: titles and areas like
+# "Cqgnhdtqpj" and "Mzdmvx", prices of 7, 25, 67 and 73 EGP, one request every
+# few days. Slow, crude, and all of it before CSRF and rate limiting existed.
+#
+# Every check below answers "could a person have typed this", never "is this
+# person a spammer". That distinction is the whole design: a wrong guess here
+# refuses a real seller their listing, so each rule has to be one a human
+# would never trip, and each is a separate small rule rather than one score,
+# so a refusal can say which one it was.
+
+ARABIC_RE = re.compile(r"[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]")
+VOWELS = set("aeiouy")
+LINK_RE = re.compile(
+    r"(https?://|www\.|\b[a-z0-9][a-z0-9-]{1,}\.(?:com|net|org|ru|xyz|top|club|online|site|info|biz|link|shop)\b)",
+    re.IGNORECASE)
+
+HONEYPOT_FIELD = "company_website"
+FORM_TS_FIELD = "form_ts"
+_FORM_TS_SALT = "meleven-form-timestamp"
+
+
+def has_arabic(text):
+    return bool(ARABIC_RE.search(text or ""))
+
+
+def contains_link(text):
+    return bool(LINK_RE.search(text or ""))
+
+
+def _case_flips(token):
+    """Times the case changes inside one token: 'aBcD' is 3.
+
+    Random mixed-case strings do this; names do not. 'PK2' and 'SODIC' and
+    'Palm' all score 0 or 1.
+    """
+    flips = 0
+    letters = [ch for ch in token if ch.isalpha()]
+    for a, b in zip(letters, letters[1:]):
+        if a.isupper() != b.isupper():
+            flips += 1
+    return flips
+
+
+def _longest_consonant_run(token):
+    run = best = 0
+    for ch in token.lower():
+        if ch.isalpha() and ch not in VOWELS:
+            run += 1
+            best = max(best, run)
+        else:
+            run = 0
+    return best
+
+
+def is_gibberish(text, field="text"):
+    """(bad, reason) -- reason is shown to the submitter, so it has to be plain.
+
+    ARABIC IS EXEMPT FROM THE LETTER RULES. The vowel and consonant-run tests
+    are facts about Latin spelling; Arabic script has no Latin vowels at all,
+    so applying them would refuse every Arabic title ever written. Case
+    flipping is moot there too -- Arabic has no case. Length and shape still
+    apply.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return False, ""
+
+    cfg = current_app.config
+    if len(raw) < cfg["TEXT_MIN_LENGTH"]:
+        return True, f"The {field} is too short to be a real one."
+
+    # Unbroken wall of characters -- applies whatever the script, because the
+    # test is about shape, not spelling.
+    if " " not in raw and len(raw) >= cfg["TEXT_MAX_UNSPACED"]:
+        return True, (f"The {field} looks like one long run of characters. "
+                      f"Please write it as words.")
+
+    if has_arabic(raw):
+        return False, ""
+
+    for token in re.split(r"[\s\-_/,.()]+", raw):
+        letters = [ch for ch in token if ch.isalpha()]
+        if len(letters) < 4:
+            # Short tokens are where the real names live: PX, PK2, 6th, El.
+            continue
+        if not (set(token.lower()) & VOWELS):
+            return True, (f"'{token}' in the {field} has no vowels, so it "
+                          f"reads as random characters rather than a word.")
+        if _longest_consonant_run(token) >= cfg["TEXT_MAX_CONSONANT_RUN"]:
+            return True, (f"'{token}' in the {field} has too many consonants "
+                          f"in a row to be a word.")
+        if _case_flips(token) >= cfg["TEXT_MAX_CASE_FLIPS"]:
+            return True, (f"'{token}' in the {field} mixes upper and lower "
+                          f"case in a way that reads as generated.")
+    return False, ""
+
+
+def form_timestamp():
+    """A signed 'this form was rendered now' token, for the templates.
+
+    Signed rather than a plain number so a script cannot post a fabricated
+    older timestamp to clear the minimum-fill-time check.
+    """
+    return URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"], salt=_FORM_TS_SALT).dumps("")
+
+
+def check_form_timing(form):
+    """(verdict, message) where verdict is 'ok', 'too_fast' or 'stale'.
+
+    'too_fast' is a silent reject at the call site -- telling a bot which
+    check it failed is how its author fixes it. 'stale' is NOT silent: a tab
+    left open for two days is a person, and they need to be told to reload.
+    """
+    cfg = current_app.config
+    raw = (form.get(FORM_TS_FIELD) or "").strip()
+    if not raw:
+        return "too_fast", ""
+    serializer = URLSafeTimedSerializer(cfg["SECRET_KEY"], salt=_FORM_TS_SALT)
+    try:
+        serializer.loads(raw, max_age=cfg["FORM_MAX_AGE_SECONDS"])
+    except SignatureExpired:
+        return "stale", ("This form had been open too long to submit safely. "
+                         "Please reload the page and send it again.")
+    except BadSignature:
+        return "too_fast", ""
+    _, issued_at = serializer.loads(raw, return_timestamp=True)
+    age = (datetime.now(timezone.utc) - issued_at).total_seconds()
+    if age < cfg["FORM_MIN_SECONDS"]:
+        return "too_fast", ""
+    return "ok", ""
+
+
+def honeypot_tripped(form):
+    """True when the CSS-hidden decoy field came back with anything in it.
+
+    Hidden with CSS rather than type=hidden on purpose: a bot that skips
+    type=hidden inputs would walk straight past a hidden one, while a bot that
+    fills every text input it can see in the HTML falls for this.
+    """
+    return bool((form.get(HONEYPOT_FIELD) or "").strip())
+
+
+def listing_price_floor(listing_type, form):
+    """(bad, reason) for a visitor listing priced below the floor for its type.
+
+    Never applied to admin-entered listings: the floor is a spam filter, not a
+    business rule, and Mahmoud's own listings do not pass through it.
+    """
+    cfg = current_app.config
+    checks = {
+        "resale": ("price", cfg["LISTING_MIN_PRICE_EGP"], "sale price"),
+        "rent_annual": ("rent_amount", cfg["LISTING_MIN_RENT_EGP"], "rent"),
+        "rent_seasonal": ("price_per_week", cfg["LISTING_MIN_WEEKLY_EGP"],
+                          "weekly price"),
+    }
+    if listing_type not in checks:
+        return False, ""
+    field, floor, label = checks[listing_type]
+    raw = (form.get(field) or "").strip()
+    if not raw:
+        return False, ""
+    try:
+        value = float(raw)
+    except ValueError:
+        return True, f"The {label} is not a number."
+    if value < floor:
+        return True, (f"A {label} under {floor:,.0f} EGP doesn't look right — "
+                      f"please check the figure. Contact us if your property "
+                      f"genuinely falls below this.")
+    return False, ""
+
+
+# Fields a link is never legitimate in. `message` is deliberately absent: a
+# real enquiry can reasonably paste a listing or a Facebook page, so links
+# there are flagged for review instead of refused.
+NO_LINK_FIELDS = ("title", "area", "location", "unit_type", "owner_name",
+                  "rent_cadence", "name", "compound_name", "property_type")
+
+
+def check_no_links(form, fields=NO_LINK_FIELDS):
+    for field in fields:
+        if contains_link(form.get(field) or ""):
+            return True, (f"Links aren't allowed in the {field.replace('_', ' ')} "
+                          f"field.")
+    return False, ""
+
+
+def public_form_gate(form, text_fields=()):
+    """Runs the checks every public form shares. Returns (verdict, message).
+
+    verdict is one of:
+      "ok"      -- carry on
+      "silent"  -- stop, but tell the submitter it worked. Reserved for the
+                   honeypot and the too-fast check, which only a script trips:
+                   naming the check that caught it is how its author fixes it.
+      "reject"  -- stop and show the message. Everything a person could
+                   plausibly trip, so they get told what to change.
+
+    text_fields are checked for gibberish; the link check runs over the fixed
+    NO_LINK_FIELDS list regardless.
+    """
+    if honeypot_tripped(form):
+        return "silent", ""
+
+    verdict, message = check_form_timing(form)
+    if verdict == "too_fast":
+        return "silent", ""
+    if verdict == "stale":
+        return "reject", message
+
+    bad, message = check_no_links(form)
+    if bad:
+        return "reject", message
+
+    for field in text_fields:
+        bad, message = is_gibberish(form.get(field) or "", field.replace("_", " "))
+        if bad:
+            return "reject", message
+
+    return "ok", ""
+
+
+def flag_links_for_review(form, field="message"):
+    """(flagged, reason) for a field where a link is allowed but worth a look."""
+    if contains_link(form.get(field) or ""):
+        return True, f"contains a link in {field}"
+    return False, ""
+
+
 def validate_listing_enums(form):
     """Returns (values, errors) for the four whitelisted listing fields."""
     values, errors = {}, []
@@ -365,10 +637,18 @@ def validate_listing_enums(form):
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    # Render terminates TLS in front of the app, so without this url_for(...,
+    # _external=True) builds http:// links and request.is_secure is False.
+    # The rate-limit key does NOT depend on this -- see client_ip().
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     db.init_app(app)
     limiter.init_app(app)
     csrf.init_app(app)
     app.jinja_env.globals["slugify"] = slugify  # so templates can build /developer/<slug> links
+    # Every public form renders these two: the signed render-time stamp and
+    # the name of the decoy field, so the name lives in one place.
+    app.jinja_env.globals["form_timestamp"] = form_timestamp
+    app.jinja_env.globals["honeypot_field"] = HONEYPOT_FIELD
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(e):
@@ -447,6 +727,17 @@ def create_app():
         # "ours" by a default. Written as DEFAULT + UPDATE rather than
         # NOT NULL, because adding a NOT NULL column to a populated table
         # fails on Postgres unless every existing row already has a value.
+        existing_lead_columns2 = [col["name"] for col in inspector.get_columns("leads")]
+        if "flagged" not in existing_lead_columns2:
+            with db.engine.connect() as connection:
+                connection.execute(db.text(
+                    "ALTER TABLE leads ADD COLUMN flagged BOOLEAN DEFAULT FALSE"))
+                connection.execute(db.text(
+                    "ALTER TABLE leads ADD COLUMN flag_reason VARCHAR(255)"))
+                connection.execute(db.text(
+                    "UPDATE leads SET flagged = FALSE WHERE flagged IS NULL"))
+                connection.commit()
+
         if "source" not in existing_listing_columns:
             with db.engine.connect() as connection:
                 connection.execute(db.text(
@@ -1068,6 +1359,11 @@ def create_app():
         }
 
     @app.route("/api/chat", methods=["POST"])
+    # Each call reaches the Claude API and costs money, so this is the one
+    # limit that protects a bill rather than a table. The CSRF token stops
+    # another site triggering it; nothing stopped a script that reads the
+    # token off the page and loops.
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_AI"])
     def api_chat():
         """Stateless chat turn: the client sends the full conversation history
         (this endpoint keeps nothing server-side -- see the plan discussion:
@@ -1148,6 +1444,11 @@ def create_app():
     # ---------- Smart search: natural-language query -> /compounds filters ----------
 
     @app.route("/api/smart-search", methods=["POST"])
+    # Each call reaches the Claude API and costs money, so this is the one
+    # limit that protects a bill rather than a table. The CSRF token stops
+    # another site triggering it; nothing stopped a script that reads the
+    # token off the page and loops.
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_AI"])
     def api_smart_search():
         """Translates one free-text search query into the same filter shape
         compounds() already reads from the querystring. Never returns search
@@ -1497,11 +1798,27 @@ def create_app():
         return render_template("about.html")
 
     @app.route("/sell", methods=["GET", "POST"])
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_LEAD"], methods=["POST"])
     def sell_property():
         if request.method == "POST":
             name = request.form.get("name", "").strip()
             phone = request.form.get("phone", "").strip()
             email = request.form.get("email", "").strip()
+            # This route had no validation at all: an empty POST created a Lead
+            # with an empty name and an empty phone, which is a row nobody can
+            # act on and the easiest thing in the world to automate.
+            if not name or not phone:
+                flash("Your name and phone number are required.", "error")
+                return redirect(url_for("sell_property"))
+
+            verdict, message = public_form_gate(
+                request.form,
+                text_fields=("name", "compound_name", "location", "property_type"))
+            if verdict == "silent":
+                return redirect(url_for("list_property"))
+            if verdict == "reject":
+                flash(message, "error")
+                return redirect(url_for("sell_property"))
             location = request.form.get("location", "").strip()
             compound_name = request.form.get("compound_name", "").strip()
             property_type = request.form.get("property_type", "").strip()
@@ -1542,25 +1859,51 @@ def create_app():
         return render_template("sell.html")
 
     @app.route("/contact", methods=["GET", "POST"])
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_LEAD"], methods=["POST"])
     def contact():
         if request.method == "POST":
+            thanks = ("Thanks for reaching out! Our team at Meleven will "
+                      "contact you shortly.")
+            verdict, message = public_form_gate(request.form, text_fields=("name",))
+            if verdict == "silent":
+                flash(thanks, "success")
+                return redirect(url_for("contact"))
+            if verdict == "reject":
+                flash(message, "error")
+                return redirect(url_for("contact"))
+
+            flagged, reason = flag_links_for_review(request.form)
             lead = Lead(
                 name=request.form.get("name", "").strip(),
                 phone=request.form.get("phone", "").strip(),
                 email=request.form.get("email", "").strip(),
                 message=request.form.get("message", "").strip(),
                 source_page="contact_page",
+                flagged=flagged,
+                flag_reason=reason,
             )
             db.session.add(lead)
             db.session.commit()
-            flash("Thanks for reaching out! Our team at Meleven will contact you shortly.", "success")
+            flash(thanks, "success")
             return redirect(url_for("contact"))
 
         return render_template("contact.html")
 
     @app.route("/compound/<slug>/interested", methods=["POST"])
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_LEAD"])
     def compound_interested(slug):
         compound = Compound.query.filter_by(slug=slug).first_or_404()
+        thanks = ("Thanks for your interest! Our team at Meleven will contact "
+                  "you shortly about this project.")
+        verdict, message = public_form_gate(request.form, text_fields=("name",))
+        if verdict == "silent":
+            flash(thanks, "success")
+            return redirect(url_for("compound_detail", slug=slug))
+        if verdict == "reject":
+            flash(message, "error")
+            return redirect(url_for("compound_detail", slug=slug))
+
+        flagged, reason = flag_links_for_review(request.form)
         lead = Lead(
             name=request.form.get("name", "").strip(),
             phone=request.form.get("phone", "").strip(),
@@ -1568,10 +1911,12 @@ def create_app():
             message=request.form.get("message", "").strip(),
             compound_id=compound.id,
             source_page=f"compound:{slug}",
+            flagged=flagged,
+            flag_reason=reason,
         )
         db.session.add(lead)
         db.session.commit()
-        flash("Thanks for your interest! Our team at Meleven will contact you shortly about this project.", "success")
+        flash(thanks, "success")
         return redirect(url_for("compound_detail", slug=slug))
 
     # ---------- Resale/Rent listings (public) ----------
@@ -1588,7 +1933,7 @@ def create_app():
     # human to wade through. The per-hour cap is the one that matters; the
     # per-minute cap just stops a burst.
     @app.route("/list-your-property", methods=["GET", "POST"])
-    @limiter.limit("10 per hour; 3 per minute", methods=["POST"])
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_LISTING"], methods=["POST"])
     def list_property():
         if request.method == "POST":
             listing_type = request.form.get("listing_type", "").strip()
@@ -1601,6 +1946,22 @@ def create_app():
             owner_phone = request.form.get("owner_phone", "").strip()
             if not title or not owner_name or not owner_phone:
                 flash("Title, your name, and phone number are required.", "error")
+                return redirect(url_for("list_property"))
+
+            verdict, message = public_form_gate(
+                request.form, text_fields=("title", "area", "location"))
+            if verdict == "silent":
+                # Answered exactly as a success, and nothing written.
+                flash("Thanks! Your listing has been submitted and is pending "
+                      "review — we'll publish it once approved.", "success")
+                return redirect(url_for("list_property"))
+            if verdict == "reject":
+                flash(message, "error")
+                return redirect(url_for("list_property"))
+
+            bad, message = listing_price_floor(listing_type, request.form)
+            if bad:
+                flash(message, "error")
                 return redirect(url_for("list_property"))
 
             # Rejected rather than silently blanked: a submitter who picked
@@ -1741,8 +2102,20 @@ def create_app():
         return render_template("listing_detail.html", listing=listing)
 
     @app.route("/listing/<int:listing_id>/interested", methods=["POST"])
+    @limiter.limit(lambda: current_app.config["RATE_LIMIT_LEAD"])
     def listing_interested(listing_id):
         listing = Listing.query.filter_by(id=listing_id, status="approved").first_or_404()
+        thanks = ("Thanks for your interest! Our team at Meleven will contact "
+                  "you shortly about this property.")
+        verdict, message = public_form_gate(request.form, text_fields=("name",))
+        if verdict == "silent":
+            flash(thanks, "success")
+            return redirect(url_for("listing_detail", listing_id=listing.id))
+        if verdict == "reject":
+            flash(message, "error")
+            return redirect(url_for("listing_detail", listing_id=listing.id))
+
+        flagged, reason = flag_links_for_review(request.form)
         lead = Lead(
             name=request.form.get("name", "").strip(),
             phone=request.form.get("phone", "").strip(),
@@ -1750,10 +2123,12 @@ def create_app():
             message=request.form.get("message", "").strip(),
             listing_id=listing.id,
             source_page=f"listing:{listing.id}",
+            flagged=flagged,
+            flag_reason=reason,
         )
         db.session.add(lead)
         db.session.commit()
-        flash("Thanks for your interest! Our team at Meleven will contact you shortly about this property.", "success")
+        flash(thanks, "success")
         return redirect(url_for("listing_detail", listing_id=listing.id))
 
     # ---------- Admin auth ----------
@@ -2519,6 +2894,73 @@ def create_app():
                 message += f" (+{len(rejected) - 5} more)"
         flash(message, "success" if created else "error")
         return redirect(url_for("admin_listings", status="approved"))
+
+    @app.route("/admin/listings/bulk-reject", methods=["POST"])
+    @login_required
+    def admin_listings_bulk_reject():
+        """Rejects every ticked listing in one go.
+
+        Rejects rather than deletes, like the single-row button: status
+        'rejected' keeps the row, so a wrong call is one click back. A spam
+        queue is also the worst place to delete from -- the one row you got
+        wrong is the one a real seller sent.
+        """
+        ids = request.form.getlist("listing_ids")
+        if not ids:
+            flash("Nothing was selected.", "error")
+            return redirect(url_for("admin_listings"))
+
+        rows = Listing.query.filter(Listing.id.in_(ids)).all()
+        reviewer = (request.form.get("reviewed_by") or "").strip() or "Admin"
+        for listing in rows:
+            listing.status = "rejected"
+            listing.reviewed_at = datetime.utcnow()
+            listing.reviewed_by = reviewer
+        db.session.commit()
+        flash(f"Rejected {len(rows)} listing(s).", "success")
+        return redirect(url_for("admin_listings",
+                                status=request.form.get("return_to") or "pending"))
+
+    @app.route("/admin/listings/reject-under-minimum", methods=["POST"])
+    @login_required
+    def admin_listings_reject_under_minimum():
+        """Rejects every pending listing priced below the floor for its type.
+
+        Reads the same Config floors the public form enforces, so this clears
+        exactly the backlog that arrived before the floor existed and nothing
+        else. A pending row with no price at all is left alone: no price is
+        not a low price, and some genuine submissions arrive without one.
+        """
+        cfg = current_app.config
+        floors = {
+            "resale": (Listing.price, cfg["LISTING_MIN_PRICE_EGP"]),
+            "rent_annual": (Listing.rent_amount, cfg["LISTING_MIN_RENT_EGP"]),
+            "rent_seasonal": (Listing.price_per_week, cfg["LISTING_MIN_WEEKLY_EGP"]),
+        }
+        reviewer = (request.form.get("reviewed_by") or "").strip() or "Admin"
+        total, per_type = 0, []
+        for listing_type, (column, floor) in floors.items():
+            rows = Listing.query.filter(
+                Listing.status == "pending",
+                Listing.listing_type == listing_type,
+                column.isnot(None),
+                column < floor,
+            ).all()
+            for listing in rows:
+                listing.status = "rejected"
+                listing.reviewed_at = datetime.utcnow()
+                listing.reviewed_by = reviewer
+            if rows:
+                per_type.append(f"{len(rows)} {listing_type} under {floor:,}")
+            total += len(rows)
+        db.session.commit()
+
+        if total:
+            flash(f"Rejected {total} pending listing(s): " + "; ".join(per_type)
+                  + ". Nothing without a price was touched.", "success")
+        else:
+            flash("No pending listing is priced below the minimums.", "success")
+        return redirect(url_for("admin_listings", status="pending"))
 
     @app.route("/admin/listings/<int:listing_id>/delete", methods=["POST"])
     @login_required

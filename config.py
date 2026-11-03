@@ -57,6 +57,56 @@ class Config:
     # domain regardless of how the app was reached).
     SITE_URL = os.environ.get("SITE_URL", "https://meleveneg.com")
 
+    # --- Spam defences for the public forms -------------------------------
+    #
+    # Every threshold here is an env var because the first version of any of
+    # these numbers is a guess, and the cost of guessing wrong is a real
+    # submission refused. Tuning one must not need a deploy.
+
+    # Floor prices, per listing type -- a single floor could not work, because
+    # the field being checked changes with the type and a 100k floor on a
+    # monthly rent would refuse genuine ones. The spam seen so far (7, 25, 67
+    # and 73 EGP) falls under all three.
+    LISTING_MIN_PRICE_EGP = int(os.environ.get("LISTING_MIN_PRICE_EGP", "100000"))
+    LISTING_MIN_RENT_EGP = int(os.environ.get("LISTING_MIN_RENT_EGP", "3000"))
+    LISTING_MIN_WEEKLY_EGP = int(os.environ.get("LISTING_MIN_WEEKLY_EGP", "2000"))
+
+    # Gibberish detection thresholds. See is_gibberish() in app.py.
+    # 2, not 3: "PX" is a real compound on this site. A one-character title
+    # is not plausible, a two-character one demonstrably is -- and the cost
+    # of the stricter number is refusing a genuine listing by name.
+    TEXT_MIN_LENGTH = int(os.environ.get("TEXT_MIN_LENGTH", "2"))
+    TEXT_MAX_CONSONANT_RUN = int(os.environ.get("TEXT_MAX_CONSONANT_RUN", "5"))
+    TEXT_MAX_UNSPACED = int(os.environ.get("TEXT_MAX_UNSPACED", "14"))
+    TEXT_MAX_CASE_FLIPS = int(os.environ.get("TEXT_MAX_CASE_FLIPS", "3"))
+
+    # Minimum seconds between a form being rendered and submitted. A human
+    # cannot fill the listing form in two seconds; a script does it in
+    # milliseconds.
+    FORM_MIN_SECONDS = int(os.environ.get("FORM_MIN_SECONDS", "2"))
+    # How long a rendered form stays submittable. Generous on purpose: a tab
+    # left open overnight is a person, not an attack, and an expired form says
+    # so rather than being silently dropped.
+    FORM_MAX_AGE_SECONDS = int(os.environ.get("FORM_MAX_AGE_SECONDS", str(48 * 3600)))
+
+    # Per-IP limits. 5/hour rather than 3 because mobile carriers put many
+    # subscribers behind one CGNAT address, so a shared IP is normal traffic
+    # and not evidence of anything.
+    RATE_LIMIT_LISTING = os.environ.get("RATE_LIMIT_LISTING", "5 per hour; 3 per minute")
+    RATE_LIMIT_LEAD = os.environ.get("RATE_LIMIT_LEAD", "10 per hour; 4 per minute")
+    # The two AI endpoints spend money per call, so they get their own budget.
+    RATE_LIMIT_AI = os.environ.get("RATE_LIMIT_AI", "30 per hour; 6 per minute")
+
+    # Hosts that genuinely sit behind Cloudflare, and therefore the only ones
+    # whose CF-Connecting-IP header can be believed. See client_ip() in app.py
+    # for why this list exists and what goes wrong without it.
+    TRUSTED_CF_HOSTS = {
+        h.strip().lower()
+        for h in os.environ.get(
+            "TRUSTED_CF_HOSTS", "meleveneg.com,www.meleveneg.com").split(",")
+        if h.strip()
+    }
+
     # Claude API key for /api/chat (the property-search chatbot). Get one at
     # https://console.anthropic.com/settings/keys — set as a real environment
     # variable on Render; locally, .env fills this in (see load_dotenv() in app.py).
