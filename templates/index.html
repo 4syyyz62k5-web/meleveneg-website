@@ -1262,6 +1262,7 @@
     <div class="mv-consult-form-card" style="max-width:480px; margin:0 auto;">
       <p class="mv-consult-form-card__title" style="text-align:center;">Get in Touch</p>
       <form action="{{ url_for('contact') }}" method="post" class="mv-consult-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="name" placeholder="Your Name" required>
         <input type="text" name="phone" placeholder="Phone Number" required>
         <input type="email" name="email" placeholder="Email (optional)">
@@ -1619,7 +1620,11 @@
 
       fetch('{{ url_for("api_smart_search") }}', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        // Same-origin JSON POSTs are covered by CSRFProtect like any form, so
+        // they send the token as a header rather than being exempted -- these
+        // two endpoints call the Claude API and cost money per request, which
+        // is exactly the kind of thing worth not letting another site trigger.
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
         body: JSON.stringify({query: query})
       })
         .then(function(res){ return res.json().then(function(data){ return {status: res.status, data: data}; }); })

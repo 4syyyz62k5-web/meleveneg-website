@@ -37,6 +37,7 @@
 <section class="section">
   <div class="container narrow">
     <form method="post" action="{{ url_for('list_property') }}" enctype="multipart/form-data" class="lp-form" id="lp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <label for="lp-type">Listing Type *</label>
       <select name="listing_type" id="lp-type" required>

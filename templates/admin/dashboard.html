@@ -29,6 +29,7 @@
                     <a href="{{ url_for('admin_compound_edit', compound_id=c.id) }}">Edit</a>
                     <a href="{{ url_for('admin_units', compound_id=c.id) }}">Units ({{ c.units|length }})</a>
                     <form method="post" action="{{ url_for('admin_compound_delete', compound_id=c.id) }}" onsubmit="return confirm('Delete this compound and all its units? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="admin-delete-btn">Delete</button>
                     </form>
                 </td>

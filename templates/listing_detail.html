@@ -43,6 +43,7 @@
                 <h3>Ask about this property</h3>
                 <p>Leave your details and our team will contact you.</p>
                 <form action="{{ url_for('listing_interested', listing_id=listing.id) }}" method="post" class="inquiry-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="text" name="name" placeholder="Full Name" required>
                     <input type="tel" name="phone" placeholder="Phone Number" required>
                     <input type="email" name="email" placeholder="Email (optional)">

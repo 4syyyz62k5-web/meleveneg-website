@@ -384,7 +384,11 @@
 
       fetch('{{ url_for("api_smart_search") }}', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        // Same-origin JSON POSTs are covered by CSRFProtect like any form, so
+        // they send the token as a header rather than being exempted -- these
+        // two endpoints call the Claude API and cost money per request, which
+        // is exactly the kind of thing worth not letting another site trigger.
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
         body: JSON.stringify({query: query})
       })
         .then(function(res){ return res.json().then(function(data){ return {status: res.status, data: data}; }); })

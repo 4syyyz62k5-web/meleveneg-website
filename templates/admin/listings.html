@@ -4,8 +4,50 @@
 <div class="admin-container">
     <div class="admin-page-header">
         <h1>Resale/Rent Listings</h1>
-        <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+        <div>
+            <a href="{{ url_for('admin_listing_new') }}" class="btn-primary">+ Add Listing</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+        </div>
     </div>
+
+    <details>
+        <summary>Import listings from CSV</summary>
+        <form method="post" action="{{ url_for('admin_listings_import') }}" enctype="multipart/form-data" class="admin-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p class="unit-payment-plan">
+                Every imported row is published immediately, same as the Add
+                Listing form — the pending queue is only for what the public
+                sends in. A row with no <code>title</code> is skipped and
+                counted; a <code>compound_slug</code> that matches nothing is
+                imported <em>unlinked</em> and reported, not dropped.
+            </p>
+            <p class="unit-payment-plan">
+                Columns (only <code>title</code> is required):<br>
+                <code>title, listing_type, compound_slug, area, location,
+                unit_type, bedrooms, bathrooms, area_sqm, price, rent_amount,
+                rent_cadence, price_per_week, high_season_multiplier, currency,
+                furnishing, condition, legal_status, seller_type, negotiable,
+                owner_name, owner_phone, owner_email, image_url</code>
+            </p>
+            <p class="unit-payment-plan">
+                <code>listing_type</code> defaults to <code>resale</code>.
+                <code>furnishing</code> must be one of
+                <code>unfurnished / semi / furnished</code>;
+                <code>condition</code> one of
+                <code>New / Excellent / Good / Needs Renovation</code>;
+                <code>legal_status</code> one of <code>registered_title /
+                court_validated / preliminary_contract / unknown</code>;
+                <code>seller_type</code> one of <code>owner / agent</code>.
+                Blank is allowed for all four. A row with an unrecognised value
+                is rejected and named, never silently blanked.
+            </p>
+            <label>CSV file</label>
+            <input type="file" name="csv_file" accept=".csv" required>
+            <div class="admin-form-actions">
+                <button type="submit" class="btn-primary">Import &amp; Publish</button>
+            </div>
+        </form>
+    </details>
 
     <div class="admin-lead-tabs">
         <a href="{{ url_for('admin_listings', status='pending') }}"
@@ -29,7 +71,7 @@
     {% if listings %}
     <table class="admin-table">
         <thead>
-            <tr><th>Title</th><th>Type</th><th>Area</th><th>Price / Rent</th><th>Seller</th><th>Submitted</th><th>Status</th><th></th></tr>
+            <tr><th>Title</th><th>Type</th><th>Area</th><th>Price / Rent</th><th>Seller</th><th>Source</th><th>Submitted</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
             {% for l in listings %}
@@ -39,6 +81,7 @@
                 <td>{{ l.area or l.location or '-' }}</td>
                 <td>{{ l.price_display() }}</td>
                 <td>{{ l.seller_type|capitalize if l.seller_type else '-' }}</td>
+                <td>{{ 'Ours' if l.source == 'admin' else 'Public' }}</td>
                 <td>{{ l.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
                     {% if l.status == 'pending' %}

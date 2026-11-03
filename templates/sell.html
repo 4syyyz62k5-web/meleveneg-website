@@ -189,6 +189,7 @@
     <p class="lead-text" style="text-align:center;">Your privacy is important to us. We won't publish or share your information with anyone. Next, we'll ask a few more details about the unit itself.</p>
     <div class="sp-form-card">
       <form method="POST" action="{{ url_for('sell_property') }}" class="contact-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="sp-form-row">
           <div class="sp-field">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/></svg>

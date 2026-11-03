@@ -4,6 +4,7 @@
 <div class="admin-container narrow-admin">
     <h1>{{ "Edit Compound" if compound else "New Compound" }}</h1>
     <form method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Name *</label>
         <input type="text" name="name" value="{{ compound.name if compound else '' }}" required>
         {% if not compound %}

@@ -13,6 +13,7 @@
         Only <code>name</code> is required. <code>slug</code> is auto-generated if left empty. Use <code>true</code>/<code>false</code> for <code>is_featured</code> and <code>is_published</code>.
     </p>
     <form method="post" action="{{ url_for('admin_compounds_import') }}" enctype="multipart/form-data" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>CSV File *</label>
         <input type="file" name="csv_file" accept=".csv" required>
         <button type="submit" class="btn-primary">Import Compounds</button>
@@ -24,6 +25,7 @@
         <code>compound_slug</code> must match a compound's slug that already exists (import compounds first). <code>phase</code> is the neighborhood/sub-community name (e.g. Shore Residence, Town Island, Lagoon Town). <code>delivery_year</code> is a 4-digit year (e.g. 2030). Use <code>true</code>/<code>false</code> for <code>is_available</code>.
     </p>
     <form method="post" action="{{ url_for('admin_units_import') }}" enctype="multipart/form-data" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>CSV File *</label>
         <input type="file" name="csv_file" accept=".csv" required>
         <button type="submit" class="btn-primary">Import Units</button>

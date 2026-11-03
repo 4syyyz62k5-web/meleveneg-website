@@ -115,6 +115,22 @@ class Listing(db.Model):
     listing_type = db.Column(db.String(20), nullable=False)  # resale / rent_annual / rent_seasonal
     status = db.Column(db.String(20), nullable=False, default="pending")  # pending / approved / rejected
 
+    # Who put this row here: "admin" for one entered through
+    # /admin/listings/new or the CSV import, "visitor" for a
+    # /list-your-property submission.
+    #
+    # This is NOT a second spelling of `status`. An admin row is created
+    # already approved, but a visitor row that an admin later approves stays
+    # source="visitor" for good -- the question this column answers is "whose
+    # listing is this", and the answer never changes. Mixing the two would
+    # make "how many of these did the public send us" unanswerable the moment
+    # the first one was approved.
+    #
+    # Defaults to "visitor" rather than "admin" deliberately: rows that
+    # existed before this column did came in through the public form, and an
+    # unknown origin should never be upgraded to "ours" by a default.
+    source = db.Column(db.String(20), nullable=False, default="visitor")
+
     # Optional link to an existing Compound, for when the owner's unit sits
     # inside a development we already track (e.g. "Resale in Mountain View
     # Hyde Park"). Left null for anything else — most submissions won't have

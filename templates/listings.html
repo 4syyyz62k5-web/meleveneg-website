@@ -161,8 +161,20 @@
                         {% include "_listing_card.html" %}
                     {% endfor %}
                 </div>
+                {% elif selected_area or selected_unit_type %}
+                <p class="empty-state">
+                    No listings match these filters.
+                    <a href="{{ url_for(endpoint_name) }}">Clear them</a> to see everything.
+                </p>
                 {% else %}
-                <p class="empty-state">No listings found. Try adjusting your filters.</p>
+                {# Nothing is filtered and nothing came back, so there is
+                   genuinely nothing here yet. Telling someone to adjust
+                   filters they never set reads as a broken page. #}
+                <p class="empty-state">
+                    No properties listed here yet — we're adding them now.
+                    <a href="{{ url_for('list_property') }}">List your property</a>
+                    or <a href="{{ url_for('contact') }}">tell us what you're looking for</a>.
+                </p>
                 {% endif %}
             </div>
         </div>

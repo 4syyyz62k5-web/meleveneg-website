@@ -30,6 +30,7 @@
                 <td class="admin-actions">
                     <a href="{{ url_for('admin_unit_edit', unit_id=u.id) }}">Edit</a>
                     <form method="post" action="{{ url_for('admin_unit_delete', unit_id=u.id) }}" onsubmit="return confirm('Delete this unit?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="admin-delete-btn">Delete</button>
                     </form>
                 </td>
@@ -43,6 +44,7 @@
 
     <h2 style="margin-top:40px;">Add a Unit</h2>
     <form method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Unit Type *</label>
         <input type="text" name="unit_type" placeholder="Chalet, Villa, Townhouse, Apartment..." required>
 

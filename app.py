@@ -23,6 +23,7 @@ load_dotenv()
 import anthropic
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing
 
@@ -32,6 +33,14 @@ from models import db, Compound, Unit, Lead, Developer, Listing
 # instances/dynos, since each process would then enforce its own separate
 # budget instead of one shared one.
 limiter = Limiter(key_func=get_remote_address)
+
+# Flask-WTF was in requirements.txt from the start and never wired in, so
+# every POST in this app -- the admin login, every admin create/edit/delete,
+# and the public lead and listing forms -- accepted a cross-site submission.
+# CSRFProtect covers all of them at once; each form then needs its hidden
+# token, and the three fetch() callers send it as an X-CSRFToken header
+# (Flask-WTF reads that header by default), so none of them is exempted.
+csrf = CSRFProtect()
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
@@ -251,17 +260,106 @@ def allowed_image(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 
+# First bytes that actually identify each format we accept. Checked instead of
+# trusting the filename: /list-your-property takes a file from anyone with no
+# login, and an extension is just a string the uploader chose -- renaming
+# payload.html to photo.jpg passed allowed_image() and landed on the Render
+# disk, from where /uploads/<name> would serve it back.
+#
+# imghdr would have done this, but it is deprecated in 3.11 and gone in 3.13;
+# these four signatures are stable and need no dependency.
+IMAGE_SIGNATURES = (
+    (b"\x89PNG\r\n\x1a\n", "png"),
+    (b"\xff\xd8\xff", "jpg"),
+    (b"GIF87a", "gif"),
+    (b"GIF89a", "gif"),
+)
+
+
+def sniff_image_type(stream):
+    """The real format of an uploaded file, or None. Leaves the stream rewound.
+
+    WEBP is matched separately because its signature is split: 'RIFF', then a
+    four-byte length, then 'WEBP'.
+    """
+    head = stream.read(32)
+    stream.seek(0)
+    for signature, kind in IMAGE_SIGNATURES:
+        if head.startswith(signature):
+            return kind
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+# jpg/jpeg name the same format; every other extension must match the sniffed
+# type exactly, so a real PNG called .webp is refused rather than quietly
+# stored under a lying name.
+EQUIVALENT_IMAGE_TYPES = {"jpg": {"jpg", "jpeg"}, "jpeg": {"jpg", "jpeg"}}
+
+
 def save_uploaded_image(file_storage, upload_folder):
-    """Saves an uploaded image with a unique filename. Returns the filename, or None if no valid file was given."""
+    """Saves an uploaded image under a uuid4 name. Returns (filename, error).
+
+    filename is None when nothing was uploaded (error None too) or when the
+    file was rejected (error says why, for the caller to flash). Returning the
+    reason matters on the public form: silently dropping the image left the
+    submitter believing their photo went through.
+    """
     if not file_storage or file_storage.filename == "":
-        return None
+        return None, None
     if not allowed_image(file_storage.filename):
-        return None
-    os.makedirs(upload_folder, exist_ok=True)
+        return None, ("Images must be one of: "
+                      + ", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS)) + ".")
+
     ext = secure_filename(file_storage.filename).rsplit(".", 1)[1].lower()
-    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    actual = sniff_image_type(file_storage.stream)
+    if actual is None:
+        return None, "That file is not an image, whatever its name says."
+    if actual not in EQUIVALENT_IMAGE_TYPES.get(ext, {ext}):
+        return None, (f"That file is a {actual.upper()} but is named .{ext}. "
+                      f"Rename it to match and try again.")
+
+    os.makedirs(upload_folder, exist_ok=True)
+    # Stored under the SNIFFED type, not the claimed extension -- the bytes
+    # are the thing being served later, so they decide the name.
+    unique_name = f"{uuid.uuid4().hex}.{actual}"
     file_storage.save(os.path.join(upload_folder, unique_name))
-    return unique_name
+    return unique_name, None
+
+
+# The values these fields are allowed to hold, taken from the <select> options
+# the public form actually offers. Only listing_type was ever checked; the rest
+# were written straight from request.form, so anything at all could be POSTed
+# into them and would then render raw on the public listing page.
+#
+# "" is allowed throughout and means "not stated" -- these are optional fields,
+# and refusing a blank would make them required by the back door.
+LISTING_FURNISHING = {"", "unfurnished", "semi", "furnished"}
+LISTING_CONDITION = {"", "New", "Excellent", "Good", "Needs Renovation"}
+LISTING_LEGAL_STATUS = {"", "registered_title", "court_validated",
+                        "preliminary_contract", "unknown"}
+LISTING_SELLER_TYPE = {"", "owner", "agent"}
+
+LISTING_ENUMS = {
+    "furnishing": LISTING_FURNISHING,
+    "condition": LISTING_CONDITION,
+    "legal_status": LISTING_LEGAL_STATUS,
+    "seller_type": LISTING_SELLER_TYPE,
+}
+
+
+def validate_listing_enums(form):
+    """Returns (values, errors) for the four whitelisted listing fields."""
+    values, errors = {}, []
+    for field, allowed in LISTING_ENUMS.items():
+        raw = (form.get(field) or "").strip()
+        if raw not in allowed:
+            errors.append(f"{field.replace('_', ' ')} is not a recognised value.")
+            values[field] = ""
+        else:
+            values[field] = raw
+    return values, errors
 
 
 def create_app():
@@ -269,7 +367,30 @@ def create_app():
     app.config.from_object(Config)
     db.init_app(app)
     limiter.init_app(app)
+    csrf.init_app(app)
     app.jinja_env.globals["slugify"] = slugify  # so templates can build /developer/<slug> links
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        """A failed token is almost always a stale page, not an attack.
+
+        Flask-WTF's own 400 page says "The CSRF token has expired", which to
+        someone who just spent ten minutes on the listing form reads as the
+        site being broken. This says what to do instead, and sends them back
+        where they came from with their place kept.
+        """
+        flash("That form had expired, so nothing was submitted. "
+              "Please try again -- your details were not sent anywhere.", "error")
+        return redirect(request.referrer or url_for("home")), 303
+
+    @app.errorhandler(413)
+    def handle_too_large(e):
+        """Over MAX_CONTENT_LENGTH. Flask aborts before any route runs, so
+        this is the only place that can explain it."""
+        limit_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
+        flash(f"That file is too large. The limit is {limit_mb} MB — "
+              f"nothing was saved.", "error")
+        return redirect(request.referrer or url_for("list_property")), 303
 
     with app.app_context():
         db.create_all()
@@ -317,6 +438,21 @@ def create_app():
         if "owner_email" not in existing_listing_columns:
             with db.engine.connect() as connection:
                 connection.execute(db.text("ALTER TABLE listings ADD COLUMN owner_email VARCHAR(150)"))
+                connection.commit()
+
+        # `source` distinguishes a listing entered in /admin from one the
+        # public submitted. DEFAULT 'visitor' is deliberate for the backfill:
+        # every row that predates this column arrived through
+        # /list-your-property, and an unknown origin must never be promoted to
+        # "ours" by a default. Written as DEFAULT + UPDATE rather than
+        # NOT NULL, because adding a NOT NULL column to a populated table
+        # fails on Postgres unless every existing row already has a value.
+        if "source" not in existing_listing_columns:
+            with db.engine.connect() as connection:
+                connection.execute(db.text(
+                    "ALTER TABLE listings ADD COLUMN source VARCHAR(20) DEFAULT 'visitor'"))
+                connection.execute(db.text(
+                    "UPDATE listings SET source = 'visitor' WHERE source IS NULL"))
                 connection.commit()
 
         # ---------------------------------------------------------------
@@ -1446,7 +1582,13 @@ def create_app():
 
     ALLOWED_LISTING_TYPES = {"resale", "rent_annual", "rent_seasonal"}
 
+    # Open to anyone, so it is rate-limited. Before this there was no limit on
+    # it at all: one script could fill the listings table and the uploads disk
+    # overnight, and every row would have landed in the pending queue for a
+    # human to wade through. The per-hour cap is the one that matters; the
+    # per-minute cap just stops a burst.
     @app.route("/list-your-property", methods=["GET", "POST"])
+    @limiter.limit("10 per hour; 3 per minute", methods=["POST"])
     def list_property():
         if request.method == "POST":
             listing_type = request.form.get("listing_type", "").strip()
@@ -1461,14 +1603,32 @@ def create_app():
                 flash("Title, your name, and phone number are required.", "error")
                 return redirect(url_for("list_property"))
 
+            # Rejected rather than silently blanked: a submitter who picked
+            # something from a dropdown should not have it quietly discarded,
+            # and a value that was not in any dropdown did not come from the
+            # form at all.
+            enums, enum_errors = validate_listing_enums(request.form)
+            if enum_errors:
+                for message in enum_errors:
+                    flash(message, "error")
+                return redirect(url_for("list_property"))
+
             image_url = request.form.get("image_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                # The photo is optional, but a rejected one must not be passed
+                # over in silence -- the submitter needs to know it is missing.
+                flash(upload_error + " The rest of your listing was not submitted.",
+                      "error")
+                return redirect(url_for("list_property"))
             if uploaded_name:
                 image_url = url_for("uploaded_file", filename=uploaded_name)
 
             listing = Listing(
                 listing_type=listing_type,
                 status="pending",
+                source="visitor",
                 compound_id=request.form.get("compound_id") or None,
                 title=title,
                 area=request.form.get("area", "").strip(),
@@ -1482,10 +1642,10 @@ def create_app():
                 rent_cadence=request.form.get("rent_cadence", "").strip(),
                 price_per_week=request.form.get("price_per_week") or None,
                 high_season_multiplier=request.form.get("high_season_multiplier") or None,
-                furnishing=request.form.get("furnishing", "").strip(),
-                condition=request.form.get("condition", "").strip(),
-                legal_status=request.form.get("legal_status", "").strip(),
-                seller_type=request.form.get("seller_type", "").strip(),
+                furnishing=enums["furnishing"],
+                condition=enums["condition"],
+                legal_status=enums["legal_status"],
+                seller_type=enums["seller_type"],
                 negotiable=bool(request.form.get("negotiable")),
                 owner_name=owner_name,
                 owner_phone=owner_phone,
@@ -1678,7 +1838,10 @@ def create_app():
                 slug = f"{base_slug}-{n}"
 
             cover_image_url = request.form.get("cover_image_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 cover_image_url = url_for("uploaded_file", filename=uploaded_name)
 
@@ -1740,7 +1903,10 @@ def create_app():
             c.delivery_year = request.form.get("delivery_year") or None
 
             cover_image_url = request.form.get("cover_image_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("cover_image_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 cover_image_url = url_for("uploaded_file", filename=uploaded_name)
             c.cover_image_url = cover_image_url
@@ -1786,7 +1952,10 @@ def create_app():
                 return redirect(url_for("admin_developer_new"))
 
             logo_url = request.form.get("logo_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 logo_url = url_for("uploaded_file", filename=uploaded_name)
 
@@ -1816,7 +1985,10 @@ def create_app():
             d.name = new_name
 
             logo_url = request.form.get("logo_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("logo_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 logo_url = url_for("uploaded_file", filename=uploaded_name)
             d.logo_url = logo_url
@@ -1844,7 +2016,10 @@ def create_app():
         c = Compound.query.get_or_404(compound_id)
         if request.method == "POST":
             image_url = request.form.get("image_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 image_url = url_for("uploaded_file", filename=uploaded_name)
 
@@ -1885,7 +2060,10 @@ def create_app():
             u.payment_plan = request.form.get("payment_plan", "").strip()
 
             image_url = request.form.get("image_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 image_url = url_for("uploaded_file", filename=uploaded_name)
             u.image_url = image_url
@@ -2104,16 +2282,29 @@ def create_app():
             listing.rent_cadence = request.form.get("rent_cadence", "").strip()
             listing.price_per_week = request.form.get("price_per_week") or None
             listing.high_season_multiplier = request.form.get("high_season_multiplier") or None
-            listing.furnishing = request.form.get("furnishing", "").strip()
-            listing.condition = request.form.get("condition", "").strip()
-            listing.legal_status = request.form.get("legal_status", "").strip()
-            listing.seller_type = request.form.get("seller_type", "").strip()
+            enums, enum_errors = validate_listing_enums(request.form)
+            if enum_errors:
+                for message in enum_errors:
+                    flash(message, "error")
+                return redirect(url_for("admin_listing_edit", listing_id=listing.id))
+            listing.furnishing = enums["furnishing"]
+            listing.condition = enums["condition"]
+            listing.legal_status = enums["legal_status"]
+            listing.seller_type = enums["seller_type"]
             listing.negotiable = bool(request.form.get("negotiable"))
             listing.owner_name = request.form.get("owner_name", "").strip()
             listing.owner_phone = request.form.get("owner_phone", "").strip()
+            # owner_email was on the model, collected by the public form and
+            # added by the self-healing migration, but had no input here and
+            # was never assigned -- so a wrong address could be read in /admin
+            # and never corrected from it.
+            listing.owner_email = request.form.get("owner_email", "").strip()
 
             image_url = request.form.get("image_url", "").strip()
-            uploaded_name = save_uploaded_image(request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            uploaded_name, upload_error = save_uploaded_image(
+                request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            if upload_error:
+                flash(upload_error, "error")
             if uploaded_name:
                 image_url = url_for("uploaded_file", filename=uploaded_name)
             listing.image_url = image_url
@@ -2123,7 +2314,211 @@ def create_app():
             return redirect(url_for("admin_listing_review", listing_id=listing.id))
 
         compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
-        return render_template("admin/listing_edit.html", listing=listing, compounds_for_link=compounds_for_link)
+        return render_template("admin/listing_form.html", listing=listing,
+                               compounds_for_link=compounds_for_link)
+
+    # Fields the CSV import reads, in this order. Mirrors the Listing model and
+    # the admin form; `title` is the only one that is required, exactly as on
+    # /list-your-property. Deliberately the same shape as the compounds/units
+    # importers above, including printing what it resolved back to the log.
+    LISTING_CSV_FIELDS = [
+        "title", "listing_type", "compound_slug", "area", "location",
+        "unit_type", "bedrooms", "bathrooms", "area_sqm", "price",
+        "rent_amount", "rent_cadence", "price_per_week",
+        "high_season_multiplier", "currency", "furnishing", "condition",
+        "legal_status", "seller_type", "negotiable", "owner_name",
+        "owner_phone", "owner_email", "image_url",
+    ]
+
+    def _listing_from_form(form, files, listing=None):
+        """Builds or updates a Listing from the admin form.
+
+        Returns (listing, errors). Shared by the create route below and
+        nothing else yet -- kept separate so the create and edit paths cannot
+        drift on validation, which is how owner_email ended up unwritable.
+        """
+        errors = []
+        listing_type = (form.get("listing_type") or "").strip()
+        if listing_type not in ALLOWED_LISTING_TYPES:
+            errors.append("Please choose a valid listing type.")
+        title = (form.get("title") or "").strip()
+        if not title:
+            errors.append("Title is required.")
+
+        enums, enum_errors = validate_listing_enums(form)
+        errors.extend(enum_errors)
+
+        image_url = (form.get("image_url") or "").strip()
+        uploaded_name, upload_error = save_uploaded_image(
+            files.get("image_file"), app.config["UPLOAD_FOLDER"])
+        if upload_error:
+            errors.append(upload_error)
+        if uploaded_name:
+            image_url = url_for("uploaded_file", filename=uploaded_name)
+
+        if errors:
+            return None, errors
+
+        target = listing or Listing()
+        target.listing_type = listing_type
+        target.title = title
+        target.compound_id = form.get("compound_id") or None
+        target.area = (form.get("area") or "").strip()
+        target.location = (form.get("location") or "").strip()
+        target.unit_type = (form.get("unit_type") or "").strip()
+        target.bedrooms = form.get("bedrooms") or None
+        target.bathrooms = form.get("bathrooms") or None
+        target.area_sqm = form.get("area_sqm") or None
+        target.price = form.get("price") or None
+        target.rent_amount = form.get("rent_amount") or None
+        target.rent_cadence = (form.get("rent_cadence") or "").strip()
+        target.price_per_week = form.get("price_per_week") or None
+        target.high_season_multiplier = form.get("high_season_multiplier") or None
+        target.currency = (form.get("currency") or "").strip().upper() or "EGP"
+        target.furnishing = enums["furnishing"]
+        target.condition = enums["condition"]
+        target.legal_status = enums["legal_status"]
+        target.seller_type = enums["seller_type"]
+        target.negotiable = bool(form.get("negotiable"))
+        target.owner_name = (form.get("owner_name") or "").strip()
+        target.owner_phone = (form.get("owner_phone") or "").strip()
+        target.owner_email = (form.get("owner_email") or "").strip()
+        target.image_url = image_url
+        return target, []
+
+    @app.route("/admin/listings/new", methods=["GET", "POST"])
+    @login_required
+    def admin_listing_new():
+        """Mahmoud's own resale units, published immediately.
+
+        status="approved" and reviewed_at are set here rather than left to the
+        pending queue: the review queue exists to check what strangers send in,
+        and sending your own listing to yourself for approval is a step that
+        can only ever say yes. source="admin" records which side it came from,
+        permanently -- see the note on Listing.source.
+
+        owner_name/owner_phone are required on the public form (they are how we
+        reach a stranger) but optional here, because on Mahmoud's own unit the
+        owner is Mahmoud and the fields are never shown publicly either way.
+        """
+        if request.method == "POST":
+            listing, errors = _listing_from_form(request.form, request.files)
+            if errors:
+                for message in errors:
+                    flash(message, "error")
+                return redirect(url_for("admin_listing_new"))
+
+            listing.status = "approved"
+            listing.source = "admin"
+            listing.reviewed_at = datetime.utcnow()
+            listing.reviewed_by = (request.form.get("reviewed_by") or "").strip() or "Admin"
+            db.session.add(listing)
+            db.session.commit()
+            flash(f"'{listing.title}' added and published.", "success")
+            return redirect(url_for("admin_listing_review", listing_id=listing.id))
+
+        compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
+        return render_template("admin/listing_form.html", listing=None,
+                               compounds_for_link=compounds_for_link)
+
+    @app.route("/admin/listings/import", methods=["POST"])
+    @login_required
+    def admin_listings_import():
+        """Bulk-adds resale/rent listings from a CSV, all published immediately.
+
+        Same contract as /admin/compounds/import: a row without the one
+        required field is skipped and counted rather than failing the file, and
+        what was skipped is reported instead of swallowed.
+
+        compound_slug (not compound_id) links a row to a compound, because a
+        slug is the thing a human can read off the admin dashboard -- the same
+        choice /admin/units/import already made. An unmatched slug does NOT
+        skip the row: the listing is still worth having without the link, so it
+        is imported unlinked and the slug is reported.
+        """
+        file = request.files.get("csv_file")
+        if not file or file.filename == "":
+            flash("Please choose a CSV file.", "error")
+            return redirect(url_for("admin_listings"))
+
+        stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
+        reader = csv.DictReader(stream)
+
+        created, skipped, unknown_slugs, rejected = 0, 0, [], []
+        for i, row in enumerate(reader, start=2):
+            title = (row.get("title") or "").strip()
+            if not title:
+                skipped += 1
+                continue
+
+            listing_type = (row.get("listing_type") or "resale").strip() or "resale"
+            if listing_type not in ALLOWED_LISTING_TYPES:
+                rejected.append(f"row {i}: listing_type '{listing_type}'")
+                continue
+
+            enums, enum_errors = validate_listing_enums(row)
+            if enum_errors:
+                rejected.append(f"row {i}: " + "; ".join(enum_errors))
+                continue
+
+            compound_id = None
+            slug = (row.get("compound_slug") or "").strip()
+            if slug:
+                compound = Compound.query.filter_by(slug=slug).first()
+                if compound:
+                    compound_id = compound.id
+                elif slug not in unknown_slugs:
+                    unknown_slugs.append(slug)
+
+            listing = Listing(
+                listing_type=listing_type,
+                status="approved",
+                source="admin",
+                reviewed_at=datetime.utcnow(),
+                reviewed_by="CSV import",
+                compound_id=compound_id,
+                title=title,
+                area=(row.get("area") or "").strip(),
+                location=(row.get("location") or "").strip(),
+                unit_type=(row.get("unit_type") or "").strip(),
+                bedrooms=row.get("bedrooms") or None,
+                bathrooms=row.get("bathrooms") or None,
+                area_sqm=row.get("area_sqm") or None,
+                price=row.get("price") or None,
+                rent_amount=row.get("rent_amount") or None,
+                rent_cadence=(row.get("rent_cadence") or "").strip(),
+                price_per_week=row.get("price_per_week") or None,
+                high_season_multiplier=row.get("high_season_multiplier") or None,
+                currency=(row.get("currency") or "").strip().upper() or "EGP",
+                furnishing=enums["furnishing"],
+                condition=enums["condition"],
+                legal_status=enums["legal_status"],
+                seller_type=enums["seller_type"],
+                negotiable=parse_bool(row.get("negotiable")),
+                owner_name=(row.get("owner_name") or "").strip(),
+                owner_phone=(row.get("owner_phone") or "").strip(),
+                owner_email=(row.get("owner_email") or "").strip(),
+                image_url=(row.get("image_url") or "").strip(),
+            )
+            db.session.add(listing)
+            print(f"[listings import] '{title}' -> {listing_type}, "
+                  f"compound_slug='{slug}' -> compound_id={compound_id}")
+            created += 1
+
+        db.session.commit()
+
+        message = f"Imported {created} listing(s), published immediately."
+        if skipped:
+            message += f" Skipped {skipped} row(s) with no title."
+        if unknown_slugs:
+            message += (" Imported without a compound link (slug not found): "
+                        + ", ".join(unknown_slugs[:10]))
+        if rejected:
+            message += " Rejected: " + "; ".join(rejected[:5])
+            if len(rejected) > 5:
+                message += f" (+{len(rejected) - 5} more)"
+        flash(message, "success" if created else "error")
+        return redirect(url_for("admin_listings", status="approved"))
 
     @app.route("/admin/listings/<int:listing_id>/delete", methods=["POST"])
     @login_required

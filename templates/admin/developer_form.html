@@ -4,6 +4,7 @@
 <div class="admin-container narrow-admin">
     <h1>{{ "Edit Developer" if developer else "New Developer" }}</h1>
     <form method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Developer Name * (must match the "Developer" field on compounds exactly)</label>
         <input type="text" name="name" value="{{ developer.name if developer else '' }}" placeholder="e.g. SODIC" required>
 

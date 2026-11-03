@@ -26,6 +26,29 @@ class Config:
     # folder for testing if no persistent disk is attached yet.
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "/var/uploads")
 
+    # Hard ceiling on any request body, which is what bounds a photo upload.
+    # /list-your-property accepts a file from anyone on the internet with no
+    # login, and before this there was no limit at all -- a single request
+    # could stream gigabytes onto the Render persistent disk and fill it.
+    # Flask raises 413 above this; app.py renders a readable page for it
+    # rather than letting the default error through.
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "8")) * 1024 * 1024
+
+    # No expiry at all, rather than Flask-WTF's default hour.
+    #
+    # The token is rendered into the page once, at load. The chatbot and the
+    # smart-search box live in that same page and POST from it whenever the
+    # visitor gets round to typing -- which can be the next morning, on a tab
+    # that was never reloaded. Any finite limit turns that into a silent
+    # failure on a page that looks perfectly fine, and the visitor has no way
+    # to know a refresh would fix it.
+    #
+    # What is given up is small: a token with no clock still only works
+    # alongside the matching session cookie, and that cookie expires when the
+    # browser session ends. The limit was never the thing protecting these
+    # endpoints -- the per-IP rate limits are.
+    WTF_CSRF_TIME_LIMIT = None
+
     # Placeholder — fill in once Circles integration is ready
     CIRCLES_APP_URL = os.environ.get("CIRCLES_APP_URL", "https://your-circles-app.onrender.com")
 

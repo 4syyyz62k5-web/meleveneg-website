@@ -45,6 +45,7 @@
                 <td>{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
                     <form method="post" action="{{ url_for('admin_lead_delete', lead_id=l.id) }}" onsubmit="return confirm('Delete this lead?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="admin-delete-btn">Delete</button>
                     </form>
                 </td>

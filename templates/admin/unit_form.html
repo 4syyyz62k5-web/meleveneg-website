@@ -8,6 +8,7 @@
     </div>
 
     <form method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Unit Type *</label>
         <input type="text" name="unit_type" value="{{ unit.unit_type }}" required>
 

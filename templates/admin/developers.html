@@ -29,6 +29,7 @@
                 <td class="admin-actions">
                     <a href="{{ url_for('admin_developer_edit', developer_id=d.id) }}">Edit</a>
                     <form method="post" action="{{ url_for('admin_developer_delete', developer_id=d.id) }}" onsubmit="return confirm('Delete this developer logo?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="admin-delete-btn">Delete</button>
                     </form>
                 </td>
