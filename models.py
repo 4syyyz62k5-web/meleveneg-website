@@ -70,6 +70,13 @@ class Lead(db.Model):
     email = db.Column(db.String(150))
     message = db.Column(db.Text)
     compound_id = db.Column(db.Integer, db.ForeignKey("compounds.id"), nullable=True)
+    # The FK existed without a relationship, and admin/leads.html has always
+    # rendered `l.compound.name if l.compound else '-'`. Jinja resolves a
+    # missing attribute to Undefined rather than raising, so that column
+    # printed "-" for every lead ever -- including the ones that came from a
+    # compound page and had compound_id set the whole time. No backref: nothing
+    # needs Compound.leads, and adding one risks colliding with a future name.
+    compound = db.relationship("Compound")
     listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"), nullable=True)
     listing = db.relationship("Listing")
     source_page = db.Column(db.String(255))  # which page the lead came from

@@ -2504,6 +2504,65 @@ def create_app():
             other_count=other_count,
         )
 
+    # Deliberately every row and every column, with no filter argument.
+    # The point of this export is to be the copy taken BEFORE anything is
+    # classified or deleted, so a filtered version of it would defeat it.
+    LEAD_EXPORT_FIELDS = [
+        "id", "created_at", "name", "phone", "email", "message",
+        "source_page", "compound_id", "compound_name",
+        "listing_id", "listing_title", "flagged", "flag_reason",
+        "synced_to_circles",
+    ]
+
+    @app.route("/admin/leads/export")
+    @login_required
+    def admin_leads_export():
+        """Downloads every lead as CSV. Reads only; changes nothing.
+
+        Written with a UTF-8 BOM. Excel otherwise reads a UTF-8 file as the
+        local 8-bit codepage and renders every Arabic name as mojibake, which
+        on this site's data means most of the useful content -- and the repo
+        already reads CSVs back with utf-8-sig, so the two directions match.
+        """
+        rows = (Lead.query
+                .order_by(Lead.created_at.desc().nullslast(), Lead.id.desc())
+                .all())
+
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=LEAD_EXPORT_FIELDS,
+                                extrasaction="ignore")
+        writer.writeheader()
+        for l in rows:
+            writer.writerow({
+                "id": l.id,
+                # ISO, not a localised format: this file is going to be parsed
+                # again by the classifier script.
+                "created_at": l.created_at.isoformat() if l.created_at else "",
+                "name": l.name or "",
+                "phone": l.phone or "",
+                "email": l.email or "",
+                "message": l.message or "",
+                "source_page": l.source_page or "",
+                "compound_id": l.compound_id or "",
+                "compound_name": l.compound.name if l.compound else "",
+                "listing_id": l.listing_id or "",
+                "listing_title": l.listing.title if l.listing else "",
+                "flagged": "true" if l.flagged else "false",
+                "flag_reason": l.flag_reason or "",
+                "synced_to_circles": "true" if l.synced_to_circles else "false",
+            })
+
+        stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
+        print(f"[leads export] {len(rows)} row(s) exported")
+        return Response(
+            "\ufeff" + buf.getvalue(),
+            # content_type, not mimetype: Flask appends its own charset to a
+            # mimetype, which produced "text/csv; charset=utf-8; charset=utf-8".
+            content_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition":
+                     f'attachment; filename="meleven-leads-{stamp}.csv"'},
+        )
+
     @app.route("/admin/leads/<int:lead_id>/delete", methods=["POST"])
     @login_required
     def admin_lead_delete(lead_id):
@@ -2615,9 +2674,32 @@ def create_app():
     @login_required
     def admin_compound_delete(compound_id):
         c = Compound.query.get_or_404(compound_id)
+
+        # Same foreign key trap as admin_listing_delete, in a second place.
+        #
+        # Three tables point at compounds. units is covered by
+        # cascade="all, delete-orphan" on Compound.units, and listings is
+        # covered because Listing.compound has a backref, which is enough for
+        # SQLAlchemy to null listings.compound_id by itself. leads has
+        # NEITHER: Lead.compound was only added recently and carries no
+        # backref, so nothing told SQLAlchemy those rows existed and Postgres
+        # refused the delete.
+        #
+        # Enquiries are nulled rather than deleted, for the same reason as on
+        # listings: somebody asked about this compound, and the compound being
+        # removed does not unask it. source_page keeps "compound:<slug>".
+        detached = (Lead.query
+                    .filter_by(compound_id=c.id)
+                    .update({"compound_id": None}, synchronize_session=False))
+
         db.session.delete(c)
         db.session.commit()
-        flash("Compound deleted.", "success")
+        if detached:
+            print(f"[compounds] compound {compound_id} deleted; "
+                  f"{detached} lead(s) kept and detached")
+        flash("Compound deleted." + (f" {detached} enquiry(ies) were kept and "
+                                     f"are no longer linked to it."
+                                     if detached else ""), "success")
         return redirect(url_for("admin_dashboard"))
 
     # ---------- Admin: developer logos ----------
@@ -3336,15 +3418,49 @@ def create_app():
     @login_required
     def admin_listing_delete(listing_id):
         listing = Listing.query.get_or_404(listing_id)
-        # Collected before the delete, swept after the commit. The rows have to
-        # be gone before unreferenced_uploads() can see them as unused.
+        # Collected before the delete, reported after the commit. The rows have
+        # to be gone before unreferenced_uploads() can see them as unused.
         owned = listing.gallery() + ([listing.image_url] if listing.image_url else [])
+
+        # Detach any enquiries first, or this whole route 500s on Postgres.
+        #
+        # leads.listing_id is a foreign key, and Lead.listing is a relationship
+        # with no backref -- so deleting a Listing left SQLAlchemy unaware that
+        # any Lead pointed at it, and Postgres refused the delete with a
+        # foreign key violation. It looked like a problem with galleries,
+        # because a listing with photos is one somebody actually enquired
+        # about, so those are the ones that had a Lead. listing_images was
+        # never involved: its cascade already worked.
+        #
+        # NULLED, NOT DELETED. A Lead is a person who asked about a property;
+        # the property being removed is no reason to erase the fact that they
+        # asked. listing_id is nullable, and source_page keeps its
+        # "listing:<id>" value, so the trail survives the link.
+        #
+        # None of this reached the test suites because they run on SQLite,
+        # which does not enforce foreign keys unless asked. With
+        # PRAGMA foreign_keys=ON it fails locally too.
+        detached = (Lead.query
+                    .filter_by(listing_id=listing.id)
+                    .update({"listing_id": None}, synchronize_session=False))
+
+        # listing_images needs nothing here: cascade="all, delete-orphan" on
+        # Listing.images removes those rows, and NO FILE IS TOUCHED on disk --
+        # see unreferenced_uploads() for why that is deliberate.
         db.session.delete(listing)
         db.session.commit()
+        if detached:
+            print(f"[listings] listing {listing_id} deleted; "
+                  f"{detached} lead(s) kept and detached")
         loose = report_unreferenced(owned, f"listing {listing_id} deleted")
-        flash("Listing deleted." + (f" {loose} image file(s) are now unused "
-                                    f"and were kept on disk." if loose else ""),
-              "success")
+        parts = ["Listing deleted."]
+        if detached:
+            parts.append(f"{detached} enquiry(ies) were kept and are no longer "
+                         f"linked to it.")
+        if loose:
+            parts.append(f"{loose} image file(s) are now unused and were kept "
+                         f"on disk.")
+        flash(" ".join(parts), "success")
         return redirect(url_for("admin_listings"))
 
     return app

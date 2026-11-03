@@ -4,8 +4,16 @@
 <div class="admin-container">
     <div class="admin-page-header">
         <h1>Leads ({{ leads|length }})</h1>
-        <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+        <div>
+            <a href="{{ url_for('admin_leads_export') }}" class="btn-primary">Export all as CSV</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-cancel-link">← Back to Compounds</a>
+        </div>
     </div>
+
+    <p class="unit-payment-plan">
+        The export is every lead and every column, unfiltered — take it before
+        anything is classified or removed.
+    </p>
 
     <div class="admin-lead-tabs">
         <a href="{{ url_for('admin_leads', source='all') }}"
