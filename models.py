@@ -176,7 +176,43 @@ class Listing(db.Model):
     reviewed_at = db.Column(db.DateTime)
     reviewed_by = db.Column(db.String(150))  # free text — there's no per-admin-user login, just a shared password
 
+    # The cover, and the whole of the backward compatibility story. Every
+    # listing that existed before galleries has exactly this and no rows in
+    # listing_images; gallery() falls back to it, so none of them needed a
+    # data migration. When images DO exist it is kept in sync with the first
+    # of them, so anything still reading image_url directly -- the cards, the
+    # CSV export, the sitemap -- keeps working untouched.
     image_url = db.Column(db.String(500))
+
+    images = db.relationship(
+        "ListingImage", backref="listing", lazy=True,
+        cascade="all, delete-orphan", order_by="ListingImage.position")
+
+    def gallery(self):
+        """Every image for this listing, cover first.
+
+        Falls back to the single image_url for rows that predate the gallery.
+        Returns URLs, not records, because that is all any template needs.
+        """
+        if self.images:
+            return [i.url for i in self.images]
+        return [self.image_url] if self.image_url else []
+
+    def cover(self):
+        """The one image to show in a card or a hero, or None.
+
+        Falls through to the linked compound's cover, which is what the
+        templates already did inline before there was anywhere to put it.
+        """
+        shots = self.gallery()
+        if shots:
+            return shots[0]
+        if self.compound and self.compound.cover_image_url:
+            return self.compound.cover_image_url
+        return None
+
+    def image_count(self):
+        return len(self.gallery())
 
     def listing_type_label(self):
         return LISTING_TYPE_LABELS.get(self.listing_type, self.listing_type or "—")
@@ -195,3 +231,27 @@ class Listing(db.Model):
             suffix = f" / {self.rent_cadence}" if self.rent_cadence else ""
             return f"{int(self.rent_amount):,} {self.currency}{suffix}"
         return "Price on request"
+
+
+class ListingImage(db.Model):
+    """One photo on a Listing, ordered by `position` with 0 as the cover.
+
+    `url` holds EITHER a local upload path ("/uploads/<uuid>.jpg") or an
+    external address ("https://..."), exactly as Listing.image_url always
+    has. Calling it `filename` and storing only filenames would have made the
+    admin form's "Or Photo URL" field and the CSV import's `images` column
+    impossible to represent -- both of which carry real URLs.
+
+    That dual meaning is also why deletion has to check the prefix: see
+    delete_upload_if_orphaned() in app.py, which refuses to touch anything
+    that is not under /uploads/.
+    """
+    __tablename__ = "listing_images"
+    id = db.Column(db.Integer, primary_key=True)
+    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    # Gaps and duplicates are tolerated rather than enforced: the admin form
+    # lets a human type the numbers, and renumbering their input behind their
+    # back is worse than a stable sort over whatever they chose.
+    position = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -725,3 +725,60 @@ h1, h2, h3 {
     height: 1px !important;
     overflow: hidden !important;
 }
+
+
+/* ---- Listing photo gallery ------------------------------------------------
+   The thumbnail strip scrolls horizontally with scroll-snap, which gives the
+   swipe behaviour on touch devices for free -- no JS, no library. The only
+   script involved swaps the main image on click. */
+.listing-gallery { padding: 24px 0 0; }
+.lg-main {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    background: #f2f2f2;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.lg-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lg-strip {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+}
+.lg-thumb {
+    flex: 0 0 96px;
+    height: 68px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    overflow: hidden;
+    background: none;
+    cursor: pointer;
+    scroll-snap-align: start;
+}
+.lg-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lg-thumb.is-active { border-color: var(--color-gold, #c9a227); }
+.card-photo-count {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 12px;
+}
+.card-photo-count .fact-icon { width: 14px; height: 14px; }
+/* Admin gallery table thumbnails. */
+.admin-thumb { width: 84px; height: 60px; object-fit: cover; border-radius: 4px; display: block; }
+@media (min-width: 768px) {
+    .lg-main { aspect-ratio: 16 / 9; }
+    .lg-thumb { flex-basis: 120px; height: 84px; }
+}

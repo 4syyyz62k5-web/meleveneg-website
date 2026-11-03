@@ -161,7 +161,11 @@
       </label>
 
       <label for="lp-image-file">Photo (optional)</label>
-      <input type="file" id="lp-image-file" name="image_file" accept="image/*">
+      <input type="file" id="lp-image-file" name="image_files" accept="image/*" multiple>
+      <p class="lp-hint">
+        Up to 6 photos. The first one is used as the cover. They are resized on
+        our side, which also removes the location data your camera stores.
+      </p>
       <label for="lp-image-url">Or Photo URL</label>
       <input type="text" id="lp-image-url" name="image_url" placeholder="https://...">
 

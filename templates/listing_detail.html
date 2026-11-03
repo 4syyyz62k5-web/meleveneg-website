@@ -11,7 +11,28 @@
     }
 </style>
 
-<section class="compound-hero" style="background-image: url('{{ listing.image_url or (listing.compound.cover_image_url if listing.compound else None) or url_for('static', filename='img/placeholder.jpg') }}');">
+{% set shots = listing.gallery() %}
+{% if shots|length > 1 %}
+{# Real <img> elements rather than a CSS background, because a gallery has to
+   be swipeable and a background cannot be. The strip uses scroll-snap, so the
+   swipe is the browser's own -- no library, no build step. #}
+<section class="listing-gallery">
+    <div class="container">
+        <div class="lg-main"><img id="lg-main-img" src="{{ shots[0] }}"
+             alt="{{ listing.title }}" loading="eager"></div>
+        <div class="lg-strip" role="list">
+            {% for shot in shots %}
+            <button type="button" class="lg-thumb{% if loop.first %} is-active{% endif %}"
+                    data-src="{{ shot }}" role="listitem"
+                    aria-label="Photo {{ loop.index }} of {{ shots|length }}">
+                <img src="{{ shot }}" alt="" loading="lazy">
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+<section class="compound-hero" style="background-image: url('{{ listing.cover() or url_for('static', filename='img/placeholder.jpg') }}');">
     <div class="compound-hero-overlay">
         <div class="container">
             <h1>{{ listing.title }}</h1>
@@ -61,4 +82,19 @@
     </div>
 </section>
 
+
+<script>
+(function(){
+  var main = document.getElementById('lg-main-img');
+  if (!main) return;
+  var thumbs = document.querySelectorAll('.lg-thumb');
+  thumbs.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      main.src = btn.getAttribute('data-src');
+      thumbs.forEach(function(b){ b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+    });
+  });
+})();
+</script>
 {% endblock %}

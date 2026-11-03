@@ -27,7 +27,16 @@
                 unit_type, bedrooms, bathrooms, area_sqm, price, rent_amount,
                 rent_cadence, price_per_week, high_season_multiplier, currency,
                 furnishing, condition, legal_status, seller_type, negotiable,
-                owner_name, owner_phone, owner_email, image_url</code>
+                owner_name, owner_phone, owner_email, image_url, images</code>
+            </p>
+            <p class="unit-payment-plan">
+                <code>images</code> takes several photos separated by
+                <code>|</code> and the first one becomes the cover, e.g.
+                <code>https://a/1.jpg|https://a/2.jpg</code>. Values are used
+                as given — a CSV cannot carry the photo itself, so these must
+                already be reachable URLs (or filenames this site has already
+                stored). <code>image_url</code> still works as the
+                single-photo spelling of the same thing.
             </p>
             <p class="unit-payment-plan">
                 <code>listing_type</code> defaults to <code>resale</code>.

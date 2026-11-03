@@ -1,5 +1,6 @@
 import re
 import csv
+import warnings
 import io
 import json
 import os
@@ -24,11 +25,75 @@ load_dotenv()
 import anthropic
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask import Request as FlaskRequest
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.middleware.proxy_fix import ProxyFix
+from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
+
+# iPhones upload HEIC. Without this Pillow cannot open one at all, and the
+# upload fails with something unhelpful about an unidentified file.
+register_heif_opener()
+
 from config import Config
-from models import db, Compound, Unit, Lead, Developer, Listing
+from models import db, Compound, Unit, Lead, Developer, Listing, ListingImage
+
+# Pillow's own default is ~89 MP and only warns. Both are wrong here: no phone
+# produces 40 MP, and a warning is not a defence. A 100 KB PNG can describe a
+# 2 GB bitmap, and the cost lands on decode -- after the upload limit has
+# already been satisfied -- so this is the only place it can be stopped.
+# Set once at import, because it is a module-level Pillow setting rather than
+# anything per-request.
+Image.MAX_IMAGE_PIXELS = Config.IMAGE_MAX_PIXELS
+warnings.simplefilter("error", Image.DecompressionBombWarning)
+
+# Every endpoint that accepts a file, and therefore the only ones allowed a
+# large request body. Taken from a grep of request.files in this file, not from
+# memory: the public listing form, seven admin image forms, and three CSV
+# imports. Miss one and that form starts refusing ordinary uploads with a 413.
+# Verified against app.url_map rather than written from memory: three of these
+# were wrong on the first attempt ("admin_compounds_new" for
+# "admin_compound_new", and so on), and a name that matches no route silently
+# leaves that form on the small limit -- so an ordinary admin photo upload
+# would start failing with a 413 and nothing would say why. There is a test
+# asserting every name here resolves.
+# Open to anyone, so held to the smaller of the two upload ceilings.
+VISITOR_UPLOAD_ENDPOINTS = frozenset({"list_property"})
+
+UPLOAD_ENDPOINTS = frozenset({
+    "list_property",
+    "admin_listing_new", "admin_listing_edit",
+    "admin_compound_new", "admin_compound_edit",
+    "admin_developer_new", "admin_developer_edit",
+    "admin_units", "admin_unit_edit",
+    "admin_compounds_import", "admin_units_import", "admin_listings_import",
+})
+
+
+class RouteAwareRequest(FlaskRequest):
+    """Applies the big body limit on upload endpoints and the small one anywhere else.
+
+    Flask reads MAX_CONTENT_LENGTH through this property, and Werkzeug consults
+    it when the form data is first parsed -- which happens inside the view, by
+    which point url_rule is set. So the endpoint is known in time.
+
+    The alternative was one site-wide ceiling, and neither value works for
+    both: 8 MB made six phone photos impossible, and 48 MB would have let every
+    other form on the site accept 48 MB of anything.
+    """
+
+    @property
+    def max_content_length(self):
+        endpoint = self.url_rule.endpoint if self.url_rule else None
+        if endpoint in VISITOR_UPLOAD_ENDPOINTS:
+            key = "MAX_VISITOR_UPLOAD_CONTENT_LENGTH"
+        elif endpoint in UPLOAD_ENDPOINTS:
+            key = "MAX_UPLOAD_CONTENT_LENGTH"
+        else:
+            key = "MAX_CONTENT_LENGTH"
+        return current_app.config.get(key)
+
 
 def client_ip():
     """The visitor's own address, for rate-limiting purposes.
@@ -81,7 +146,7 @@ limiter = Limiter(key_func=client_ip)
 # (Flask-WTF reads that header by default), so none of them is exempted.
 csrf = CSRFProtect()
 
-ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "heic", "heif"}
 
 # Unit types that are commercial/administrative rather than residential. A
 # compound can be genuinely residential overall (and kept during the
@@ -315,11 +380,18 @@ IMAGE_SIGNATURES = (
 )
 
 
+# HEIC/HEIF is ISO base media format: a 'ftyp' box at offset 4, then a brand.
+# Listed explicitly rather than matched loosely, because the same container
+# shape also carries MP4 video.
+HEIF_BRANDS = {b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevm", b"hevs",
+               b"mif1", b"msf1"}
+
+
 def sniff_image_type(stream):
     """The real format of an uploaded file, or None. Leaves the stream rewound.
 
     WEBP is matched separately because its signature is split: 'RIFF', then a
-    four-byte length, then 'WEBP'.
+    four-byte length, then 'WEBP'. HEIC likewise: a 'ftyp' box and a brand.
     """
     head = stream.read(32)
     stream.seek(0)
@@ -328,13 +400,16 @@ def sniff_image_type(stream):
             return kind
     if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
         return "webp"
+    if head[4:8] == b"ftyp" and head[8:12] in HEIF_BRANDS:
+        return "heic"
     return None
 
 
 # jpg/jpeg name the same format; every other extension must match the sniffed
 # type exactly, so a real PNG called .webp is refused rather than quietly
 # stored under a lying name.
-EQUIVALENT_IMAGE_TYPES = {"jpg": {"jpg", "jpeg"}, "jpeg": {"jpg", "jpeg"}}
+EQUIVALENT_IMAGE_TYPES = {"jpg": {"jpg", "jpeg"}, "jpeg": {"jpg", "jpeg"},
+                          "heic": {"heic", "heif"}, "heif": {"heic", "heif"}}
 
 
 def save_uploaded_image(file_storage, upload_folder):
@@ -365,6 +440,207 @@ def save_uploaded_image(file_storage, upload_folder):
     unique_name = f"{uuid.uuid4().hex}.{actual}"
     file_storage.save(os.path.join(upload_folder, unique_name))
     return unique_name, None
+
+
+def process_image(raw, upload_folder):
+    """Normalises one uploaded image and writes it. Returns (filename, error).
+
+    The order of these steps is load-bearing:
+
+      verify()          decodes enough to prove the bytes are really an image,
+                        which magic-byte sniffing cannot. It CONSUMES the file
+                        object, so the image has to be reopened afterwards --
+                        Pillow documents this and silently misbehaves if you
+                        don't.
+      draft()           tells the JPEG decoder to scale down during decode, so
+                        a 12 MP file never becomes a 12 MP bitmap. It must be
+                        called before any pixel is touched, and the requested
+                        box must be ASPECT-CORRECT: asking for a square
+                        (1600, 1600) against a 4000x3000 photo makes Pillow
+                        refuse the 1/2 step, because the resulting height of
+                        1500 is under the 1600 asked for. Measured on six 12 MP
+                        JPEGs, getting this right took the batch from 2.35s and
+                        135 MB to 1.30s and 57 MB. Written wrong it still works
+                        and saves nothing, which is why it is spelled out here.
+      exif_transpose()  applies the camera's Orientation tag. It has to happen
+                        BEFORE the metadata is dropped, or every phone photo
+                        taken in portrait comes out on its side.
+      flatten           a PNG with transparency saved straight to JPEG raises;
+                        compositing onto white is what a viewer expects anyway.
+      save()            a fresh JPEG with no exif argument, so every tag the
+                        camera wrote -- GPS included -- is gone. That is the
+                        point, not a side effect.
+
+    One image at a time, closed as it goes: six at once in memory is the
+    difference between fitting on a 512 MB instance and not.
+    """
+    cfg = current_app.config
+    max_width = cfg["IMAGE_MAX_WIDTH"]
+    probe = img = None
+    try:
+        probe = Image.open(io.BytesIO(raw))
+        probe.verify()
+    except Exception:
+        return None, "That file is not an image Pillow can read."
+    finally:
+        if probe is not None:
+            probe.close()
+
+    try:
+        img = Image.open(io.BytesIO(raw))
+        if img.format == "JPEG":
+            target_h = max(1, round(img.height * max_width / img.width))
+            img.draft("RGB", (max_width, target_h))
+
+        fixed = ImageOps.exif_transpose(img)
+        if fixed is not img:
+            img.close()
+            img = fixed
+
+        if img.mode in ("RGBA", "LA", "P"):
+            rgba = img.convert("RGBA")
+            flat = Image.new("RGB", rgba.size, (255, 255, 255))
+            flat.paste(rgba, mask=rgba.split()[-1])
+            rgba.close()
+            img.close()
+            img = flat
+        elif img.mode != "RGB":
+            converted = img.convert("RGB")
+            img.close()
+            img = converted
+
+        if img.width > max_width:
+            h = max(1, round(img.height * max_width / img.width))
+            resized = img.resize((max_width, h), Image.LANCZOS)
+            img.close()
+            img = resized
+
+        os.makedirs(upload_folder, exist_ok=True)
+        name = f"{uuid.uuid4().hex}.jpg"
+        img.save(os.path.join(upload_folder, name), "JPEG",
+                 quality=cfg["IMAGE_JPEG_QUALITY"], optimize=True)
+        return name, None
+    except Image.DecompressionBombWarning:
+        return None, "That image is far too large to process."
+    except Exception as e:
+        return None, f"That image could not be processed ({type(e).__name__})."
+    finally:
+        if img is not None:
+            img.close()
+
+
+def save_uploaded_images(files, upload_folder, max_count):
+    """Validates and stores a list of uploads. Returns (filenames, error).
+
+    ALL-OR-NOTHING, deliberately. Every file is checked and processed before
+    any of them counts, and a single bad one discards the whole batch --
+    including deleting the ones already written. A listing that silently kept
+    four of six photos would look finished and be wrong, and the submitter has
+    no way to tell which two went missing.
+    """
+    real = [f for f in files if f and f.filename]
+    if not real:
+        return [], None
+    if len(real) > max_count:
+        return [], (f"Please upload at most {max_count} images "
+                    f"({len(real)} were selected).")
+
+    written = []
+    for f in real:
+        if not allowed_image(f.filename):
+            error = (f"'{f.filename}': images must be one of "
+                     + ", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS)) + ".")
+            break
+        ext = secure_filename(f.filename).rsplit(".", 1)[1].lower()
+        actual = sniff_image_type(f.stream)
+        if actual is None:
+            error = f"'{f.filename}' is not an image, whatever its name says."
+            break
+        if actual not in EQUIVALENT_IMAGE_TYPES.get(ext, {ext}):
+            error = (f"'{f.filename}' is a {actual.upper()} but is named "
+                     f".{ext}. Rename it to match and try again.")
+            break
+        f.stream.seek(0)
+        name, err = process_image(f.stream.read(), upload_folder)
+        if err:
+            error = f"'{f.filename}': {err}"
+            break
+        written.append(name)
+    else:
+        return written, None
+
+    # Reached only via break: undo the partial batch.
+    for name in written:
+        try:
+            os.remove(os.path.join(upload_folder, name))
+        except OSError:
+            pass
+    return [], error + " Nothing was saved -- please fix it and try again."
+
+
+# Every column in this app that can hold an image URL. There are five, and an
+# earlier version of the check below knew about two of them.
+#
+# That was a data-loss bug, not an oversight to tidy later. Upload a compound
+# cover, paste the same /uploads/... path into a listing's "Or Photo URL"
+# field, then delete the listing: the file was unreferenced as far as
+# Listing/ListingImage could see, so it was deleted, and the compound's cover
+# broke on a live page with no way back. Any new image column has to be added
+# here or the same hole reopens.
+IMAGE_URL_COLUMNS = (
+    ("compounds", "cover_image_url"),
+    ("units", "image_url"),
+    ("developers", "logo_url"),
+    ("listings", "image_url"),
+    ("listing_images", "url"),
+)
+
+
+def upload_references(url):
+    """Every place this URL is still referenced, as "table.column" strings.
+
+    Queried as plain SQL over the table list above rather than through the
+    models, so adding a column to IMAGE_URL_COLUMNS is the only change needed
+    and no import can be forgotten.
+    """
+    found = []
+    for table, column in IMAGE_URL_COLUMNS:
+        row = db.session.execute(
+            db.text(f"SELECT 1 FROM {table} WHERE {column} = :u LIMIT 1"),
+            {"u": url},
+        ).first()
+        if row:
+            found.append(f"{table}.{column}")
+    return found
+
+
+def unreferenced_uploads(urls):
+    """Which of `urls` are local uploads that nothing references any more.
+
+    REPORTS ONLY. Nothing in the request path deletes a file: the cost of a
+    wrong answer here is a live page losing its image permanently, and the
+    cost of being wrong the other way is some disk. Actual removal lives in
+    scripts/list_orphan_uploads.py and needs an explicit --delete.
+    """
+    out = []
+    for url in dict.fromkeys(urls):
+        if not url or not url.startswith("/uploads/"):
+            continue        # external address: never ours to touch
+        base = os.path.basename(url)
+        if not base or base != secure_filename(base):
+            continue
+        if not upload_references(url):
+            out.append(url)
+    return out
+
+
+def report_unreferenced(urls, context):
+    """Logs what became unreferenced. Deletes nothing. Returns the count."""
+    orphans = unreferenced_uploads(urls)
+    for url in orphans:
+        print(f"[uploads] {context}: {url} is no longer referenced "
+              f"(NOT deleted -- run scripts/list_orphan_uploads.py)")
+    return len(orphans)
 
 
 # The values these fields are allowed to hold, taken from the <select> options
@@ -637,6 +913,7 @@ def validate_listing_enums(form):
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.request_class = RouteAwareRequest
     # Render terminates TLS in front of the app, so without this url_for(...,
     # _external=True) builds http:// links and request.is_secure is False.
     # The rate-limit key does NOT depend on this -- see client_ip().
@@ -667,8 +944,15 @@ def create_app():
     def handle_too_large(e):
         """Over MAX_CONTENT_LENGTH. Flask aborts before any route runs, so
         this is the only place that can explain it."""
-        limit_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
-        flash(f"That file is too large. The limit is {limit_mb} MB — "
+        endpoint = request.url_rule.endpoint if request.url_rule else None
+        if endpoint in VISITOR_UPLOAD_ENDPOINTS:
+            key = "MAX_VISITOR_UPLOAD_CONTENT_LENGTH"
+        elif endpoint in UPLOAD_ENDPOINTS:
+            key = "MAX_UPLOAD_CONTENT_LENGTH"
+        else:
+            key = "MAX_CONTENT_LENGTH"
+        limit_mb = app.config[key] // (1024 * 1024)
+        flash(f"That upload is too large. The limit here is {limit_mb} MB — "
               f"nothing was saved.", "error")
         return redirect(request.referrer or url_for("list_property")), 303
 
@@ -1975,16 +2259,20 @@ def create_app():
                 return redirect(url_for("list_property"))
 
             image_url = request.form.get("image_url", "").strip()
-            uploaded_name, upload_error = save_uploaded_image(
-                request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
+            names, upload_error = save_uploaded_images(
+                request.files.getlist("image_files") + request.files.getlist("image_file"),
+                app.config["UPLOAD_FOLDER"],
+                app.config["LISTING_MAX_IMAGES_VISITOR"])
             if upload_error:
-                # The photo is optional, but a rejected one must not be passed
-                # over in silence -- the submitter needs to know it is missing.
-                flash(upload_error + " The rest of your listing was not submitted.",
-                      "error")
+                # The photos are optional, but a rejected batch must not be
+                # passed over in silence -- the submitter needs to know.
+                flash(upload_error, "error")
                 return redirect(url_for("list_property"))
-            if uploaded_name:
-                image_url = url_for("uploaded_file", filename=uploaded_name)
+            gallery_urls = [url_for("uploaded_file", filename=n) for n in names]
+            if image_url:
+                gallery_urls.append(image_url)
+            if gallery_urls:
+                image_url = gallery_urls[0]
 
             listing = Listing(
                 listing_type=listing_type,
@@ -2014,6 +2302,9 @@ def create_app():
                 image_url=image_url,
             )
             db.session.add(listing)
+            db.session.flush()          # need listing.id for the image rows
+            for i, u in enumerate(gallery_urls):
+                db.session.add(ListingImage(listing_id=listing.id, url=u, position=i))
             db.session.commit()
             flash("Thanks! Your listing has been submitted and is pending review — we'll publish it once approved.", "success")
             return redirect(url_for("list_property"))
@@ -2640,57 +2931,31 @@ def create_app():
     def admin_listing_edit(listing_id):
         listing = Listing.query.get_or_404(listing_id)
         if request.method == "POST":
-            listing_type = request.form.get("listing_type", "").strip()
-            if listing_type in ALLOWED_LISTING_TYPES:
-                listing.listing_type = listing_type
-
-            listing.compound_id = request.form.get("compound_id") or None
-            listing.title = request.form.get("title", "").strip()
-            listing.area = request.form.get("area", "").strip()
-            listing.location = request.form.get("location", "").strip()
-            listing.unit_type = request.form.get("unit_type", "").strip()
-            listing.bedrooms = request.form.get("bedrooms") or None
-            listing.bathrooms = request.form.get("bathrooms") or None
-            listing.area_sqm = request.form.get("area_sqm") or None
-            listing.price = request.form.get("price") or None
-            listing.rent_amount = request.form.get("rent_amount") or None
-            listing.rent_cadence = request.form.get("rent_cadence", "").strip()
-            listing.price_per_week = request.form.get("price_per_week") or None
-            listing.high_season_multiplier = request.form.get("high_season_multiplier") or None
-            enums, enum_errors = validate_listing_enums(request.form)
-            if enum_errors:
-                for message in enum_errors:
+            updated, errors = _listing_from_form(request.form, request.files, listing)
+            if errors:
+                for message in errors:
                     flash(message, "error")
                 return redirect(url_for("admin_listing_edit", listing_id=listing.id))
-            listing.furnishing = enums["furnishing"]
-            listing.condition = enums["condition"]
-            listing.legal_status = enums["legal_status"]
-            listing.seller_type = enums["seller_type"]
-            listing.negotiable = bool(request.form.get("negotiable"))
-            listing.owner_name = request.form.get("owner_name", "").strip()
-            listing.owner_phone = request.form.get("owner_phone", "").strip()
-            # owner_email was on the model, collected by the public form and
-            # added by the self-healing migration, but had no input here and
-            # was never assigned -- so a wrong address could be read in /admin
-            # and never corrected from it.
-            listing.owner_email = request.form.get("owner_email", "").strip()
 
-            image_url = request.form.get("image_url", "").strip()
-            uploaded_name, upload_error = save_uploaded_image(
-                request.files.get("image_file"), app.config["UPLOAD_FOLDER"])
-            if upload_error:
-                flash(upload_error, "error")
-            if uploaded_name:
-                image_url = url_for("uploaded_file", filename=uploaded_name)
-            listing.image_url = image_url
-
+            _sync_gallery(listing, updated._gallery_urls)
             db.session.commit()
-            flash("Listing updated.", "success")
+            # After the commit, never before: a rollback would otherwise leave
+            # restored rows pointing at files that are gone.
+            # Reported, not removed -- see unreferenced_uploads().
+            loose = report_unreferenced(updated._sweep_urls,
+                                        f"listing {listing.id} edited")
+            msg = "Listing updated."
+            if loose:
+                msg += (f" {loose} image file(s) are now unused; they are kept "
+                        f"on disk until you run the cleanup script.")
+            flash(msg, "success")
             return redirect(url_for("admin_listing_review", listing_id=listing.id))
 
         compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
         return render_template("admin/listing_form.html", listing=listing,
-                               compounds_for_link=compounds_for_link)
+                               compounds_for_link=compounds_for_link,
+                               max_images=app.config["LISTING_MAX_IMAGES_ADMIN"],
+                               image_max_width=app.config["IMAGE_MAX_WIDTH"])
 
     # Fields the CSV import reads, in this order. Mirrors the Listing model and
     # the admin form; `title` is the only one that is required, exactly as on
@@ -2702,7 +2967,7 @@ def create_app():
         "rent_amount", "rent_cadence", "price_per_week",
         "high_season_multiplier", "currency", "furnishing", "condition",
         "legal_status", "seller_type", "negotiable", "owner_name",
-        "owner_phone", "owner_email", "image_url",
+        "owner_phone", "owner_email", "image_url", "images",
     ]
 
     def _listing_from_form(form, files, listing=None):
@@ -2723,15 +2988,62 @@ def create_app():
         enums, enum_errors = validate_listing_enums(form)
         errors.extend(enum_errors)
 
-        image_url = (form.get("image_url") or "").strip()
-        uploaded_name, upload_error = save_uploaded_image(
-            files.get("image_file"), app.config["UPLOAD_FOLDER"])
+        # New uploads, the optional external URL, and -- when editing -- the
+        # existing rows with whatever positions, cover choice and deletions the
+        # admin asked for. Resolved into one ordered list of URLs, with the
+        # sweep list for files that stopped being referenced.
+        existing = list(listing.images) if listing else []
+        kept, removed_urls = [], []
+        for row in existing:
+            if form.get(f"delete_image_{row.id}"):
+                removed_urls.append(row.url)
+                continue
+            raw_pos = (form.get(f"position_{row.id}") or "").strip()
+            try:
+                pos = int(raw_pos)
+            except ValueError:
+                pos = row.position
+            kept.append((pos, row.url))
+
+        names, upload_error = save_uploaded_images(
+            files.getlist("image_files") + files.getlist("image_file"),
+            app.config["UPLOAD_FOLDER"],
+            app.config["LISTING_MAX_IMAGES_ADMIN"])
         if upload_error:
             errors.append(upload_error)
-        if uploaded_name:
-            image_url = url_for("uploaded_file", filename=uploaded_name)
+
+        # New ones land after everything kept, in the order they were chosen.
+        start = max((p for p, _ in kept), default=-1) + 1
+        for i, n in enumerate(names):
+            kept.append((start + i, url_for("uploaded_file", filename=n)))
+        external = (form.get("image_url") or "").strip()
+        if external and external not in [u for _, u in kept]:
+            kept.append((max((p for p, _ in kept), default=-1) + 1, external))
+
+        # Stable sort, so equal positions keep the order they were listed in
+        # rather than being shuffled -- the admin types these numbers by hand
+        # and duplicates are expected.
+        kept.sort(key=lambda pair: pair[0])
+        ordered = [u for _, u in kept]
+
+        cover_url = (form.get("cover_url") or "").strip()
+        if cover_url and cover_url in ordered:
+            ordered.remove(cover_url)
+            ordered.insert(0, cover_url)
+
+        total_cap = app.config["LISTING_MAX_IMAGES_ADMIN"]
+        if len(ordered) > total_cap:
+            errors.append(f"A listing can hold at most {total_cap} images "
+                          f"({len(ordered)} would result).")
 
         if errors:
+            # Nothing is committed, so the just-written files are orphans
+            # already: remove them here rather than leaving them on the disk.
+            for n in names:
+                try:
+                    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], n))
+                except OSError:
+                    pass
             return None, errors
 
         target = listing or Listing()
@@ -2758,8 +3070,25 @@ def create_app():
         target.owner_name = (form.get("owner_name") or "").strip()
         target.owner_phone = (form.get("owner_phone") or "").strip()
         target.owner_email = (form.get("owner_email") or "").strip()
-        target.image_url = image_url
+        # image_url stays the cover, so everything still reading it directly
+        # keeps working. Nothing else in this function writes it.
+        target.image_url = ordered[0] if ordered else ""
+        target._gallery_urls = ordered
+        target._sweep_urls = removed_urls
         return target, []
+
+    def _sync_gallery(listing, urls):
+        """Replaces a listing's image rows with `urls`, cover first.
+
+        Rebuilt rather than diffed: the admin form submits the whole desired
+        order every time, so reconciling row by row would be more code for the
+        same result.
+        """
+        for row in list(listing.images):
+            db.session.delete(row)
+        db.session.flush()
+        for i, u in enumerate(urls):
+            db.session.add(ListingImage(listing_id=listing.id, url=u, position=i))
 
     @app.route("/admin/listings/new", methods=["GET", "POST"])
     @login_required
@@ -2788,13 +3117,18 @@ def create_app():
             listing.reviewed_at = datetime.utcnow()
             listing.reviewed_by = (request.form.get("reviewed_by") or "").strip() or "Admin"
             db.session.add(listing)
+            db.session.flush()
+            _sync_gallery(listing, listing._gallery_urls)
             db.session.commit()
-            flash(f"'{listing.title}' added and published.", "success")
+            flash(f"'{listing.title}' added and published with "
+                  f"{len(listing._gallery_urls)} image(s).", "success")
             return redirect(url_for("admin_listing_review", listing_id=listing.id))
 
         compounds_for_link = Compound.query.filter_by(is_published=True).order_by(Compound.name.asc()).all()
         return render_template("admin/listing_form.html", listing=None,
-                               compounds_for_link=compounds_for_link)
+                               compounds_for_link=compounds_for_link,
+                               max_images=app.config["LISTING_MAX_IMAGES_ADMIN"],
+                               image_max_width=app.config["IMAGE_MAX_WIDTH"])
 
     @app.route("/admin/listings/import", methods=["POST"])
     @login_required
@@ -2873,9 +3207,22 @@ def create_app():
                 owner_name=(row.get("owner_name") or "").strip(),
                 owner_phone=(row.get("owner_phone") or "").strip(),
                 owner_email=(row.get("owner_email") or "").strip(),
-                image_url=(row.get("image_url") or "").strip(),
             )
+            # `images` is pipe-separated and the first entry is the cover.
+            # Values are used as given -- a URL or a filename this app already
+            # wrote -- because a CSV cannot carry bytes to process. image_url
+            # stays supported as the single-image spelling of the same thing.
+            shots = [u.strip() for u in (row.get("images") or "").split("|")
+                     if u.strip()]
+            single = (row.get("image_url") or "").strip()
+            if single and single not in shots:
+                shots.append(single)
+            listing.image_url = shots[0] if shots else ""
             db.session.add(listing)
+            db.session.flush()
+            for pos, u in enumerate(shots):
+                db.session.add(ListingImage(listing_id=listing.id, url=u,
+                                            position=pos))
             print(f"[listings import] '{title}' -> {listing_type}, "
                   f"compound_slug='{slug}' -> compound_id={compound_id}")
             created += 1
@@ -2966,9 +3313,15 @@ def create_app():
     @login_required
     def admin_listing_delete(listing_id):
         listing = Listing.query.get_or_404(listing_id)
+        # Collected before the delete, swept after the commit. The rows have to
+        # be gone before unreferenced_uploads() can see them as unused.
+        owned = listing.gallery() + ([listing.image_url] if listing.image_url else [])
         db.session.delete(listing)
         db.session.commit()
-        flash("Listing deleted.", "success")
+        loose = report_unreferenced(owned, f"listing {listing_id} deleted")
+        flash("Listing deleted." + (f" {loose} image file(s) are now unused "
+                                    f"and were kept on disk." if loose else ""),
+              "success")
         return redirect(url_for("admin_listings"))
 
     return app

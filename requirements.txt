@@ -7,3 +7,9 @@ Flask-WTF==1.2.1
 email-validator==2.1.1
 anthropic==0.122.0
 flask-limiter==3.11.0
+# Server-side image processing: downscale, re-encode, strip EXIF (GPS).
+Pillow==11.3.0
+# HEIC/HEIF support, because that is what iPhones upload. Ships manylinux
+# wheels for 3.12, so Render installs it without building libheif from source
+# -- check the build log says 'Downloading pillow_heif...whl', not 'Building'.
+pillow-heif==0.22.0

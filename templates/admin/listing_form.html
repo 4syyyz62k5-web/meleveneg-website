@@ -126,13 +126,45 @@
             Price is negotiable
         </label>
 
-        <label>Photo</label>
-        {% if listing and listing.image_url %}
-        <p class="unit-payment-plan">Current photo: <a href="{{ listing.image_url }}" target="_blank">view</a></p>
+        <label>Photos</label>
+        {% if listing and listing.images %}
+        {# Numbers and a radio rather than drag-and-drop: this repo has no
+           build step and no JS framework, and a number box that works
+           everywhere beats a drag handle that needs one. Equal numbers keep
+           the order shown, so partial edits behave predictably. #}
+        <table class="admin-table listing-images-table">
+            <thead>
+                <tr><th>Preview</th><th>Order</th><th>Cover</th><th>Delete</th></tr>
+            </thead>
+            <tbody>
+            {% for img in listing.images %}
+                <tr>
+                    <td><a href="{{ img.url }}" target="_blank" rel="noopener">
+                        <img src="{{ img.url }}" alt="" class="admin-thumb"></a></td>
+                    <td><input type="number" name="position_{{ img.id }}"
+                               value="{{ img.position }}" min="0" step="1" style="width:5rem"></td>
+                    <td><input type="radio" name="cover_url" value="{{ img.url }}"
+                               {% if loop.first %}checked{% endif %}></td>
+                    <td><input type="checkbox" name="delete_image_{{ img.id }}"></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <p class="unit-payment-plan">
+            The lowest Order number is the cover unless you pick one above.
+            Deleting here removes the file from disk once nothing else uses it.
+        </p>
         {% endif %}
-        <input type="file" name="image_file" accept="image/*">
-        <label>Or Photo URL (used only if you don't upload a photo above)</label>
-        <input type="text" name="image_url" value="{{ (listing.image_url or '') if listing else '' }}" placeholder="https://...">
+
+        <label>Add photos (you can select several at once)</label>
+        <input type="file" name="image_files" accept="image/*" multiple>
+        <p class="unit-payment-plan">
+            Up to {{ max_images }} per listing. Every image is re-encoded at
+            most {{ image_max_width }}px wide, which also strips the camera
+            metadata — including GPS location.
+        </p>
+        <label>Or add one Photo URL</label>
+        <input type="text" name="image_url" value="" placeholder="https://...">
 
         <div class="admin-form-row">
             <div>
