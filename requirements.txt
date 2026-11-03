@@ -9,7 +9,19 @@ anthropic==0.122.0
 flask-limiter==3.11.0
 # Server-side image processing: downscale, re-encode, strip EXIF (GPS).
 Pillow==11.3.0
-# HEIC/HEIF support, because that is what iPhones upload. Ships manylinux
-# wheels for 3.12, so Render installs it without building libheif from source
-# -- check the build log says 'Downloading pillow_heif...whl', not 'Building'.
-pillow-heif==0.22.0
+# pillow-heif is DELIBERATELY ABSENT, and this note is here so nobody adds it
+# back blind.
+#
+# Render runs Python 3.14.3 -- it ignores runtime.txt, which still asks for
+# 3.12.7. pillow-heif 0.22.0 publishes no cp314 wheel, so pip fell back to
+# building it from source, that needs a newer libheif than the image carries,
+# and the whole deploy failed. Pillow itself is fine: 11.3.0 does ship a
+# cp314 manylinux wheel.
+#
+# HEIC is therefore refused with a message telling the uploader to send JPG or
+# PNG (see HEIF_AVAILABLE in app.py), and the app boots whether the library is
+# installed or not.
+#
+# TO BRING HEIC BACK: pillow-heif 1.8.1 DOES have a cp314 manylinux x86_64
+# wheel. It is a major version up from 0.22, so verify register_heif_opener()
+# still behaves before relying on it.

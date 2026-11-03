@@ -30,11 +30,25 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.middleware.proxy_fix import ProxyFix
 from PIL import Image, ImageOps
-from pillow_heif import register_heif_opener
 
-# iPhones upload HEIC. Without this Pillow cannot open one at all, and the
-# upload fails with something unhelpful about an unidentified file.
-register_heif_opener()
+# HEIC is what iPhones upload, and Pillow cannot open one without pillow-heif.
+# The library is NOT installed: Render runs Python 3.14.3 and pillow-heif
+# 0.22.0 has no cp314 wheel, so pip tried to build it against a libheif too
+# old to compile it and took the whole deploy down with it.
+#
+# So the import is optional and the app boots either way. HEIC is still
+# DETECTED (see sniff_image_type) and then refused with a message naming a
+# format that will work -- which is the one thing worse than not supporting a
+# format: accepting the file and failing later with something unreadable.
+#
+# requirements.txt records how to restore it.
+try:
+    from pillow_heif import register_heif_opener
+
+    register_heif_opener()
+    HEIF_AVAILABLE = True
+except ImportError:
+    HEIF_AVAILABLE = False
 
 from config import Config
 from models import db, Compound, Unit, Lead, Developer, Listing, ListingImage
@@ -430,6 +444,10 @@ def save_uploaded_image(file_storage, upload_folder):
     actual = sniff_image_type(file_storage.stream)
     if actual is None:
         return None, "That file is not an image, whatever its name says."
+    if actual == "heic" and not HEIF_AVAILABLE:
+        return None, ("That's a HEIC photo, which isn't supported at the "
+                      "moment. Please upload it as JPG or PNG — on an iPhone, "
+                      "Settings > Camera > Formats > Most Compatible.")
     if actual not in EQUIVALENT_IMAGE_TYPES.get(ext, {ext}):
         return None, (f"That file is a {actual.upper()} but is named .{ext}. "
                       f"Rename it to match and try again.")
@@ -555,6 +573,11 @@ def save_uploaded_images(files, upload_folder, max_count):
         actual = sniff_image_type(f.stream)
         if actual is None:
             error = f"'{f.filename}' is not an image, whatever its name says."
+            break
+        if actual == "heic" and not HEIF_AVAILABLE:
+            error = (f"'{f.filename}' is a HEIC photo, which isn't supported "
+                     f"at the moment. Please upload it as JPG or PNG — on an "
+                     f"iPhone, Settings > Camera > Formats > Most Compatible.")
             break
         if actual not in EQUIVALENT_IMAGE_TYPES.get(ext, {ext}):
             error = (f"'{f.filename}' is a {actual.upper()} but is named "
