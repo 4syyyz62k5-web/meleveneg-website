@@ -24,7 +24,37 @@ Seed sample data (one compound with a few units) once the DB exists:
 python seed.py
 ```
 
-There is no test suite, linter, or build step in this repo — don't invent commands for these.
+There is no linter or build step in this repo — don't invent commands for those.
+
+There IS a test suite, in `tests/`:
+
+```bash
+python3 tests/run_all.py          # all of it, one total
+python3 tests/run_all.py -v       # stream each suite's output
+python3 tests/test_spam.py        # one suite on its own
+```
+
+It takes a couple of minutes: the timing-gate tests sleep for real, and the
+gallery suite builds six 12MP JPEGs to measure the upload path.
+
+Three things about it are load-bearing, and all three exist because something
+got past the tests once:
+
+- **`tests/support.py` must be imported before anything touches `app`.** It
+  sets the environment `Config` reads at import time, registers a
+  `PRAGMA foreign_keys=ON` listener, and hands back the app.
+- **SQLite does not enforce foreign keys unless told.** Postgres always does.
+  A live 500 (deleting a listing that had a Lead pointing at it) passed 195
+  local tests because of that gap. The PRAGMA closes it — and it has to be
+  registered before the first connection, or it silently does nothing.
+- **Use the module-level `app`, never a second `create_app()`.** `app.py` ends
+  with `app = create_app()`, so a second call re-registers every
+  `@limiter.limit` and the limiter then counts each request twice — which made
+  a correct "3 per minute" read as 1 per minute.
+
+The gallery suite is run twice by `run_all.py`: once as installed, once with
+`pillow_heif` hidden at import, because production has no cp314 wheel for it
+and therefore takes the HEIC *refusal* branch rather than the conversion one.
 
 ## Deployment
 
